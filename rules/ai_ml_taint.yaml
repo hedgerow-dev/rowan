@@ -61,6 +61,14 @@ rules:
               - pattern: pickle.loads($DATA)
               - pattern: dill.load($DATA)
               - pattern: dill.loads($DATA)
+              - pattern: cloudpickle.load($DATA)
+              - pattern: cloudpickle.loads($DATA)
+              # Unpickler(stream).load(): taint reaches the constructor
+              # through io.BytesIO(...) wrappers. A subclass with its own
+              # find_class is constructed under its own name and not matched.
+              - pattern: pickle.Unpickler($DATA)
+              - pattern: cPickle.Unpickler($DATA)
+              - pattern: dill.Unpickler($DATA)
               - pattern: torch.load($DATA)
               - pattern: joblib.load($DATA)
     pattern-sanitizers:
