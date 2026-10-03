@@ -4316,7 +4316,8 @@ def _match_findings_to_functions(
     through so the regex-finding branch below can classify sink-ness from
     each rule's declared category instead of the hand-maintained prefix list.
     `def_nodes_by_line` lets it drop CWE-78 regex hits on safe list-form
-    subprocess calls (XF-26); without it every hit is kept.
+    subprocess calls (XF-26) and SQL-keyword hits on log messages;
+    without it every hit is kept.
     """
     by_file: dict[str, list[_FunctionSig]] = {}
     log_message_lines: dict[tuple[str, str, int], set[int]] = {}

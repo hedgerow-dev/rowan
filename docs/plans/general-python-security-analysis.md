@@ -67,7 +67,7 @@ complex returned authorization protocols are not claimed as covered.
   8330dfe987988c1bcbbc5e8d9af9a67e5a1c2744 passes with the prescribed command:
   2,723 files, zero HIGH/CRITICAL findings, and no degraded passes. The gate
   checks completeness and HIGH/CRITICAL claims; it is not a measurement of
-  every lower-severity claim. Langflow and PyTorch gates have not been run.
+  every lower-severity claim. Subsequent gate results are recorded below.
 - Local Modelbay regression: 60/82 versus 46/82 at the original PR head. The
   new detections were adjudicated by defect and function anchor; safe-twin
   results are unchanged. Added claims outside its key are explicitly recorded
@@ -91,8 +91,10 @@ gate on two HIGH cross-file SQL claims. Both originate in an async version-warni
 log containing the word "update". The follow-up extends logging-message recognition
 to async log methods and applies it before cross-file sink attribution. SQL executed
 inside a logging argument and separate query strings on the same line remain sinks.
-Production-pipeline helper/caller pairs cover both outcomes. The full gate is being
-rerun after the fix; PyTorch's scan is still running.
+Production-pipeline helper/caller pairs cover both outcomes. The full Langflow rerun
+passes at 26dc6fd3bc3a49178022b81c58e44a7d0a659a34: 5,878 files, complete coverage,
+zero HIGH/CRITICAL, no degraded passes, 416.7 seconds. Seven false SQL claims on
+log messages were removed and no claims added. PyTorch's scan is still running.
 
 Remaining precision work needs broader evidence:
 - Numeric logging needs field-sensitive provenance through ORM reads, helper

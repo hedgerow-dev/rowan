@@ -164,7 +164,7 @@ def _fstring_lines(node: ast.AST) -> set[int]:
 
 
 def logging_fstring_lines(tree: ast.AST) -> set[int]:
-    """Line numbers occupied by an f-string that is (at any depth) an argument
+    """Line numbers occupied by an f-string that is a direct argument
     to a logging/print call: `logger.warning(f"... {x}")`, `print(f"...")`.
     Used to suppress SQL-keyword f-string findings that are really log
     messages (#304). Multi-line calls are handled by spanning each f-string's
