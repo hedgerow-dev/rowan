@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.3.3 (alpha)
+
+- Require Hayward 1.2.5: distinguish TorchScript graph source from packaged
+  Python, retain source presence as LOW, and report explicit packaged execution
+  operations separately. Source inspection is bounded and never executes model code.
+- Preserve model source presence as inventory in JSON and enrichment.
+- Retain pickle detection and incomplete-coverage warnings independently.
+
+Untrusted models remain programs. Static source analysis does not establish
+reachability or malicious intent and does not fully assess graph/runtime behavior.
+
 ## v0.3.2 (alpha)
 
 Improve Python detection across helpers, imports, and equivalent API layouts.

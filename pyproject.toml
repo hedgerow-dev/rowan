@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rowan-sast"
-version = "0.3.2"
+version = "0.3.3"
 description = "Open-source SAST scanner using Opengrep's taint analysis engine"
 readme = "README.md"
 license = "MIT"
@@ -27,7 +27,7 @@ keywords = ["security", "sast", "static-analysis", "taint-analysis", "opengrep"]
 dependencies = [
     "click>=8.0,<9.0",
     "defusedxml>=0.7,<1.0",
-    "hayward>=1.2.4,<2.0",
+    "hayward>=1.2.5,<2.0",
     "rich>=13.0,<14.0",
     "pyyaml>=6.0,<7.0",
     "pydantic>=2.0,<3.0",
