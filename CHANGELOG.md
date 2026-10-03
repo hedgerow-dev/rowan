@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.3.2 (alpha)
+
+Improve Python detection across helpers, imports, and equivalent API layouts.
+
+- Resolve static XML parser options passed through keyword dictionaries at the
+  actual parser call, avoiding findings on unused option dictionaries.
+- Follow request-derived streams through wrappers and repository helpers into
+  `Unpickler.load()`. Preserve distinct deserialization sinks when deduplicating.
+- Infer privilege fields from application guards and follow manually decoded,
+  unsigned JWT claims into identity and privilege use.
+- Analyze object reads through repository helpers and returned permission pairs;
+  report unresolved imported object reads as authorization coverage signals.
+- Add `request.stream` and `request.get_json()` to shared request-source coverage.
+- Exclude resolved standard-library regex searches from vector-store and LDAP
+  claims, and keep async log messages out of cross-file SQL sink summaries.
+
+Analysis remains bounded and conservative. Dynamic dispatch, restricted-unpickler
+allow-list gadgets, complex authorization protocols, and dynamic XML options
+remain coverage limits. Findings remain review leads.
+
 ## v0.3.1 (alpha)
 
 Documentation and packaging only; scanning behaviour is unchanged.
