@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 
 import pytest
 
+from rowan.analysis.python_functions import FunctionIndex
+from rowan.analysis.xml_parser_options import parser_option_findings
 from rowan.core.rules import load_neuroscan_rules
 
 RULES_DIR = Path(__file__).parent.parent / "rules"
@@ -34,7 +37,7 @@ class TestLxmlXxe:
     def test_unsafe_options_are_flagged(self, tmp_path, body):
         f = tmp_path / "app.py"
         f.write_text("from lxml import etree\n" + body)
-        assert len(_rule("ns-websec-611-001").check(f)) >= 1
+        assert parser_option_findings(FunctionIndex({f: ast.parse(f.read_text())}))
 
     @pytest.mark.parametrize(
         "body",
@@ -47,4 +50,23 @@ class TestLxmlXxe:
     def test_safe_options_are_not_flagged(self, tmp_path, body):
         f = tmp_path / "app.py"
         f.write_text("from lxml import etree\n" + body)
-        assert _rule("ns-websec-611-001").check(f) == []
+        assert not parser_option_findings(FunctionIndex({f: ast.parse(f.read_text())}))
+
+
+@pytest.mark.parametrize('body', [
+    'UNUSED = {"resolve_entities": True}\nparser = etree.XMLParser()\n',
+    'options = {"resolve_entities": True}\noptions["resolve_entities"] = False\nparser = etree.XMLParser(**options)\n',
+    'options = {"resolve_entities": True}\noptions.update(external)\nparser = etree.XMLParser(**options)\n',
+])
+def test_unused_or_unproven_parser_options_do_not_report(tmp_path, body):
+    path = tmp_path / 'xml.py'
+    tree = ast.parse('from lxml import etree\n' + body)
+    assert not parser_option_findings(FunctionIndex({path: tree}))
+
+
+def test_parser_import_alias_and_spread_at_call(tmp_path):
+    path = tmp_path / 'xml.py'
+    tree = ast.parse('from lxml.etree import XMLParser as Parser\nOPTIONS = {"resolve_entities": True}\nBASE = {**OPTIONS, "load_dtd": True}\ndef parse():\n    return Parser(**BASE)\n')
+    findings = parser_option_findings(FunctionIndex({path: tree}))
+    assert len(findings) == 1
+    assert findings[0].start_line == 5

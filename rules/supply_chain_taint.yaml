@@ -30,6 +30,8 @@ rules:
               - pattern: request.json.get(...)
               - pattern: request.json[...]
               - pattern: request.data
+              - pattern: request.stream
+              - pattern: request.get_json(...)
               - pattern: request.values.get(...)
               - pattern: request.files.get(...)
               - pattern: request.cookies.get(...)
@@ -106,6 +108,8 @@ rules:
               - pattern: request.json.get(...)
               - pattern: request.json[...]
               - pattern: request.data
+              - pattern: request.stream
+              - pattern: request.get_json(...)
               - pattern: request.values.get(...)
               - pattern: request.files.get(...)
               - pattern: request.cookies.get(...)
@@ -184,6 +188,8 @@ rules:
               - pattern: request.json.get(...)
               - pattern: request.json[...]
               - pattern: request.data
+              - pattern: request.stream
+              - pattern: request.get_json(...)
               - pattern: request.values.get(...)
               - pattern: request.files.get(...)
               - pattern: request.cookies.get(...)
@@ -252,6 +258,8 @@ rules:
               - pattern: request.json.get(...)
               - pattern: request.json[...]
               - pattern: request.data
+              - pattern: request.stream
+              - pattern: request.get_json(...)
               - pattern: request.values.get(...)
               - pattern: request.files.get(...)
               - pattern: request.cookies.get(...)

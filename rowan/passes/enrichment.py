@@ -1141,7 +1141,7 @@ class EnrichmentPass:
         # before the distinct rule ids kept them apart. callee_name is None
         # for every non-cross-file rule, so this is a no-op there.
         groups: dict[
-            tuple[str, str, str | None, str | None, str | None, str | None], list[Finding]
+            tuple[str, str, str | None, str | None, str | None, str | None, object], list[Finding]
         ] = defaultdict(list)
         for f in findings:
             groups[
@@ -1155,6 +1155,14 @@ class EnrichmentPass:
                     # components collapse into one report.
                     f.metadata.get("package"),
                     f.metadata.get("version"),
+                    # Proven operations keep their sink identity. Multiple source
+                    # paths to one unpickling operation merge; nearby operations
+                    # remain distinct rather than collapsing by file proximity.
+                    f.metadata.get("operation_id") or (
+                        (f.taint_flow.sink.file_path, f.taint_flow.sink.line, f.taint_flow.sink.column)
+                        if f.rule_id == "TNT-DESER-001" and f.taint_flow and f.taint_flow.sink
+                        else (f.start_line, f.start_column) if f.rule_id == "TNT-DESER-001" else None
+                    ),
                 )
             ].append(f)
 
@@ -1166,6 +1174,7 @@ class EnrichmentPass:
             _callee_name,
             _package,
             _version,
+            _operation,
         ), group in groups.items():
             group.sort(key=lambda f: f.start_line)
             window = 5 if rule_id.startswith("NS-") else 10

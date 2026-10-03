@@ -279,3 +279,9 @@ def test_reserved_name_check_does_not_make_username_a_privilege_field(tmp_path: 
         encoding="utf-8",
     )
     assert not _privilege_findings(tmp_path)
+
+
+def test_privilege_discovery_getattr_arbitrary_field(tmp_path: Path) -> None:
+    code = _SIGNUP.format(field="clearance").replace('g.clearance != "admin"', 'getattr(g, "clearance", "member") != "admin"')
+    (tmp_path / "app.py").write_text(code)
+    assert _privilege_findings(tmp_path)

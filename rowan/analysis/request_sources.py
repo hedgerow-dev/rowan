@@ -22,7 +22,7 @@ import re
 # ---------------------------------------------------------------------------
 KNOWN_SOURCE_PREFIXES: tuple[str, ...] = (
     "request.args", "request.form", "request.values", "request.files",
-    "request.json", "request.get_json", "request.data", "request.cookies",
+    "request.json", "request.get_json", "request.data", "request.stream", "request.cookies",
     "request.headers", "request.GET", "request.POST", "request.body",
     "request.query_params", "request.path_params",
     "sys.argv", "flask.request",
@@ -196,3 +196,26 @@ def expr_reads_llm_output(expr: ast.expr) -> bool:
 def function_reads_llm_output(node: ast.AST) -> bool:
     """True if the function body reads model output anywhere."""
     return any(call_returns_llm_output(child) for child in ast.walk(node))
+
+
+def route_input_names(func: ast.FunctionDef | ast.AsyncFunctionDef) -> set[str]:
+    """Framework-bound route/query/body parameters, excluding dependencies.
+
+    Route parameters are external inputs even without a request object (Flask
+    path arguments and FastAPI typed parameters). Dependency providers retain
+    their own trust contract and are not treated as client-controlled.
+    """
+    if not is_http_route(func):
+        return set()
+    args = func.args.posonlyargs + func.args.args
+    defaults = [None] * (len(args) - len(func.args.defaults)) + list(func.args.defaults)
+    pairs = [*zip(args, defaults, strict=True), *zip(func.args.kwonlyargs, func.args.kw_defaults, strict=True)]
+    return {
+        arg.arg for arg, default in pairs
+        if arg.arg not in {'self', 'cls', 'request', 'req'}
+        and not (isinstance(default, ast.Call) and dotted_name(default.func).rsplit('.', 1)[-1] in {'Depends', 'Security'})
+        and not (arg.annotation and any(
+            isinstance(n, ast.Call) and dotted_name(n.func).rsplit('.', 1)[-1] in {'Depends', 'Security'}
+            for n in ast.walk(arg.annotation)
+        ))
+    }

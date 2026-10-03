@@ -1170,3 +1170,83 @@ class TestReadThroughHelper:
             **_PRINCIPAL,
         })
         assert _bola(_run(root)) == []
+
+
+def _repository_case(tmp_path, helper, route):
+    files = {
+        'site/handlers.py': "from . import storage as data\n@app.get('/objects/<int:key>')\ndef show(key):\n" + route,
+        'site/storage.py': "from .primitive import retrieve\n" + helper,
+        'site/primitive.py': "def retrieve(entity, identifier):\n    return db.session.get(entity, identifier)\n",
+        'site/identity.py': "def principal():\n    return g.account_id\n",
+    }
+    for name, code in files.items():
+        path = tmp_path / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(code)
+    return _bola(_run(tmp_path))
+
+
+def test_alias_and_generic_two_hop_repository_read(tmp_path):
+    assert _repository_case(tmp_path,
+        'def lookup(key):\n    return retrieve(Invoice, key)\n',
+        '    item = data.lookup(key)\n    return jsonify(value=item.amount)\n')
+
+
+def test_returned_permission_pair_is_checked_at_caller(tmp_path):
+    assert not _repository_case(tmp_path,
+        'def lookup(key, actor):\n    item = retrieve(Invoice, key)\n    return item, item.owner_id == actor\n',
+        '    item, permitted = data.lookup(key, g.account_id)\n    if not permitted:\n        return "denied", 403\n    return jsonify(value=item.amount)\n')
+
+
+def test_returned_permission_pair_without_caller_guard_is_reported(tmp_path):
+    assert _repository_case(tmp_path,
+        'def lookup(key, actor):\n    item = retrieve(Invoice, key)\n    return item, item.owner_id == actor\n',
+        '    item, permitted = data.lookup(key, g.account_id)\n    return jsonify(value=item.amount)\n')
+
+
+def test_conditional_returned_permission_is_not_proof(tmp_path):
+    assert _repository_case(tmp_path,
+        'def lookup(key, actor, enforce):\n    item = retrieve(Invoice, key)\n    allowed = not (enforce and item.owner_id != actor)\n    return item, allowed\n',
+        '    item, permitted = data.lookup(key, g.account_id, request.args.get("check"))\n    if not permitted:\n        return "denied", 403\n    return jsonify(value=item.amount)\n')
+
+
+def test_repository_status_gate_returning_none_is_safe(tmp_path):
+    assert not _repository_case(tmp_path,
+        'def lookup(key):\n    item = retrieve(Invoice, key)\n    if item is None or item.status != "published":\n        return None\n    return item\n',
+        '    item = data.lookup(key)\n    if item is None:\n        return "missing", 404\n    return jsonify(value=item.amount)\n')
+
+
+def test_repository_parent_scope_positional_filter_is_safe(tmp_path):
+    assert not _repository_case(tmp_path,
+        'def lookup(key, actor):\n    parent = Folder.query.filter(Folder.owner_id == actor).first()\n    if parent is None:\n        return None\n    return Invoice.query.filter(Invoice.id == key, Invoice.folder_id == parent.id).first()\n',
+        '    item = data.lookup(key, g.account_id)\n    return jsonify(value=item.amount)\n')
+
+
+def test_unresolved_external_object_read_is_coverage_not_bola(tmp_path):
+    (tmp_path / 'api.py').write_text('''
+from vendor import client
+@app.get('/items/<int:key>')
+def show(key):
+    item = client.lookup(key)
+    return jsonify(value=item.amount)
+def identity():
+    return request.user.id
+''')
+    result = _run(tmp_path)
+    assert not _bola(result)
+    signals = [f for f in result.findings if f.rule_id == 'AUTHZ-UNVERIFIED-001']
+    assert len(signals) == 1
+    assert signals[0].severity == Severity.INFO
+    assert signals[0].metadata['coverage_signal']
+
+
+def test_returned_permission_cannot_mutate_owner_to_authorize_itself(tmp_path):
+    assert _repository_case(tmp_path,
+        'def lookup(key, actor):\n    item = retrieve(Invoice, key)\n    item.owner_id = actor\n    return item, item.owner_id == actor\n',
+        '    item, permitted = data.lookup(key, g.account_id)\n    if not permitted:\n        return "denied", 403\n    return jsonify(value=item.amount)\n')
+
+
+def test_boolean_helper_does_not_hide_earlier_object_disclosure(tmp_path):
+    assert _repository_case(tmp_path,
+        'def lookup(key, actor):\n    item = retrieve(Invoice, key)\n    publish(item.amount)\n    return item.owner_id == actor\n',
+        '    allowed = data.lookup(key, g.account_id)\n    return jsonify(allowed=allowed)\n')

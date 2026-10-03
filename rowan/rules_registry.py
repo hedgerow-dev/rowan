@@ -58,6 +58,8 @@ _WEB_REQUEST_SOURCES: list[str] = [
     "request.json.get(...)",
     "request.json[...]",
     "request.data",
+    "request.stream",
+    "request.get_json(...)",
     "request.values.get(...)",
     "request.files.get(...)",
     "request.cookies.get(...)",

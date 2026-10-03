@@ -31,7 +31,7 @@ rules:
     resolution (no_network=False). This overrides lxml''s safe-by-default parser configuration and reopens classic XXE: local
     file disclosure via an internal/external entity, or SSRF via a network-fetched entity/DTD.'
   patterns:
-  - pattern-regex: (?:(?:lxml\.)?etree\.XMLParser\(|\bdict\()[^)]{0,300}?(?:resolve_entities\s*=\s*True|no_network\s*=\s*False)|["']resolve_entities["']\s*:\s*True|["']no_network["']\s*:\s*False
+  - pattern-regex: (?:lxml\.)?etree\.XMLParser\([^)]{0,300}?(?:resolve_entities\s*=\s*True|no_network\s*=\s*False)
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:

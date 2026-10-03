@@ -12,9 +12,11 @@ Scope: the four BOLARAY models -- **ownership** (issue #171, query-fused),
 for Django/DRF/SQLAlchemy ORM idioms. A user-keyed read is a gap only if *none*
 of the four models is satisfied on its path; satisfying any one suppresses the
 finding. It does NOT cover function-level authz, custom raw-SQL data-access
-layers, or authorization enforced in a service it cannot see. Recall is
-expected to be well under 50%; this is a precision-first detector, off by
-default until measured (ScanConfig.enable_authz). Phase 6 adds escape-based
+layers or runtime dispatch it cannot resolve. Repository aliases and bounded
+expression-only retrieval wrappers are resolved without importing the target.
+Returned object/permission pairs are checked against the caller's guard;
+unresolved imported object reads produce informational coverage signals.
+The detector is off by default (ScanConfig.enable_authz). Phase 6 adds escape-based
 use tracking (late-built local payloads are not themselves escapes) and
 same-module helper guard delegation (`require_owner(obj)`). Phase 7 adds
 FastAPI dependency-injected parameters (`Depends`/`Security` are not path
@@ -32,12 +34,18 @@ problem.
 from __future__ import annotations
 
 import ast
+import copy
 import logging
 import re
 import time
 from pathlib import Path
 
 from rowan.analysis.dominance import collect_dominating_candidates
+from rowan.analysis.python_functions import (
+    FunctionIndex,
+    bind_arguments,
+    specialize_returns,
+)
 from rowan.analysis.request_sources import dotted_name
 from rowan.core.authz_predicates import (
     authorizing_decorators,
@@ -630,11 +638,8 @@ def _helper_read(
     handler_user_names: set[str],
     principal_names: set[str],
 ) -> ast.Call | None:
-    """The unguarded object read inside `callee` that is keyed by a parameter
-    the handler fed from request input, or None. A callee that mentions the
-    principal at all is skipped: it may enforce ownership where we cannot see."""
-    if any(is_principal_expr(n, principal_names) for n in ast.walk(callee)):
-        return None
+    """An object read keyed by a request-fed parameter. Guard correctness is
+    checked separately in the specialized callee and its calling handler."""
     params = _param_names(callee)
     fed: set[str] = set()
     for index, arg in enumerate(call.args):
@@ -651,6 +656,7 @@ def _helper_read(
         return None
     # Parameters the handler fed from the principal (`fetch(id, g.user_id)`):
     # a read scoped by one of them is ownership-fused.
+    reassigned = {n.id for n in ast.walk(callee) if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store)}
     principal_params = {
         params[i] for i, arg in enumerate(call.args)
         if i < len(params) and is_principal_expr(arg, principal_names)
@@ -658,6 +664,7 @@ def _helper_read(
         kw.arg for kw in call.keywords
         if kw.arg in params and is_principal_expr(kw.value, principal_names)
     }
+    principal_params -= reassigned
     for read in _outermost_read_calls(callee):
         if (
             not is_ownership_fused_read(read, principal_params)
@@ -1203,9 +1210,10 @@ class AuthzPass:
         # concept at all; otherwise it is a (different) missing-auth finding.
         if principal_names:
             corpus = {py_file: _module_functions(tree) for py_file, tree in trees}
+            index = FunctionIndex(dict(trees))
             for py_file, tree in trees:
                 result.findings.extend(
-                    self._scan_tree(py_file, tree, principal_names, injectors, corpus)
+                    self._scan_tree(py_file, tree, principal_names, injectors, corpus, index)
                 )
 
         # AUTHZ-LLM-001 (#185) is not gated on `principal_names`: the flaw is
@@ -1232,6 +1240,7 @@ class AuthzPass:
         principal_names: set[str],
         injectors: dict[str, set[str]] | None = None,
         corpus: dict[Path, dict[str, ast.FunctionDef | ast.AsyncFunctionDef]] | None = None,
+        index: FunctionIndex | None = None,
     ) -> list[Finding]:
         findings: list[Finding] = []
         functions = _module_functions(tree)
@@ -1254,7 +1263,7 @@ class AuthzPass:
                 for call in _outermost_read_calls(handler)
             ]
             for helper_call, inner in self._helper_reads(
-                py_file, tree, handler, user_names, handler_principals, corpus or {}
+                py_file, tree, handler, user_names, handler_principals, corpus or {}, index
             ):
                 reads.append((helper_call, read_model_class(inner) or "object", True))
             for call, model, via_helper in reads:
@@ -1269,10 +1278,13 @@ class AuthzPass:
                         continue
                     if not is_user_keyed_read(call, user_names):
                         continue
+                analysis_handler, analysis_call = self._returned_guard_handler(
+                    handler, call, py_file, index
+                ) if via_helper and index else (handler, call)
                 verdict = self._gap_verdict(
-                    handler,
+                    analysis_handler,
                     view_cls,
-                    call,
+                    analysis_call,
                     helper_guards,
                     principal_gate_helpers,
                     handler_principals,
@@ -1307,6 +1319,54 @@ class AuthzPass:
                         "caller": handler.name,
                     },
                 ))
+        if index:
+            findings.extend(self._unverified_helpers(py_file, tree, principal_names, index))
+        return findings
+
+    def _unverified_helpers(self, py_file, tree, principal_names, index):
+        """Coverage signals for imported, unresolved object-returning calls.
+
+        Require a request-keyed call and an object attribute that later escapes.
+        An unresolved call is not itself evidence of a vulnerability.
+        """
+        findings = []
+        imports = {
+            alias.asname or alias.name.split(".")[0]
+            for stmt in tree.body if isinstance(stmt, (ast.Import, ast.ImportFrom))
+            for alias in stmt.names
+        }
+        for handler, view_cls in _iter_handlers(tree):
+            user_names = _user_controlled_names(handler)
+            for stmt in handler.body:
+                if not isinstance(stmt, ast.Assign) or len(stmt.targets) != 1 or not isinstance(stmt.targets[0], ast.Name):
+                    continue
+                call = stmt.value
+                if not isinstance(call, ast.Call) or index.resolve(py_file, call) is not None:
+                    continue
+                tail = dotted_name(call.func).rsplit(".", 1)[-1]
+                if read_model_class(call) is not None or tail[:1].isupper():
+                    continue
+                if dotted_name(call.func).split(".")[0] not in imports:
+                    continue
+                if not any(_load_names(arg) & user_names for arg in [*call.args, *(k.value for k in call.keywords)]):
+                    continue
+                obj = stmt.targets[0].id
+                if not any(isinstance(n, ast.Attribute) and isinstance(n.value, ast.Name) and n.value.id == obj
+                           and n.lineno > stmt.lineno for n in ast.walk(handler)):
+                    continue
+                if _first_escape_line(handler, obj, stmt.lineno, principal_names, {}) is None:
+                    continue
+                if self._gap_verdict(handler, view_cls, call, {}, {}, principal_names)[0] is None:
+                    continue
+                findings.append(Finding(
+                    rule_id="AUTHZ-UNVERIFIED-001", message=(
+                        f"Authorization coverage incomplete: cannot resolve '{dotted_name(call.func)}' "
+                        "for a request-keyed object used by this handler. Verify scoping in the external or dynamic callee."
+                    ), severity=Severity.INFO, category=Category.AUTH, file_path=str(py_file),
+                    start_line=call.lineno, confidence=0.3, engine="authz",
+                    metadata={"coverage_signal": True, "caller": handler.name,
+                              "callee": dotted_name(call.func), "reason": "unresolved-callee"},
+                ))
         return findings
 
     def _helper_reads(
@@ -1317,21 +1377,112 @@ class AuthzPass:
         user_names: set[str],
         principal_names: set[str],
         corpus: dict[Path, dict[str, ast.FunctionDef | ast.AsyncFunctionDef]],
+        index: FunctionIndex | None = None,
     ) -> list[tuple[ast.Call, ast.Call]]:
-        """Handler calls (assigned to a plain variable) whose same-repository
-        callee does an unguarded read keyed by the request id (#4). One hop."""
+        """Repository reads, including bounded expression-only wrappers,
+        whose object id originates in the handler. Keep guard-bearing helper
+        bodies intact and check their authorization before reporting."""
         found: list[tuple[ast.Call, ast.Call]] = []
         for stmt in handler.body:
             for node in ast.walk(stmt):
                 if not isinstance(node, ast.Call) or read_model_class(node) is not None:
                     continue
-                callee = _resolve_helper_callee(py_file, tree, node, corpus)
-                if callee is None or callee is handler:
+                ref = index.resolve(py_file, node) if index else None
+                callee = specialize_returns(index, ref) if ref else (
+                    _resolve_helper_callee(py_file, tree, node, corpus) if index is None else None
+                )
+                if callee is None or (callee.name == handler.name and (ref is None or ref.path == py_file)):
                     continue
                 inner = _helper_read(callee, node, user_names, principal_names)
                 if inner is not None:
+                    bindings = bind_arguments(callee, node)
+                    callee_principals = principal_names | {
+                        name for name, value in bindings.items()
+                        if is_principal_expr(value, principal_names)
+                    }
+                    reassigned = {n.id for n in ast.walk(callee) if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store)}
+                    callee_principals -= reassigned & set(_param_names(callee))
+                    # A returned predicate does not expose the fetched object.
+                    returns = [n.value for n in ast.walk(callee) if isinstance(n, ast.Return) and n.value is not None]
+                    if returns and all(isinstance(v, (ast.Compare, ast.BoolOp)) or
+                                       (isinstance(v, ast.Call) and dotted_name(v.func) == "bool")
+                                       for v in returns):
+                        assigned = _assigned_var_for_call(callee, inner)
+                        first_escape = _first_escape_line(callee, assigned[0], assigned[1], callee_principals, {}) if assigned else None
+                        return_lines = [n.lineno for n in ast.walk(callee) if isinstance(n, ast.Return)]
+                        if first_escape is None or first_escape >= min(return_lines):
+                            continue
+                    verdict = self._gap_verdict(callee, None, inner, {}, {}, callee_principals)
+                    if verdict[0] is None:
+                        continue
                     found.append((node, inner))
         return found
+
+    def _returned_guard_handler(self, handler, call, py_file, index):
+        """Bind a returned (object, predicate) pair at the caller's guard.
+
+        Only a single non-null result tuple is summarized. Reassignments of the
+        predicate or object in the caller invalidate the summary. Existing
+        dominance predicates then decide whether the caller actually denies.
+        """
+        ref = index.resolve(py_file, call)
+        if ref is None:
+            return handler, call
+        callee = specialize_returns(index, ref)
+        returns = [n.value for n in ast.walk(callee) if isinstance(n, ast.Return)
+                   and isinstance(n.value, ast.Tuple) and len(n.value.elts) == 2
+                   and isinstance(n.value.elts[0], ast.Name)]
+        if len(returns) != 1:
+            return handler, call
+        assignment = next((n for n in ast.walk(handler) if isinstance(n, ast.Assign)
+                           and n.value is call and len(n.targets) == 1
+                           and isinstance(n.targets[0], (ast.Tuple, ast.List))
+                           and len(n.targets[0].elts) == 2
+                           and all(isinstance(x, ast.Name) for x in n.targets[0].elts)), None)
+        if assignment is None:
+            return handler, call
+        obj, flag = assignment.targets[0].elts
+        for n in ast.walk(handler):
+            if n is assignment or getattr(n, "lineno", 0) <= assignment.lineno:
+                continue
+            if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store) and n.id in {obj.id, flag.id}:
+                return handler, call
+        bindings = bind_arguments(callee, call)
+        bindings[returns[0].elts[0].id] = ast.Name(id=obj.id, ctx=ast.Load())
+        expression = returns[0].elts[1]
+        protected = returns[0].elts[0].id
+        parameters = set(_param_names(callee))
+        if any(isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store) and n.id in parameters
+               for n in ast.walk(callee)):
+            return handler, call
+        if any(isinstance(n, (ast.Attribute, ast.Subscript)) and isinstance(n.ctx, ast.Store)
+               and isinstance(n.value, ast.Name) and n.value.id == protected for n in ast.walk(callee)):
+            return handler, call
+        if not isinstance(expression, ast.Compare):
+            return handler, call
+
+        class Bind(ast.NodeTransformer):
+            def visit_Name(self, node):
+                return copy.deepcopy(bindings[node.id]) if isinstance(node.ctx, ast.Load) and node.id in bindings else node
+
+        predicate = Bind().visit(copy.deepcopy(expression))
+        clone = copy.deepcopy(handler)
+        cloned_call = next(n for n in ast.walk(clone) if isinstance(n, ast.Call)
+                           and n.lineno == call.lineno and n.col_offset == call.col_offset)
+        cloned_assign = next(n for n in ast.walk(clone) if isinstance(n, ast.Assign) and n.value is cloned_call)
+        cloned_assign.targets = [ast.copy_location(ast.Name(id=obj.id, ctx=ast.Store()), obj)]
+
+        class Predicate(ast.NodeTransformer):
+            def visit_Name(self, node):
+                if node.id == flag.id and isinstance(node.ctx, ast.Load):
+                    value = copy.deepcopy(predicate)
+                    for child in ast.walk(value):
+                        if isinstance(child, ast.expr):
+                            ast.copy_location(child, node)
+                    return value
+                return node
+
+        return ast.fix_missing_locations(Predicate().visit(clone)), cloned_call
 
     def _scan_principal_overrides(
         self, py_file: Path, tree: ast.AST, principal_names: set[str]

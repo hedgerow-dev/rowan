@@ -8,6 +8,9 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
+from rowan.analysis.python_functions import FunctionIndex
+from rowan.analysis.trust_flow import TrustFlow
+from rowan.analysis.xml_parser_options import parser_option_findings
 from rowan.config import ScanConfig
 from rowan.core.findings import (
     Category,
@@ -148,6 +151,9 @@ class WebSecurityPass:
                 if not framing_configured:
                     findings.extend(self._scan_framing(item.path, fn))
 
+        index = FunctionIndex({item.path: item.tree for item in parsed})
+        findings.extend(TrustFlow(index, privileged).run())
+        findings.extend(parser_option_findings(index))
         result = ScanResult(findings=findings, files_scanned=len(parsed))
         duration = time.perf_counter() - started
         scan_span(self.name, duration)
@@ -231,6 +237,12 @@ class WebSecurityPass:
                     for op in operands for x in ast.walk(op)
                 ):
                     continue
+                fields.update(
+                    op.args[1].value for op in operands
+                    if isinstance(op, ast.Call) and _call_name(op.func) == "getattr"
+                    and len(op.args) >= 2 and _text(op.args[0]) in _PRINCIPAL_BASES
+                    and isinstance(op.args[1], ast.Constant) and isinstance(op.args[1].value, str)
+                )
                 fields.update(
                     op.attr for op in operands
                     if isinstance(op, ast.Attribute) and _text(op.value) in _PRINCIPAL_BASES
@@ -337,7 +349,7 @@ class WebSecurityPass:
                 if (
                     isinstance(target, ast.Attribute)
                     and target.attr in privileged
-                    and _request_expr(value, tainted)
+                    and _request_expr(value, set() if _text(target.value) in _PRINCIPAL_BASES else tainted)
                     and not (source_name and _rejecting_guard(fn, source_name, _SAFE_ROLE_VALUES))
                 ):
                     out.append(self._finding(

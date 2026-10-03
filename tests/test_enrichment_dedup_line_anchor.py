@@ -24,3 +24,21 @@ def test_placeholder_neighbour_does_not_hide_real_secret(tmp_path: Path):
     assert "control.py" in by_file, [f.rule_id for f in result.findings]
     assert by_file.get("config.py"), "the real key on line 2 must survive its placeholder neighbour"
     assert {f.start_line for f in by_file["config.py"]} == {2}
+
+
+def test_deserialization_dedup_uses_sink_not_file_proximity():
+    from rowan.core.findings import Category, Finding, Severity, TaintFlow, TaintNode
+    from rowan.passes.enrichment import EnrichmentPass
+
+    def finding(source, sink):
+        return Finding(
+            rule_id='TNT-DESER-001', message='unpickling', severity=Severity.HIGH,
+            category=Category.DESERIALIZATION, file_path='codec.py', start_line=sink,
+            confidence=0.9, taint_flow=TaintFlow(
+                source=TaintNode('api.py', source), sink=TaintNode('codec.py', sink, 4),
+            ),
+        )
+
+    result = EnrichmentPass()._deduplicate([finding(1, 10), finding(2, 10), finding(3, 11)])
+    assert {f.start_line for f in result} == {10, 11}
+    assert len(result) == 2

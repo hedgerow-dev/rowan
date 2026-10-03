@@ -69,6 +69,8 @@ _PRINCIPAL_BASES: tuple[str, ...] = (
     # `g.user` object at all) -- e.g. `g.user_id = int(claims["sub"])` in an
     # auth decorator, then compared straight against an owner_id column.
     "g.user_id",
+    "g.account_id",
+    "g.tenant_id",
     "flask_login.current_user",
 )
 
@@ -330,10 +332,13 @@ def _is_deny_stmt(stmt: ast.stmt) -> bool:
     if isinstance(stmt, ast.Raise):
         return True
     if isinstance(stmt, ast.Return):
-        if stmt.value is None or isinstance(stmt.value, ast.Call):
+        if stmt.value is None or isinstance(stmt.value, ast.Call) or (
+            isinstance(stmt.value, ast.Constant) and (stmt.value.value is None or stmt.value.value is False)
+        ):
             return True
         return isinstance(stmt.value, ast.Tuple) and any(
-            isinstance(elt, ast.Call) for elt in stmt.value.elts
+            isinstance(elt, ast.Call) or (isinstance(elt, ast.Constant) and elt.value in {401, 403, 404})
+            for elt in stmt.value.elts
         )
     if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Call):
         return _call_name(stmt.value) == "abort"
@@ -759,6 +764,14 @@ def is_hierarchical_parent_read(call: ast.Call, authorized_parent_vars: set[str]
         for kw in c.keywords:
             if _kwarg_binds_to_parent(kw.value, authorized_parent_vars):
                 return True
+        if isinstance(c.func, ast.Attribute) and c.func.attr == "filter":
+            for arg in c.args:
+                if isinstance(arg, ast.Compare) and len(arg.ops) == 1 and isinstance(arg.ops[0], ast.Eq):
+                    left, right = arg.left, arg.comparators[0]
+                    if (_is_model_attr(left) and _kwarg_binds_to_parent(right, authorized_parent_vars)) or (
+                        _is_model_attr(right) and _kwarg_binds_to_parent(left, authorized_parent_vars)
+                    ):
+                        return True
     node: ast.AST = call
     while isinstance(node, ast.Call):
         node = node.func
