@@ -6,6 +6,29 @@
   "type": "object",
   "required": ["target"],
   "properties": {
+    "authz_model_policies": {
+      "type": "object",
+      "description": "Explicit qualified model access requirements; public applies only to proven read-only uses.",
+      "patternProperties": {
+        "^[A-Za-z_]\\w*(\\.[A-Za-z_]\\w*)+$": {
+          "type": "object",
+          "minProperties": 1,
+          "properties": {
+            "read": {
+              "enum": [
+                "public",
+                "principal"
+              ]
+            },
+            "write": {
+              "const": "principal"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
     "target": {
       "type": "string",
       "description": "Path to the directory to scan."

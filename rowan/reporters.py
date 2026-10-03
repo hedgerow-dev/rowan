@@ -234,6 +234,9 @@ def to_json(result: ScanResult, source_root: str = "") -> str:
             "cwe": f.cwe_ids,
             "engine": f.engine,
             "evidence_tier": (f.metadata or {}).get("evidence_tier"),
+            "authorization_requirement": (f.metadata or {}).get("authorization_requirement"),
+            "object_use": (f.metadata or {}).get("object_use"),
+            "model_identity": (f.metadata or {}).get("model_identity"),
             "rule_class": (
                 "inventory"
                 if f.engine == "mfv" and f.metadata.get("rule_class") == "presence"

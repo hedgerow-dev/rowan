@@ -16,6 +16,7 @@ from pathlib import Path
 
 import yaml
 
+from rowan.analysis.bounded_log_values import BoundedLogValues
 from rowan.analysis.dominance import (
     collect_dominating_candidates as _collect_dominating_candidates,
 )
@@ -624,6 +625,7 @@ class EnrichmentPass:
         context.result.findings = self._suppress_inline_nosec(context.result.findings)
         context.result.findings = self._suppress_secret_fps(context.result.findings, context)
         context.result.findings = self._suppress_sanitizer_window(context.result.findings, context)
+        context.result.findings = self._suppress_bounded_log_forging(context.result.findings, context)
         context.result.findings = self._apply_source_confidence(context.result.findings)
         context.result.findings = self._cap_exploitability(context.result.findings)
         context.result.findings = self._cap_unverified_severity(context.result.findings)
@@ -658,6 +660,16 @@ class EnrichmentPass:
         # an empty ScanResult is deliberate (merge()'s extend([]) is a no-op),
         # not an omission.
         return ScanResult()
+
+    @staticmethod
+    def _suppress_bounded_log_forging(findings: list[Finding], context: ScanContext) -> list[Finding]:
+        if not any(f.rule_id == "TNT-LOG-001" for f in findings):
+            return findings
+        trees = dict(iter_python_sources(context, owner="bounded_log_values", skip_tests=False))
+        analysis = BoundedLogValues(trees)
+        needed = {f.file_path for f in findings if f.rule_id == "TNT-LOG-001"}
+        safe = {str(path): analysis.safe_lines(path) for path in trees if str(path) in needed}
+        return [f for f in findings if f.rule_id != "TNT-LOG-001" or f.start_line not in safe.get(f.file_path, set())]
 
     @classmethod
     def _suppress_contextual_false_positives(cls, findings: list[Finding]) -> list[Finding]:
@@ -2664,6 +2676,10 @@ class EnrichmentPass:
         retain their own severity.
         """
         for f in findings:
+            if f.engine == "authz" and f.metadata.get("evidence_tier") == "authorization-gap":
+                # A trace can establish the selected object, but cannot prove
+                # the intended access policy or runtime enforcement.
+                continue
             if f.taint_flow is not None:
                 f.metadata["evidence_tier"] = (
                     "taint-flow-unresolved"

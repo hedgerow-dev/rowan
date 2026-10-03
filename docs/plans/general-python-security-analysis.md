@@ -150,3 +150,32 @@ HIGH packaged execution, and CRITICAL malicious pickle detection. The comparable
 ModelForge/modelbay rerun (`--no-sca --authz --audit`, converted rule engine)
 retains all 168 previous findings with no additions/removals or degraded analysis;
 its existing adjudication remains 60/82 with one decoy FP and 28 unmatched claims.
+
+### Numeric logging and authorization policy calibration (2026-10-03)
+
+Add proof-based forging calibration for numeric values/formats, immutable
+aliases, branch joins and bounded straight-line helper returns. Unknown values,
+mutation, shadowed/rebound names, annotations and ORM field declarations do not
+clear a claim. `%c` and `:c` remain unsafe even with integer provenance. Sensitive
+logging is independent. The previously noted ORM-key log claim remains pending
+runtime-value evidence; this change does not remove it to improve the benchmark.
+
+Separate `AUTHZ-BOLA-001` static guard gaps from impact assertions with an
+`authorization-gap` evidence tier. Unknown policy yields MEDIUM review findings;
+pure existence/unused observations are LOW. Request selectors forwarded to
+subsequent/deferred operations remain unknown uses rather than pure existence.
+Preserve all guard gaps in audit output; exclude them from confirmed output.
+Explicit qualified read/write model requirements can refine impact priority,
+with public reads applying only to resolved read-only uses. Policy never permits
+writes or opaque object/selector escapes. Invalid/ambiguous policies fail closed;
+project declarations remain disabled by default under `--ci`.
+
+Validation: 439 regression tests passed across authorization, configuration,
+reporting, sanitizer soundness and sensitive logging. Subsequent adversarial
+review checks passed 179 tests, followed by the focused final checks. A comparable
+ModelForge/modelbay scan retains all 168 claim locations, no additions/removals,
+and complete analysis. Three existence-only observations move MEDIUM to LOW;
+the deferred sweep operation remains a MEDIUM review lead. Existing adjudication
+therefore remains 60/82 (one decoy FP, 28 unmatched); no improved benchmark score
+is claimed. This does not validate runtime exploitability or eliminate the
+unknown ORM-field logging claim.

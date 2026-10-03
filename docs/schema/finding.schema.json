@@ -88,8 +88,43 @@
     },
     "evidence_tier": {
       "type": "string",
-      "enum": ["taint-flow", "taint-flow-unresolved", "engine", "source-context", "self-evident", "pattern-only"],
-      "description": "What was actually computed to support this finding. 'taint-flow': a source-to-sink dataflow, attached as taint_flow. 'taint-flow-unresolved': a trace enters a service call whose returned value was not resolved; the finding is capped below HIGH pending review. 'engine': model-file opcode or authz-graph analysis. 'source-context': legacy tier accepted for older reports; new scans do not emit it because file context is not source-to-sink evidence. 'self-evident': the matched text is the whole claim (hardcoded secret, weak crypto); no dataflow asserted. 'pattern-only': an unverified pattern match. A hypothesis, not a fact, capped below HIGH for dataflow-claiming categories."
+      "enum": ["taint-flow", "taint-flow-unresolved", "engine", "source-context", "self-evident", "pattern-only", "presence", "authorization-gap"],
+      "description": "What was actually computed to support this finding. 'taint-flow': a source-to-sink dataflow, attached as taint_flow. 'taint-flow-unresolved': a trace enters a service call whose returned value was not resolved; the finding is capped below HIGH pending review. 'engine': model-file opcode or authz-graph analysis. 'source-context': legacy tier accepted for older reports; new scans do not emit it because file context is not source-to-sink evidence. 'self-evident': the matched text is the whole claim (hardcoded secret, weak crypto); no dataflow asserted. 'pattern-only': an unverified pattern match. A hypothesis, not a fact, capped below HIGH for dataflow-claiming categories. 'presence': artifact capability inventory without a malicious-operation claim. 'authorization-gap': a static guard gap; access policy/runtime impact are not proven, so excluded from the confirmed view."
+    },
+    "authorization_requirement": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "public",
+        "principal",
+        "unverified",
+        null
+      ],
+      "description": "Declared model policy or unverified when a model/operation cannot be resolved."
+    },
+    "object_use": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "read",
+        "write",
+        "existence",
+        "unused",
+        "unknown",
+        null
+      ],
+      "description": "Conservative use classification for an object authorization guard gap."
+    },
+    "model_identity": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Resolved repository module and model class used for explicit policy matching."
     },
     "rule_class": {
       "type": "string",

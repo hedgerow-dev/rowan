@@ -16,6 +16,7 @@ from typing import Any
 import yaml
 from click import UsageError
 
+from rowan.analysis.object_access_policy import validate_model_policies
 from rowan.config import DEPLOYMENT_PROFILES, SCAN_POLICIES, ScanConfig
 from rowan.core.findings import Severity
 from rowan.core.paths import repo_search_dirs
@@ -55,6 +56,7 @@ class ProjectConfig:
     no_taint: bool | None = None
     no_cross_file: bool | None = None
     enable_authz: bool | None = None
+    authz_model_policies: dict[str, dict[str, str]] | None = None
     legacy_neuroscan: bool | None = None
     scan_vendored: bool | None = None
     max_file_bytes: int | None = None
@@ -214,6 +216,12 @@ def _parse_mapping(raw: Mapping[object, object], config_path: Path) -> ProjectCo
             raise _error(config_path, "baseline", "path must not contain a NUL byte")
         values["baseline"] = baseline
 
+    if "authz_model_policies" in raw:
+        try:
+            validate_model_policies(raw["authz_model_policies"])
+        except ValueError as exc:
+            raise _error(config_path, "authz_model_policies", str(exc)) from exc
+        values["authz_model_policies"] = {k: dict(v) for k, v in raw["authz_model_policies"].items()}
     return ProjectConfig(**values)
 
 
@@ -307,6 +315,8 @@ def apply_project_config(
 
     if project_config.policy is not None and _is_default("policy"):
         scan_config.policy = project_config.policy
+    if project_config.authz_model_policies is not None and _is_default("authz_model_policies"):
+        scan_config.authz_model_policies = {k: dict(v) for k, v in project_config.authz_model_policies.items()}
 
     if project_config.profile is not None and _is_default("profile"):
         scan_config.profile = project_config.profile

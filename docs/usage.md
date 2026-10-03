@@ -461,7 +461,9 @@ Every finding says how much was actually computed to support it, in
 |---|---|---|
 | `taint-flow` | A source-to-sink dataflow, included in the finding as `taint_flow` | A verified path. Act on these first |
 | `taint-flow-unresolved` | A trace enters a service call, but its returned value was not resolved | A review lead; verify the service return before treating it as an exploit path |
-| `engine` | Model-file opcode analysis or the authz resolver graph | The engine inspected the artifact itself |
+| `engine` | Structural engine evidence, such as model-file opcode analysis | The engine inspected the artifact itself |
+| `presence` | Artifact capability inventory, without a malicious-operation claim | Review surface; not a vulnerability proof |
+| `authorization-gap` | A request-keyed object read lacks a recognized dominating guard | Review the declared policy and runtime controls; excluded from `--confirmed` |
 | `self-evident` | Nothing more was needed: the matched text *is* the claim (a hardcoded secret, an MD5 password hash) | The match is the evidence |
 | `pattern-only` | A pattern matched. Nothing else | **A hypothesis, not a fact.** Confirm before acting |
 
@@ -648,7 +650,8 @@ max_file_bytes: 500000
 The public schema version is `1`; omitting `version` currently means version 1
 for backward compatibility. Supported keys are `version`, `exclude`,
 `languages`, `severity`, `no_sca`, `no_taint`, `no_cross_file`, `enable_authz`,
-`legacy_neuroscan`, `scan_vendored`, `max_file_bytes`, `profile`, and
+`legacy_neuroscan`, `scan_vendored`, `max_file_bytes`, `profile`, `policy`,
+`authz_model_policies`, and
 `baseline`.
 
 Project configuration is parsed before any value is applied. Unknown keys,
@@ -794,3 +797,58 @@ repos:
 | 10,000 files, surface scan | 10–30s |
 
 Taint analysis time depends on Opengrep and codebase complexity. Use `--taint-workers N` to parallelize large repos.
+
+### Model access policies
+
+With `--authz`, `AUTHZ-BOLA-001` reports a missing recognized object guard. When
+access requirements are unknown, it is a MEDIUM review lead; missing a guard is
+not proof that the object is private. Pure existence checks are LOW signals.
+The `authorization-gap` evidence tier remains visible in `--audit` and MEDIUM/HIGH
+review findings remain actionable, but it is excluded from `--confirmed`.
+
+Declare requirements in `.rowan.yml` using model identities resolved from
+repository source paths and class imports, including import aliases. Identities
+are relative to the scan root (a `src/` prefix is retained); use the reported
+`model_identity` when declaring a policy:
+
+```yaml
+enable_authz: true
+authz_model_policies:
+  app.models.PublicDocument:
+    read: public
+    write: principal
+  app.models.PrivateRecord:
+    read: principal
+    write: principal
+```
+
+A public-read policy removes only resolved read-only/existence guard gaps.
+It does not authorize writes, opaque calls, bound-method escapes, or deferred
+operations that receive the request-selected key. Bare class names and public
+write policies are rejected. Unresolved, rebound, ambiguous or external models
+cannot inherit a public policy. Supported resolution covers local classes and
+direct class imports; re-exports and helper-returned model identities may remain
+unverified. Existence-only observations remain LOW even with a principal policy,
+since their impact differs from disclosing or modifying object contents.
+
+Policy declarations describe the intended application contract, not enforcement.
+JSON includes `model_identity`, `object_use`, and `authorization_requirement`;
+confidence describes the static guard analysis, not exploit validation. Project
+configuration is disabled by default in CI; `--project-config` is an explicit
+trust decision, as for other project settings.
+
+### Bounded log rendering
+
+Log-forging (`TNT-LOG-001`) findings are removed only when all matched log calls
+on the line have statically bounded output: numeric conversions, numeric percent
+formats, immutable aliases, supported arithmetic, or straight-line repository
+helpers returning such values. Numeric percent-format shortcuts for unknown arguments
+require a resolved standard-library logging module or `getLogger()` receiver;
+unknown loggers retain the claim. Annotations and ORM column declarations alone
+are insufficient. Reassignment, ambiguous/shadowed imports, dynamic formats,
+unknown helpers and analysis limits retain the finding. Character conversion
+(`%c` / `:c`) is retained because the integer 10 can render as a newline.
+
+This filter affects forging only. Sensitive-value logging (`TNT-LOG-002`) remains
+reportable even when a credential is numeric. Attribute provenance, complex
+control flow, decorated/async helpers and dynamic dispatch remain limits.

@@ -617,6 +617,8 @@ class ScanPipeline:
             or (finding.metadata or {}).get("taint_unconfirmed")
         ):
             return False
+        if finding.engine == "authz" and tier == "authorization-gap":
+            return rank <= 2
         if rank <= 1:
             return True
         if rank >= 3:

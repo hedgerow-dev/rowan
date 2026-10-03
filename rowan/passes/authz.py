@@ -16,6 +16,10 @@ layers or runtime dispatch it cannot resolve. Repository aliases and bounded
 expression-only retrieval wrappers are resolved without importing the target.
 Returned object/permission pairs are checked against the caller's guard;
 unresolved imported object reads produce informational coverage signals.
+A guard gap is not proof of private data or runtime exploitability. Unknown model
+policy yields MEDIUM review findings; existence-only observations are LOW.
+Explicit qualified model policies refine this assessment without authorizing
+writes or opaque object/selector escapes.
 The detector is off by default (ScanConfig.enable_authz). Phase 6 adds escape-based
 use tracking (late-built local payloads are not themselves escapes) and
 same-module helper guard delegation (`require_owner(obj)`). Phase 7 adds
@@ -41,6 +45,7 @@ import time
 from pathlib import Path
 
 from rowan.analysis.dominance import collect_dominating_candidates
+from rowan.analysis.object_access_policy import model_identity, object_use
 from rowan.analysis.python_functions import (
     FunctionIndex,
     bind_arguments,
@@ -1213,7 +1218,8 @@ class AuthzPass:
             index = FunctionIndex(dict(trees))
             for py_file, tree in trees:
                 result.findings.extend(
-                    self._scan_tree(py_file, tree, principal_names, injectors, corpus, index)
+                    self._scan_tree(py_file, tree, principal_names, injectors, corpus, index,
+                                    context.config.authz_model_policies, context.target_path)
                 )
 
         # AUTHZ-LLM-001 (#185) is not gated on `principal_names`: the flaw is
@@ -1241,6 +1247,8 @@ class AuthzPass:
         injectors: dict[str, set[str]] | None = None,
         corpus: dict[Path, dict[str, ast.FunctionDef | ast.AsyncFunctionDef]] | None = None,
         index: FunctionIndex | None = None,
+        model_policies: dict[str, dict[str, str]] | None = None,
+        root: Path | None = None,
     ) -> list[Finding]:
         findings: list[Finding] = []
         functions = _module_functions(tree)
@@ -1292,13 +1300,30 @@ class AuthzPass:
                 severity, confidence, reason, missing, partial = verdict
                 if severity is None:
                     continue
+                assigned = _assigned_var_for_call(analysis_handler, analysis_call)
+                use = object_use(analysis_handler, analysis_call, assigned[0] if assigned else None)
+                identity = model_identity(py_file, model, index, root, handler) if index and root else None
+                policy = (model_policies or {}).get(identity or "", {})
+                requirement = policy.get(use, "unverified")
+                if use == "existence":
+                    requirement = policy.get("read", "unverified")
+                if requirement == "public" and use in {"read", "existence"}:
+                    continue
+                if use == "unknown" and policy.get("read") == policy.get("write") == "principal":
+                    requirement = "principal"
+                if use in {"existence", "unused"}:
+                    severity = Severity.LOW
+                elif requirement == "unverified" and severity == Severity.HIGH:
+                    severity = Severity.MEDIUM
                 missing_desc = "/".join(missing) if missing else "authorization"
                 findings.append(Finding(
                     rule_id=_RULE_ID,
                     message=(
                         f"Handler '{handler.name}' reads {model} keyed by "
                         f"user-controlled input with no {missing_desc} check -- "
-                        f"possible broken object-level authorization (BOLA/IDOR)."
+                        f"Authorization requirement: {requirement}; object use: {use}. "
+                        "Review the access policy and runtime controls before treating "
+                        "this guard gap as exploitable BOLA/IDOR."
                     ),
                     severity=severity,
                     category=Category.AUTH,
@@ -1317,6 +1342,10 @@ class AuthzPass:
                         # Different handlers are different entry points; the
                         # adjacent-line dedup keys on this (AZ-01).
                         "caller": handler.name,
+                        "model_identity": identity,
+                        "object_use": use,
+                        "authorization_requirement": requirement,
+                        "evidence_tier": "authorization-gap",
                     },
                 ))
         if index:

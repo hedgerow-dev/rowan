@@ -55,6 +55,7 @@ class ScanConfig:
     no_cross_file: bool = False
     enable_cross_file: bool | None = None  # None = policy choice
     enable_authz: bool | None = None  # None = policy choice; BOLA/IDOR pass
+    authz_model_policies: dict[str, dict[str, str]] = field(default_factory=dict)
     enable_multiagent: bool | None = None  # None = policy choice; CrewAI handoffs
     ci_mode: bool = False
     rules_dir: Path | None = None
@@ -102,6 +103,9 @@ class ScanConfig:
         running a pass.
         """
         self.languages = normalize_languages(self.languages)
+        from rowan.analysis.object_access_policy import validate_model_policies
+
+        validate_model_policies(self.authz_model_policies)
 
         if not self.target.exists():
             raise ValueError(f"target does not exist: {self.target}")

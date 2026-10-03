@@ -59,7 +59,7 @@ class TestTruePositives:
         findings = _bola(_run(root))
         assert len(findings) == 1
         f = findings[0]
-        assert f.severity == Severity.HIGH
+        assert f.severity == Severity.MEDIUM
         assert f.category == Category.AUTH
         assert 639 in f.cwe_ids
         assert f.metadata["model"] == "Document"
@@ -315,7 +315,7 @@ class TestFetchThenGuard:
         assert findings[0].severity == Severity.MEDIUM
         assert findings[0].metadata["reason"] == "guard_not_dominating"
 
-    def test_guard_absent_entirely_is_high(self):
+    def test_guard_absent_with_unknown_policy_is_medium(self):
         root = _make_project({
             "views.py": (
                 "def detail(request, pk):\n"
@@ -326,7 +326,7 @@ class TestFetchThenGuard:
         })
         findings = _bola(_run(root))
         assert len(findings) == 1
-        assert findings[0].severity == Severity.HIGH
+        assert findings[0].severity == Severity.MEDIUM
         assert findings[0].metadata["reason"] == "no_guard"
 
     def test_guard_after_use_is_medium(self):
@@ -383,7 +383,7 @@ class TestFetchThenGuard:
         })
         findings = _bola(_run(root))
         assert len(findings) == 1
-        assert findings[0].severity == Severity.HIGH
+        assert findings[0].severity == Severity.MEDIUM
 
 
 class TestPhase6Precision:
@@ -508,7 +508,7 @@ class TestPhase6Precision:
         })
         findings = _bola(_run(root))
         assert len(findings) == 1
-        assert findings[0].severity == Severity.HIGH
+        assert findings[0].severity == Severity.MEDIUM
 
     def test_late_superuser_helper_does_not_suppress(self):
         root = _make_project({
@@ -1015,7 +1015,7 @@ def test_deny_branch_that_returns_object_is_not_a_guard():
         "auth.py": _PRINCIPAL_FILE,
     })
     found = _bola(_run(root))
-    assert [f.severity for f in found] == [Severity.HIGH]
+    assert [f.severity for f in found] == [Severity.MEDIUM]
 
 
 def test_deny_branch_without_the_object_is_still_a_guard():
