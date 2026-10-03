@@ -106,3 +106,38 @@ Remaining precision work needs broader evidence:
   confirmed authorization impact. Existence-only uses must distinguish an oracle
   from an object disclosure or mutation. No corpus-specific public-object allowlist
   is added.
+
+### PyTorch archive calibration (2026-10-03)
+
+The pinned PyTorch full scan completed: 6,089 files, 2,530.6 seconds,
+35 HIGH findings, all MFV-TORCH-001 on ordinary TorchScript assets. The full
+precision gate failed on those claims. This exposed a format distinction:
+TorchScript graph source is parsed by the JIT importer, whereas torch.package
+Python modules are executed when PackageImporter imports them. Neither source
+presence alone establishes a malicious operation; untrusted models remain
+programs and this analysis does not assess all graph/runtime behavior.
+
+The fix belongs in Hayward, rather than a PyTorch path exemption in Rowan:
+classify source against same-root container markers, retain LOW presence,
+and report explicit resolved execution calls in packaged Python separately.
+Bound source reads and AST inspection; invalid, oversized, duplicate, or
+budget-exhausted source yields incomplete-coverage findings. Pickle checks
+remain independent. Rowan preserves presence evidence and labels it inventory
+in JSON, using backend metadata rather than benchmark-specific rule names.
+
+A targeted comparison scanned the same 200 artifacts from Rowan's inventory
+at PyTorch commit 68adc973349eb25d9f3f0fb1aecd4366f01d4810. Hayward 1.2.4
+reported 115 raw HIGH source-presence findings. The patched backend reports
+115 LOW presence findings, zero HIGH/CRITICAL, and zero coverage skips.
+Both report 390 INFO MFV-PICKLE-004 and one MEDIUM MFV-PICKLE-006. The 35 HIGH
+claims above are after Rowan's report filtering, rather than raw backend counts.
+This is a model-only comparison; the full source precision gate was not rerun.
+
+Validation: 700 Hayward tests; 53 Rowan adapter/enrichment/pipeline tests;
+Ruff and diff checks; a real Rowan pipeline with the local patched backend
+retains HIGH packaged execution and LOW inventory presence. Tests use unrelated
+fixture names, import aliases/shadowing, benign package source, malicious pickle,
+and analysis limits. Scanning does not import or execute model code.
+
+Delivery requires publishing the Hayward change, then updating Rowan's minimum
+Hayward version and releasing Rowan. Rowan 0.3.2 does not include this fix.

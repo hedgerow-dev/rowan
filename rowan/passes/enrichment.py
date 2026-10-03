@@ -2672,6 +2672,9 @@ class EnrichmentPass:
                 )
                 continue
             if _is_evidence_bearing_engine(f.engine):
+                if f.engine == "mfv" and f.metadata.get("rule_class") == "presence":
+                    f.metadata["evidence_tier"] = "presence"
+                    continue
                 f.metadata["evidence_tier"] = "engine"
                 continue
             if f.rule_id in _SELF_EVIDENT_DESER_RULES:

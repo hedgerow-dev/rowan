@@ -70,3 +70,50 @@ def test_ci_does_not_let_the_repo_hide_its_model_files(tmp_path):
     (tmp_path / ".rowanignore").write_text("fixtures/\n", encoding="utf-8")
     result = ScanPipeline(ScanConfig(target=tmp_path, no_sca=True, ci_mode=True)).run()
     assert "evil.pkl" in _mfv_files(result)
+
+
+def test_model_source_presence_keeps_inventory_evidence():
+    import json
+
+    import hayward
+
+    from rowan.core.findings import ScanResult
+    from rowan.passes.enrichment import EnrichmentPass
+    from rowan.passes.mfv import _to_rowan
+    from rowan.reporters import to_json
+
+    raw = hayward.Finding(
+        rule_id="MFV-EXAMPLE-PRESENCE", message="Source is present",
+        severity=hayward.Severity.LOW,
+        category=hayward.Category.DESERIALIZATION, file_path="example.pt",
+        metadata={"rule_class": "presence", "evidence_tier": "presence"},
+    )
+    finding = _to_rowan(raw)
+    EnrichmentPass()._cap_unverified_severity([finding])
+    assert finding.metadata["evidence_tier"] == "presence"
+    report = json.loads(to_json(ScanResult(findings=[finding])))
+    assert report["findings"][0]["rule_class"] == "inventory"
+    assert finding.severity.value == "low"
+
+
+def test_model_execution_evidence_is_not_inventory():
+    import json
+
+    import hayward
+
+    from rowan.core.findings import ScanResult
+    from rowan.passes.enrichment import EnrichmentPass
+    from rowan.passes.mfv import _to_rowan
+    from rowan.reporters import to_json
+
+    raw = hayward.Finding(
+        rule_id="MFV-EXAMPLE-EXEC", message="Explicit execution operation",
+        severity=hayward.Severity.HIGH,
+        category=hayward.Category.DESERIALIZATION, file_path="example.pt",
+        metadata={"evidence_tier": "static-operation"},
+    )
+    finding = _to_rowan(raw)
+    EnrichmentPass()._cap_unverified_severity([finding])
+    report = json.loads(to_json(ScanResult(findings=[finding])))
+    assert report["findings"][0]["rule_class"] == "vulnerability"
+    assert finding.severity.value == "high"
