@@ -73,3 +73,24 @@ complex returned authorization protocols are not claimed as covered.
   results are unchanged. Added claims outside its key are explicitly recorded
   as unmatched, so increased recall is not presented as proof of precision.
   The held-out mappings and raw reports remain in the local benchmark workspace.
+
+## Follow-up after merge
+PR #7 was squash-merged at 5f89f1fa555dfb89eeb87b103640934a5b820148.
+The first precision follow-up disambiguates resolved standard-library regex
+searches from generic vector-store and LDAP search sinks. Aliases are supported;
+shadowed/reassigned imports, wildcard imports, and mixed sink calls on one line
+remain unproven. Unknown search receivers retain their existing claims.
+
+Independent production-pipeline pairs and import/mutation controls pass:
+83 tests across SAST precision and AST enrichment. The corpus rerun retains
+60/82 keyed detections and the existing decoy hit, removing exactly one erroneous
+vector-query claim. Source-review triage is saved locally with the benchmark.
+
+Remaining precision work needs broader evidence:
+- Numeric logging needs field-sensitive provenance through ORM reads, helper
+  parameters, and mutations. An integer annotation or column declaration alone
+  must not globally sanitize a value that might have been overwritten.
+- Unscoped object reads need a declared privacy/sharing policy before assigning
+  confirmed authorization impact. Existence-only uses must distinguish an oracle
+  from an object disclosure or mutation. No corpus-specific public-object allowlist
+  is added.

@@ -46,8 +46,9 @@ def _imported_name(tree: ast.AST, expr: ast.expr, qualified: str) -> bool:
                     break
                 if isinstance(other, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and other.name == name:
                     break
-                if isinstance(other, (ast.Import, ast.ImportFrom)) and other is not node:
-                    if any((a.asname or a.name.split(".")[0]) == name for a in other.names):
+                if isinstance(other, (ast.Import, ast.ImportFrom)):
+                    aliases = [a.asname or a.name.split(".")[0] for a in other.names]
+                    if "*" in aliases or aliases.count(name) > (1 if other is node else 0):
                         break
             else:
                 return True
@@ -63,6 +64,24 @@ def _literal(expr: ast.expr) -> bool:
         return all(k is not None and _literal(k) and _literal(v)
                    for k, v in zip(expr.keys, expr.values, strict=True))
     return False
+
+
+def resolved_regex_search(tree: ast.AST, line: int) -> bool:
+    """Disambiguate generic vector/LDAP search sinks from stdlib regex search.
+
+    Keep unresolved receivers and lines containing another possible vector
+    sink. Import aliases are accepted only when they have no rebinding.
+    """
+    candidates = [
+        node for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and node.lineno == line
+        and ((isinstance(node.func, ast.Attribute)
+              and node.func.attr in {"search", "search_s", "search_ext", "query", "similarity_search"})
+             or _imported_name(tree, node.func, "re.search"))
+    ]
+    return bool(candidates) and all(
+        _imported_name(tree, call.func, "re.search") for call in candidates
+    )
 
 
 def safe_pickle_roundtrip(tree: ast.AST, line: int) -> bool:

@@ -27,6 +27,7 @@ from rowan.analysis.ast_sanitizers import (
     subscripts_on_line,
 )
 from rowan.analysis.safe_sink_context import (
+    resolved_regex_search,
     safe_flask_response,
     safe_flask_template_render,
     safe_pickle_roundtrip,
@@ -97,7 +98,9 @@ class ASTEnrichmentPass:
                 line = finding.start_line
 
                 safe_reason = None
-                if finding.rule_id == "NS-DESER-001" and safe_pickle_roundtrip(tree, line):
+                if finding.rule_id in {"TNT-ML-004", "TNT-LDAP-001"} and resolved_regex_search(tree, line):
+                    safe_reason = "stdlib_regex_search"
+                elif finding.rule_id == "NS-DESER-001" and safe_pickle_roundtrip(tree, line):
                     safe_reason = "literal_pickle_roundtrip"
                 elif finding.rule_id == "TNT-XSS-001" and safe_flask_response(tree, line):
                     safe_reason = "explicit_non_html_response"

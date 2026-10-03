@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from rowan.analysis.safe_sink_context import (
+    resolved_regex_search,
     safe_flask_response,
     safe_flask_template_render,
     safe_pickle_roundtrip,
@@ -25,6 +26,17 @@ def precision_scan(tmp_path_factory):
         pytest.skip("Production-pipeline regression requires Opengrep")
     root = tmp_path_factory.mktemp("rowan_precision")
     cases = {
+        "regex_safe.py": '''from flask import request
+import re as regex
+def check():
+    text = request.args.get("text")
+    return regex.search("hello", text)
+''',
+        "vector_query_unsafe.py": '''from flask import request
+def retrieve(store):
+    text = request.args.get("text")
+    return store.search(text)
+''',
         "template_safe.py": '''from flask import request, render_template
 def index():
     name = request.args.get("name")
@@ -130,6 +142,7 @@ def run(conn):
 
 @pytest.mark.parametrize("filename", [
     "template_safe.py", "plain_safe.py", "pickle_safe.py", "json_safe.py", "kwargs_safe.py",
+    "regex_safe.py",
 ])
 def test_safe_cases_have_no_vulnerability_findings(precision_scan, filename):
     _, result = precision_scan
@@ -158,6 +171,39 @@ def test_vulnerable_pairs_survive_confirmed_view(precision_scan, filename, rule_
     assert all(f.taint_flow is not None and pipe._in_confirmed_view(f) for f in findings)
     if rule_id in {"TNT-DESER-001", "TNT-SQLI-002"}:
         assert all(f.severity in {Severity.HIGH, Severity.CRITICAL} for f in findings)
+
+
+@pytest.mark.parametrize("rule_id", ["TNT-ML-004", "TNT-LDAP-001"])
+def test_unknown_search_receiver_keeps_claim(precision_scan, rule_id):
+    _, result = precision_scan
+    assert any(Path(f.file_path).name == "vector_query_unsafe.py"
+               and f.rule_id == rule_id for f in result.findings)
+
+
+@pytest.mark.parametrize("source", [
+    'import re\nre.search("prefix", text)',
+    'import re as rx\nrx.search("prefix", text)',
+    'from re import search as match\nmatch("prefix", text)',
+])
+def test_resolved_regex_search_is_not_vector_query(source):
+    assert resolved_regex_search(ast.parse(source), 2)
+
+
+@pytest.mark.parametrize("source, line", [
+    ('import re\nre = store\nre.search(text)', 3),
+    ('import re\ndef check(re):\n    return re.search(text)', 3),
+    ('import re\nre.search = other\nre.search(text)', 3),
+    ('import re\nfrom other import re\nre.search(text)', 3),
+    ('import re\nfrom other import *\nre.search(text)', 3),
+    ('import re, other as re\nre.search(text)', 2),
+    ('import re\nre.search("x", text); store.search(text)', 2),
+    ('import re\nre.search("x", text); directory.search_s(text)', 2),
+    ('store.search(text)', 1),
+    ('index.query(text)', 1),
+    ('re.search("x", text)', 1),
+])
+def test_ambiguous_or_vector_search_is_retained(source, line):
+    assert not resolved_regex_search(ast.parse(source), line)
 
 
 @pytest.mark.parametrize("body", [
