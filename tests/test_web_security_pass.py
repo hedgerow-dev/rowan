@@ -264,3 +264,18 @@ def test_field_never_compared_to_admin_is_not_a_privilege_field(tmp_path: Path) 
         encoding="utf-8",
     )
     assert not _privilege_findings(tmp_path)
+
+
+def test_reserved_name_check_does_not_make_username_a_privilege_field(tmp_path: Path) -> None:
+    (tmp_path / "app.py").write_text(
+        "from flask import request\n"
+        "def signup():\n"
+        "    data = request.get_json()\n"
+        "    if data['username'] == 'admin':\n"
+        "        return 'reserved'\n"
+        "    return User(username=data['username'])\n"
+        "def check(user):\n"
+        "    return user.username == 'admin'\n",
+        encoding="utf-8",
+    )
+    assert not _privilege_findings(tmp_path)

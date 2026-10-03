@@ -1157,3 +1157,16 @@ class TestReadThroughHelper:
             **_PRINCIPAL,
         })
         assert _bola(_run(root)) == []
+
+    def test_principal_passed_to_helper_as_argument_is_not_flagged(self):
+        root = _make_project({
+            "repo.py": (
+                "def fetch_memo(memo_id, owner):\n"
+                "    return Memo.query.filter_by(id=memo_id, owner_id=owner).first()\n"
+            ),
+            "app.py": _HELPER_APP.format(guard="").replace(
+                "repo.fetch_memo(memo_id)", "repo.fetch_memo(memo_id, g.user_id)"
+            ),
+            **_PRINCIPAL,
+        })
+        assert _bola(_run(root)) == []

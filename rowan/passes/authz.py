@@ -649,9 +649,18 @@ def _helper_read(
             fed.add(kw.arg)
     if not fed:
         return None
+    # Parameters the handler fed from the principal (`fetch(id, g.user_id)`):
+    # a read scoped by one of them is ownership-fused.
+    principal_params = {
+        params[i] for i, arg in enumerate(call.args)
+        if i < len(params) and is_principal_expr(arg, principal_names)
+    } | {
+        kw.arg for kw in call.keywords
+        if kw.arg in params and is_principal_expr(kw.value, principal_names)
+    }
     for read in _outermost_read_calls(callee):
         if (
-            not is_ownership_fused_read(read, set())
+            not is_ownership_fused_read(read, principal_params)
             and not is_status_fused_read(read)
             and is_user_keyed_read(read, fed)
         ):

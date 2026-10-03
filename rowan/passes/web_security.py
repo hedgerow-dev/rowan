@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 _PRIVILEGED = frozenset({"role", "is_admin", "is_staff", "is_superuser", "permissions"})
 _ADMIN_VALUES = frozenset({"admin", "administrator", "superuser", "staff", "owner", "root"})
+_PRINCIPAL_BASES = frozenset({"g", "current_user", "request.user", "session", "self.user"})
 _SECRET_WORDS = ("token", "secret", "password", "api_key", "apikey", "signature", "digest")
 _SAFE_ROLE_VALUES = frozenset({"user", "member", "viewer", "customer", "guest"})
 
@@ -220,7 +221,7 @@ class WebSecurityPass:
 
     def _guarded_fields(self, parsed: list[_Parsed]) -> frozenset[str]:
         """Attribute names an authorization check compares to an admin-like
-        value (``g.tier == "admin"``): privilege fields found by use, not name."""
+        value on the current principal (``g.tier == "admin"``): privilege fields found by use, not name."""
         fields: set[str] = set()
         for item in parsed:
             for compare in (n for n in ast.walk(item.tree) if isinstance(n, ast.Compare)):
@@ -231,7 +232,8 @@ class WebSecurityPass:
                 ):
                     continue
                 fields.update(
-                    op.attr for op in operands if isinstance(op, ast.Attribute)
+                    op.attr for op in operands
+                    if isinstance(op, ast.Attribute) and _text(op.value) in _PRINCIPAL_BASES
                 )
         return frozenset(fields)
 
