@@ -157,7 +157,10 @@ rules:
     severity: ERROR
     languages: [python]
     patterns:
-      - (?:lxml\.)?etree\.XMLParser\([^)]{0,300}?(?:resolve_entities\s*=\s*True|no_network\s*=\s*False)
+      # Direct kwargs, or the same options built as a dict literal / dict(...)
+      # and passed as XMLParser(**OPTS). The regex cannot follow OPTS to the
+      # call, so the dict form matches where the options are defined.
+      - (?:(?:lxml\.)?etree\.XMLParser\(|\bdict\()[^)]{0,300}?(?:resolve_entities\s*=\s*True|no_network\s*=\s*False)|["']resolve_entities["']\s*:\s*True|["']no_network["']\s*:\s*False
     pattern-not:
       - '(?m)^\s*#'
       - '(?:def test_|conftest|unittest)'
