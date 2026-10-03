@@ -23,6 +23,7 @@ from rowan.passes.sources import iter_python_sources
 logger = logging.getLogger(__name__)
 
 _PRIVILEGED = frozenset({"role", "is_admin", "is_staff", "is_superuser", "permissions"})
+_ADMIN_VALUES = frozenset({"admin", "administrator", "superuser", "staff", "owner", "root"})
 _SECRET_WORDS = ("token", "secret", "password", "api_key", "apikey", "signature", "digest")
 _SAFE_ROLE_VALUES = frozenset({"user", "member", "viewer", "customer", "guest"})
 
@@ -115,6 +116,7 @@ class WebSecurityPass:
         findings: list[Finding] = []
         mass_sinks = self._mass_assignment_sinks(parsed)
         privilege_gate = self._privilege_gate(parsed)
+        privileged = _PRIVILEGED | self._guarded_fields(parsed)
         has_cookie_auth = any("request.cookies" in item.text for item in parsed)
         has_svg_store = any(self._has_svg_store(item.tree) for item in parsed)
         framing_configured = any(
@@ -134,7 +136,7 @@ class WebSecurityPass:
                 findings.extend(
                     self._scan_function(
                         item.path, fn, tainted, mass_sinks, privilege_gate,
-                        jsonpickle_decoders,
+                        jsonpickle_decoders, privileged,
                     )
                 )
                 findings.extend(self._scan_predictable_recovery_code(item.path, fn))
@@ -216,6 +218,23 @@ class WebSecurityPass:
                 return item.path, gate.lineno
         return None
 
+    def _guarded_fields(self, parsed: list[_Parsed]) -> frozenset[str]:
+        """Attribute names an authorization check compares to an admin-like
+        value (``g.tier == "admin"``): privilege fields found by use, not name."""
+        fields: set[str] = set()
+        for item in parsed:
+            for compare in (n for n in ast.walk(item.tree) if isinstance(n, ast.Compare)):
+                operands = [compare.left, *compare.comparators]
+                if not any(
+                    isinstance(x, ast.Constant) and x.value in _ADMIN_VALUES
+                    for op in operands for x in ast.walk(op)
+                ):
+                    continue
+                fields.update(
+                    op.attr for op in operands if isinstance(op, ast.Attribute)
+                )
+        return frozenset(fields)
+
     def _jsonpickle_decoders(self, tree: ast.AST) -> set[str]:
         names = {"jsonpickle.decode", "jsonpickle.loads"}
         module_aliases = {
@@ -265,7 +284,8 @@ class WebSecurityPass:
     def _scan_function(self, path: Path, fn: ast.FunctionDef | ast.AsyncFunctionDef,
                        tainted: set[str], mass_sinks: set[str],
                        privilege_gate: tuple[Path, int] | None,
-                       jsonpickle_decoders: set[str]) -> list[Finding]:
+                       jsonpickle_decoders: set[str],
+                       privileged: frozenset[str] = _PRIVILEGED) -> list[Finding]:
         out: list[Finding] = []
         for call in (n for n in ast.walk(fn) if isinstance(n, ast.Call)):
             name = _call_name(call.func)
@@ -290,7 +310,7 @@ class WebSecurityPass:
             for keyword in call.keywords:
                 if not stores_object:
                     continue
-                if keyword.arg not in _PRIVILEGED or not _request_expr(keyword.value, tainted):
+                if keyword.arg not in privileged or not _request_expr(keyword.value, tainted):
                     continue
                 source_name = next((n.id for n in ast.walk(keyword.value) if isinstance(n, ast.Name) and n.id in tainted), "")
                 if source_name and _rejecting_guard(fn, source_name, _SAFE_ROLE_VALUES):
@@ -314,7 +334,7 @@ class WebSecurityPass:
                 )
                 if (
                     isinstance(target, ast.Attribute)
-                    and target.attr in _PRIVILEGED
+                    and target.attr in privileged
                     and _request_expr(value, tainted)
                     and not (source_name and _rejecting_guard(fn, source_name, _SAFE_ROLE_VALUES))
                 ):

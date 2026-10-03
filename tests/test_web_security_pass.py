@@ -227,3 +227,40 @@ def test_annotation_only_assignment_does_not_crash_scan(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     assert _scan(tmp_path) == []
+
+
+_SIGNUP = """
+from flask import Flask, request, jsonify, g, abort
+app = Flask(__name__)
+
+def admin_only(fn):
+    def wrapper(*a, **k):
+        if g.{field} != "admin":
+            abort(403)
+        return fn(*a, **k)
+    return wrapper
+
+@app.post("/signup")
+def signup():
+    data = request.get_json()
+    u = User(name=data["name"], {field}=data.get("{field}", "member"))
+    db.session.add(u)
+    return jsonify(id=u.id)
+"""
+
+
+def _privilege_findings(root: Path):
+    return [f for f in _scan(root) if f.rule_id == "WEB-PRIVILEGE-ASSIGN-001"]
+
+
+def test_privilege_field_with_unlisted_name_is_found_via_admin_guard(tmp_path: Path) -> None:
+    (tmp_path / "app.py").write_text(_SIGNUP.format(field="tier"), encoding="utf-8")
+    assert _privilege_findings(tmp_path)
+
+
+def test_field_never_compared_to_admin_is_not_a_privilege_field(tmp_path: Path) -> None:
+    (tmp_path / "app.py").write_text(
+        _SIGNUP.format(field="tier").replace('g.tier != "admin"', 'g.is_admin_ok'),
+        encoding="utf-8",
+    )
+    assert not _privilege_findings(tmp_path)
