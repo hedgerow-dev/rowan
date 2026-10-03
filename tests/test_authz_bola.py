@@ -1073,3 +1073,87 @@ def test_status_kwarg_named_constant_still_fuses():
         "auth.py": _PRINCIPAL_FILE,
     })
     assert _bola(_run(root)) == []
+
+
+_HELPER_APP = (
+    "import repo\n"
+    "@app.route('/memos/<int:memo_id>')\n"
+    "def read_memo(memo_id):\n"
+    "    memo = repo.fetch_memo(memo_id)\n"
+    "{guard}"
+    "    return jsonify(body=memo.body)\n"
+)
+_PRINCIPAL = {"auth.py": "def load_principal():\n    g.user_id = int(claims['sub'])\n"}
+
+
+class TestReadThroughHelper:
+    """#4: the unguarded read lives in a helper in another module."""
+
+    def test_unguarded_read_through_repo_helper_is_flagged(self):
+        root = _make_project({
+            "repo.py": "def fetch_memo(memo_id):\n    return db.session.get(Memo, memo_id)\n",
+            "app.py": _HELPER_APP.format(guard=""),
+            **_PRINCIPAL,
+        })
+        findings = _bola(_run(root))
+        assert len(findings) == 1
+        assert findings[0].metadata["model"] == "Memo"
+
+    def test_from_import_helper_is_flagged(self):
+        root = _make_project({
+            "repo.py": "def fetch_memo(memo_id):\n    return Memo.query.get(memo_id)\n",
+            "app.py": (
+                "from repo import fetch_memo\n"
+                "@app.route('/memos/<int:memo_id>')\n"
+                "def read_memo(memo_id):\n"
+                "    memo = fetch_memo(memo_id)\n"
+                "    return jsonify(body=memo.body)\n"
+            ),
+            **_PRINCIPAL,
+        })
+        assert len(_bola(_run(root))) == 1
+
+    def test_handler_ownership_guard_after_helper_suppresses(self):
+        root = _make_project({
+            "repo.py": "def fetch_memo(memo_id):\n    return db.session.get(Memo, memo_id)\n",
+            "app.py": _HELPER_APP.format(
+                guard="    if memo.owner_id != g.user_id:\n        abort(403)\n"
+            ),
+            **_PRINCIPAL,
+        })
+        assert _bola(_run(root)) == []
+
+    def test_helper_that_checks_the_principal_is_not_flagged(self):
+        root = _make_project({
+            "repo.py": (
+                "def fetch_memo(memo_id):\n"
+                "    memo = db.session.get(Memo, memo_id)\n"
+                "    if memo.owner_id != g.user_id:\n"
+                "        abort(403)\n"
+                "    return memo\n"
+            ),
+            "app.py": _HELPER_APP.format(guard=""),
+            **_PRINCIPAL,
+        })
+        assert _bola(_run(root)) == []
+
+    def test_helper_with_ownership_fused_query_is_not_flagged(self):
+        root = _make_project({
+            "repo.py": (
+                "def fetch_memo(memo_id):\n"
+                "    return Memo.query.filter_by(id=memo_id, owner_id=g.user_id).first()\n"
+            ),
+            "app.py": _HELPER_APP.format(guard=""),
+            **_PRINCIPAL,
+        })
+        assert _bola(_run(root)) == []
+
+    def test_helper_not_keyed_by_the_request_id_is_not_flagged(self):
+        root = _make_project({
+            "repo.py": "def latest_memo(limit):\n    return db.session.get(Memo, 1)\n",
+            "app.py": _HELPER_APP.format(guard="").replace(
+                "repo.fetch_memo(memo_id)", "repo.latest_memo(10)"
+            ),
+            **_PRINCIPAL,
+        })
+        assert _bola(_run(root)) == []

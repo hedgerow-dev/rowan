@@ -602,6 +602,63 @@ def handler_principal_aliases(
     return aliases
 
 
+def _resolve_helper_callee(
+    py_file: Path,
+    tree: ast.AST,
+    call: ast.Call,
+    corpus: dict[Path, dict[str, ast.FunctionDef | ast.AsyncFunctionDef]],
+) -> ast.FunctionDef | ast.AsyncFunctionDef | None:
+    """The same-repository function a handler calls as `fn(...)` (imported by
+    name or defined in this module) or `module.fn(...)`. Ambiguous or
+    unresolvable calls return None."""
+    files = set(corpus)
+    if isinstance(call.func, ast.Name):
+        if call.func.id in corpus.get(py_file, {}):
+            return corpus[py_file][call.func.id]
+        resolved = _resolve_imported_function(py_file, call.func.id, tree, files)
+        return corpus.get(resolved[0], {}).get(resolved[1]) if resolved else None
+    if isinstance(call.func, ast.Attribute) and isinstance(call.func.value, ast.Name):
+        matches = [f for f in files if f.stem == call.func.value.id]
+        if len(matches) == 1:
+            return corpus[matches[0]].get(call.func.attr)
+    return None
+
+
+def _helper_read(
+    callee: ast.FunctionDef | ast.AsyncFunctionDef,
+    call: ast.Call,
+    handler_user_names: set[str],
+    principal_names: set[str],
+) -> ast.Call | None:
+    """The unguarded object read inside `callee` that is keyed by a parameter
+    the handler fed from request input, or None. A callee that mentions the
+    principal at all is skipped: it may enforce ownership where we cannot see."""
+    if any(is_principal_expr(n, principal_names) for n in ast.walk(callee)):
+        return None
+    params = _param_names(callee)
+    fed: set[str] = set()
+    for index, arg in enumerate(call.args):
+        if index < len(params) and any(
+            isinstance(n, ast.Name) and n.id in handler_user_names for n in ast.walk(arg)
+        ):
+            fed.add(params[index])
+    for kw in call.keywords:
+        if kw.arg in params and any(
+            isinstance(n, ast.Name) and n.id in handler_user_names for n in ast.walk(kw.value)
+        ):
+            fed.add(kw.arg)
+    if not fed:
+        return None
+    for read in _outermost_read_calls(callee):
+        if (
+            not is_ownership_fused_read(read, set())
+            and not is_status_fused_read(read)
+            and is_user_keyed_read(read, fed)
+        ):
+            return read
+    return None
+
+
 def _outermost_read_calls(func: ast.FunctionDef | ast.AsyncFunctionDef) -> list[ast.Call]:
     """Recognized object-read calls in the handler body, de-duplicated so that a
     chained read (`Model.objects.filter(...).first()`) is reported once, at its
@@ -1136,9 +1193,10 @@ class AuthzPass:
         # A missing ownership check is only a BOLA if the app has a principal
         # concept at all; otherwise it is a (different) missing-auth finding.
         if principal_names:
+            corpus = {py_file: _module_functions(tree) for py_file, tree in trees}
             for py_file, tree in trees:
                 result.findings.extend(
-                    self._scan_tree(py_file, tree, principal_names, injectors)
+                    self._scan_tree(py_file, tree, principal_names, injectors, corpus)
                 )
 
         # AUTHZ-LLM-001 (#185) is not gated on `principal_names`: the flaw is
@@ -1164,6 +1222,7 @@ class AuthzPass:
         tree: ast.AST,
         principal_names: set[str],
         injectors: dict[str, set[str]] | None = None,
+        corpus: dict[Path, dict[str, ast.FunctionDef | ast.AsyncFunctionDef]] | None = None,
     ) -> list[Finding]:
         findings: list[Finding] = []
         functions = _module_functions(tree)
@@ -1180,18 +1239,27 @@ class AuthzPass:
             aliases = handler_principal_aliases(handler, injectors or {})
             user_names = _user_controlled_names(handler) - aliases
             handler_principals = principal_names | aliases
-            for call in _outermost_read_calls(handler):
-                model = read_model_class(call) or "object"
-                if (
-                    _PUBLIC_IDENTITY_MODEL_RE.match(model)
-                    and _IDENTITY_HANDLER_RE.search(handler.name)
-                    and not any(is_principal_expr(node, aliases) for node in ast.walk(handler))
-                ):
-                    continue
-                if is_ownership_fused_read(call, aliases) or is_status_fused_read(call):
-                    continue
-                if not is_user_keyed_read(call, user_names):
-                    continue
+            # (call node reported, model of the read, True if the read is in a helper)
+            reads = [
+                (call, read_model_class(call) or "object", False)
+                for call in _outermost_read_calls(handler)
+            ]
+            for helper_call, inner in self._helper_reads(
+                py_file, tree, handler, user_names, handler_principals, corpus or {}
+            ):
+                reads.append((helper_call, read_model_class(inner) or "object", True))
+            for call, model, via_helper in reads:
+                if not via_helper:
+                    if (
+                        _PUBLIC_IDENTITY_MODEL_RE.match(model)
+                        and _IDENTITY_HANDLER_RE.search(handler.name)
+                        and not any(is_principal_expr(node, aliases) for node in ast.walk(handler))
+                    ):
+                        continue
+                    if is_ownership_fused_read(call, aliases) or is_status_fused_read(call):
+                        continue
+                    if not is_user_keyed_read(call, user_names):
+                        continue
                 verdict = self._gap_verdict(
                     handler,
                     view_cls,
@@ -1231,6 +1299,30 @@ class AuthzPass:
                     },
                 ))
         return findings
+
+    def _helper_reads(
+        self,
+        py_file: Path,
+        tree: ast.AST,
+        handler: ast.FunctionDef | ast.AsyncFunctionDef,
+        user_names: set[str],
+        principal_names: set[str],
+        corpus: dict[Path, dict[str, ast.FunctionDef | ast.AsyncFunctionDef]],
+    ) -> list[tuple[ast.Call, ast.Call]]:
+        """Handler calls (assigned to a plain variable) whose same-repository
+        callee does an unguarded read keyed by the request id (#4). One hop."""
+        found: list[tuple[ast.Call, ast.Call]] = []
+        for stmt in handler.body:
+            for node in ast.walk(stmt):
+                if not isinstance(node, ast.Call) or read_model_class(node) is not None:
+                    continue
+                callee = _resolve_helper_callee(py_file, tree, node, corpus)
+                if callee is None or callee is handler:
+                    continue
+                inner = _helper_read(callee, node, user_names, principal_names)
+                if inner is not None:
+                    found.append((node, inner))
+        return found
 
     def _scan_principal_overrides(
         self, py_file: Path, tree: ast.AST, principal_names: set[str]
