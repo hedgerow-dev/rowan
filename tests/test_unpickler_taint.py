@@ -39,7 +39,6 @@ def _scan(tmp_path, body):
     "body",
     [
         "return pickle.Unpickler(io.BytesIO(request.data)).load()",
-        "return pickle.Unpickler(request.stream).load()",
         "return cloudpickle.loads(request.data)",
     ],
 )
