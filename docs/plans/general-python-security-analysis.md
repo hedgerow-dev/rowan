@@ -141,3 +141,12 @@ and analysis limits. Scanning does not import or execute model code.
 
 Delivery requires publishing the Hayward change, then updating Rowan's minimum
 Hayward version and releasing Rowan. Rowan 0.3.2 does not include this fix.
+
+Hayward 1.2.5 was published on 2026-10-03 after all 13 implementation and
+release CI checks passed. Rowan's 0.3.3 release preparation raises its minimum
+version accordingly. A clean wheel with Hayward 1.2.5 installed from PyPI passes
+the same 200-artifact comparison and pipeline checks for LOW inventory presence,
+HIGH packaged execution, and CRITICAL malicious pickle detection. The comparable
+ModelForge/modelbay rerun (`--no-sca --authz --audit`, converted rule engine)
+retains all 168 previous findings with no additions/removals or degraded analysis;
+its existing adjudication remains 60/82 with one decoy FP and 28 unmatched claims.
