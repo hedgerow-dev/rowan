@@ -82,9 +82,17 @@ shadowed/reassigned imports, wildcard imports, and mixed sink calls on one line
 remain unproven. Unknown search receivers retain their existing claims.
 
 Independent production-pipeline pairs and import/mutation controls pass:
-83 tests across SAST precision and AST enrichment. The corpus rerun retains
+186 tests across SAST precision, AST enrichment, and cross-file analysis. The corpus rerun retains
 60/82 keyed detections and the existing decoy hit, removing exactly one erroneous
 vector-query claim. Source-review triage is saved locally with the benchmark.
+
+The pinned Langflow scan completed without degradation but initially failed its
+gate on two HIGH cross-file SQL claims. Both originate in an async version-warning
+log containing the word "update". The follow-up extends logging-message recognition
+to async log methods and applies it before cross-file sink attribution. SQL executed
+inside a logging argument and separate query strings on the same line remain sinks.
+Production-pipeline helper/caller pairs cover both outcomes. The full gate is being
+rerun after the fix; PyTorch's scan is still running.
 
 Remaining precision work needs broader evidence:
 - Numeric logging needs field-sensitive provenance through ORM reads, helper

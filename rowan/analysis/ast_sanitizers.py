@@ -147,6 +147,7 @@ def subscripts_on_line(tree: ast.AST, line: int) -> set[str]:
 _LOG_CALL_NAMES = frozenset({
     "debug", "info", "warning", "warn", "error", "critical", "exception",
     "log", "print", "pprint",
+    "adebug", "ainfo", "awarning", "awarn", "aerror", "acritical", "aexception", "alog",
 })
 
 
@@ -170,6 +171,7 @@ def logging_fstring_lines(tree: ast.AST) -> set[int]:
     own line range, so the finding line matches even when the call opens on an
     earlier line."""
     lines: set[int] = set()
+    message_nodes: set[int] = set()
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
@@ -182,8 +184,18 @@ def logging_fstring_lines(tree: ast.AST) -> set[int]:
         if name not in _LOG_CALL_NAMES:
             continue
         for arg in (*node.args, *(kw.value for kw in node.keywords)):
-            lines |= _fstring_lines(arg)
-    return lines
+            # A nested execute/search call remains a sink even when its result
+            # is logged. Only the message itself is a logging f-string.
+            if isinstance(arg, ast.JoinedStr):
+                lines |= _fstring_lines(arg)
+                message_nodes.update(id(n) for n in ast.walk(arg) if isinstance(n, ast.JoinedStr))
+    # Line-based findings cannot distinguish a logged message from another
+    # f-string on the same line. Keep that ambiguous line as a possible sink.
+    other_lines: set[int] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.JoinedStr) and id(node) not in message_nodes:
+            other_lines |= _fstring_lines(node)
+    return lines - other_lines
 
 
 def fstring_assignment_lines(tree: ast.AST) -> set[int]:

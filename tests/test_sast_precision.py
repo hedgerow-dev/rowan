@@ -26,6 +26,24 @@ def precision_scan(tmp_path_factory):
         pytest.skip("Production-pipeline regression requires Opengrep")
     root = tmp_path_factory.mktemp("rowan_precision")
     cases = {
+        "version_notice_helper.py": '''async def notify(release):
+    await logger.awarning(f"Please update your release {release}")
+''',
+        "version_notice_route.py": '''from flask import request
+from version_notice_helper import notify
+async def handle():
+    release = request.args.get("release")
+    await notify(release)
+''',
+        "query_helper.py": '''def fetch(key):
+    return logger.info(connection.execute(f"SELECT * FROM docs WHERE key = '{key}'"))
+''',
+        "query_route.py": '''from flask import request
+from query_helper import fetch
+def handle():
+    key = request.args.get("key")
+    return fetch(key)
+''',
         "regex_safe.py": '''from flask import request
 import re as regex
 def check():
@@ -178,6 +196,16 @@ def test_unknown_search_receiver_keeps_claim(precision_scan, rule_id):
     _, result = precision_scan
     assert any(Path(f.file_path).name == "vector_query_unsafe.py"
                and f.rule_id == rule_id for f in result.findings)
+
+
+def test_cross_file_log_message_is_not_sql_but_query_is(precision_scan):
+    _, result = precision_scan
+    notice_claims = [f for f in result.findings
+                     if Path(f.file_path).name in {"version_notice_helper.py", "version_notice_route.py"}
+                     and (f.rule_id == "NS-SQLI-005" or 89 in f.cwe_ids)]
+    assert not notice_claims
+    assert any(Path(f.file_path).name == "query_route.py"
+               and f.rule_id == "CF-SINK-001" and 89 in f.cwe_ids for f in result.findings)
 
 
 @pytest.mark.parametrize("source", [

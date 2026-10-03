@@ -18,6 +18,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from rowan.analysis.ast_sanitizers import fstring_assignment_lines, logging_fstring_lines
 from rowan.analysis.dominance import (
     collect_dominating_candidates as _collect_dominating_candidates,
 )
@@ -4318,6 +4319,7 @@ def _match_findings_to_functions(
     subprocess calls (XF-26); without it every hit is kept.
     """
     by_file: dict[str, list[_FunctionSig]] = {}
+    log_message_lines: dict[tuple[str, str, int], set[int]] = {}
     for func in funcs:
         by_file.setdefault(func.file, []).append(func)
 
@@ -4365,6 +4367,16 @@ def _match_findings_to_functions(
             best = _innermost_function(by_file, finding.file_path, finding.start_line)
             if best is None:
                 continue
+            if finding.rule_id == "NS-SQLI-005" and def_nodes_by_line is not None:
+                key = (best.file, best.name, best.line)
+                if key not in log_message_lines:
+                    node = def_nodes_by_line.get(key)
+                    log_message_lines[key] = (
+                        logging_fstring_lines(node) - fstring_assignment_lines(node)
+                        if node is not None else set()
+                    )
+                if finding.start_line in log_message_lines[key]:
+                    continue
             # Presence rules like ns-aiml-076 match any subprocess call. A
             # list-form call to a fixed, non-shell program cannot inject a
             # command, so it is not a CWE-78 sink for its callers (XF-26).

@@ -298,6 +298,28 @@ def test_match_findings_to_functions():
     assert result[0].sink_symbol == "pickle.loads"
 
 
+@pytest.mark.parametrize("body, is_sink", [
+    ('logger.warning(f"Please update version {value}")', False),
+    ('await logger.awarning(f"Please update version {value}")', False),
+    ('query = f"SELECT * FROM docs WHERE key = {value}"', True),
+    ('logger.info(conn.execute(f"SELECT * FROM docs WHERE key = {value}"))', True),
+    ('await logger.ainfo(conn.execute(f"SELECT * FROM docs WHERE key = {value}"))', True),
+    ('logger.info(f"update {value}"); conn.execute(f"SELECT {value}")', True),
+])
+def test_sql_log_messages_are_not_propagated_as_query_sinks(body, is_sink):
+    from rowan.passes.cross_file import _FunctionSig
+
+    node = ast.parse('async def helper(value):\n    ' + body).body[0]
+    sig = _FunctionSig(name="helper", file="helper.py", line=1,
+                       end_line=2, params=["value"], calls=[])
+    finding = Finding(rule_id="NS-SQLI-005", message="SQL keyword f-string",
+                      severity=Severity.HIGH, category=Category.INJECTION,
+                      file_path="helper.py", start_line=2, engine="opengrep")
+    _match_findings_to_functions([finding], [sig],
+                                def_nodes_by_line={("helper.py", "helper", 1): node})
+    assert sig.has_sink is is_sink
+
+
 def test_match_findings_neuroscan_sink():
     from rowan.passes.cross_file import _FunctionSig
 
