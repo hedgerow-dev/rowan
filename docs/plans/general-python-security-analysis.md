@@ -95,6 +95,8 @@ Production-pipeline helper/caller pairs cover both outcomes. The full Langflow r
 passes at 26dc6fd3bc3a49178022b81c58e44a7d0a659a34: 5,878 files, complete coverage,
 zero HIGH/CRITICAL, no degraded passes, 416.7 seconds. Seven false SQL claims on
 log messages were removed and no claims added. PyTorch's scan is still running.
+The final LangChain rerun also passes: 2,723 files, complete coverage, zero
+HIGH/CRITICAL, no degraded passes, 184.1 seconds.
 
 Remaining precision work needs broader evidence:
 - Numeric logging needs field-sensitive provenance through ORM reads, helper
