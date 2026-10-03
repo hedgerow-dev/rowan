@@ -503,3 +503,49 @@ rules:
               - pattern: hmac.compare_digest(...)
               - pattern: json.loads(...)
               - pattern: msgpack.unpackb(...)
+
+  # ---------------------------------------------------------------------------
+  # Hand-rolled JWT payload decode (CWE-347)
+  # ---------------------------------------------------------------------------
+  - id: TNT-AUTH-JWT-001
+    mode: taint
+    message: >
+      A request-supplied JWT is split on "." and its payload is base64-decoded
+      and parsed as JSON by hand. Nothing checks the signature, so the caller
+      chooses the claims (sub, role, ...). Verify with a JWT library
+      (jwt.decode with a key and algorithms) before trusting any claim.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      cwe: [347]
+      category: auth_bypass
+      fix: "Use jwt.decode(token, key, algorithms=[...]) and read claims only from its result."
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: request.json[...]
+              - pattern: request.json.get(...)
+              - pattern: request.form[...]
+              - pattern: request.form.get(...)
+              - pattern: request.args[...]
+              - pattern: request.args.get(...)
+              - pattern: request.headers[...]
+              - pattern: request.headers.get(...)
+              - pattern: request.cookies[...]
+              - pattern: request.cookies.get(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: base64.urlsafe_b64decode(...)
+              - pattern: base64.b64decode(...)
+          - pattern-inside: json.loads(...)
+          - pattern-inside: |
+              def $F(...):
+                ...
+                <... $TOK.split(".") ...>
+                ...
+          - pattern-not-inside: |
+              def $F(...):
+                ...
+                <... jwt.decode(...) ...>
+                ...
