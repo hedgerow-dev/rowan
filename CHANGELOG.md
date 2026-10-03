@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.3.4 (alpha)
+
+- Calibrate log-forging findings using bounded values and resolved numeric
+  formatting. Preserve claims for unknown values, mutation, shadowed helpers,
+  dynamic formats and character conversion. Sensitive logging remains independent.
+- Report object authorization guard gaps separately from confirmed impact.
+  Unknown model policy yields MEDIUM review findings; pure existence observations
+  are LOW. Add explicit qualified model read/write policies; public reads never
+  authorize writes or opaque object/selector escapes.
+- Expose authorization requirement, object use and model identity in JSON,
+  with updated configuration and evidence schemas.
+
+Annotations and ORM column declarations alone do not prove bounded log output.
+Model policies describe intent, not runtime enforcement; guard gaps are excluded
+from the confirmed view. Dynamic dispatch and complex helper protocols remain
+conservative analysis limits.
+
 ## v0.3.3 (alpha)
 
 - Require Hayward 1.2.5: distinguish TorchScript graph source from packaged
