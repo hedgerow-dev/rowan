@@ -60,7 +60,7 @@ def run_identity(state) -> str:
     from rowan.passes.file_scan import FileScanPass
 
     for path in sorted(FileScanPass([])._collect_files(state.target_path, state.config)):
-        digest.update(str(path.relative_to(state.target_path.resolve())).encode())
+        digest.update(str(path.resolve().relative_to(state.target_path.resolve())).encode())
         try:
             digest.update(hashlib.sha256(path.read_bytes()).digest())
         except OSError as exc:
@@ -71,7 +71,7 @@ def run_identity(state) -> str:
         state.target_path, state.config
     )
     for path in sorted(set(manifests + models + configs)):
-        digest.update(str(path.relative_to(state.target_path.resolve())).encode())
+        digest.update(str(path.resolve().relative_to(state.target_path.resolve())).encode())
         with path.open("rb") as stream:
             for chunk in iter(lambda: stream.read(1024 * 1024), b""):
                 digest.update(chunk)

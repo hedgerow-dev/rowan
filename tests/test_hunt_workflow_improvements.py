@@ -511,3 +511,17 @@ def test_text_response_replay_preserves_report(tmp_path):
 def test_cli_rejects_invalid_recovery_and_view_options(tmp_path, options):
     result = CliRunner().invoke(main, ["hunt", str(tmp_path), *options])
     assert result.exit_code == 2
+
+
+def test_checkpoint_identity_accepts_symlinked_target(tmp_path):
+    root = tmp_path / "source"
+    root.mkdir()
+    (root / "app.py").write_text("x = 1\n")
+    (root / "requirements.txt").write_text("example==1.0\n")
+    alias = tmp_path / "alias"
+    alias.symlink_to(root, target_is_directory=True)
+    direct = state_for(root)
+    linked = state_for(alias)
+    linked.target_path = alias
+    linked.config = direct.config
+    assert run_identity(linked) == run_identity(direct)
