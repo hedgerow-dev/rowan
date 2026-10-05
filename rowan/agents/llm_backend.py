@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
+from jsonschema import Draft202012Validator
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +89,10 @@ class LLMBackend:
         self.max_calls: int | None = None
         self.calls = 0
         self._calls_lock = threading.Lock()
+        self.cancel_event = threading.Event()
+        self.retry_count = 0
+        self.stop_reason = ""
+        self.usage: dict[str, int] = {}
         # Reasoning models (DeepSeek v4, o-series) bill thinking against
         # max_tokens, so an 8192 budget can be spent entirely on reasoning and
         # return finish_reason="length" with an empty content field. Both are
@@ -182,6 +187,10 @@ class LLMBackend:
         max_tokens: int | None = None,
     ) -> LLMResponse:
         """Send a prompt and get a completion."""
+        if self.stop_reason == "call budget exhausted" and (self.max_calls is None or self.calls < self.max_calls):
+            self.stop_reason = ""
+        if self.stop_reason:
+            return LLMResponse(text=f"LLM error: {self.stop_reason}", model=self._model)
         if not self.is_configured:
             hint = {
                 "deepseek": "Set DEEPSEEK_API_KEY.",
@@ -198,6 +207,7 @@ class LLMBackend:
 
         with self._calls_lock:
             if self.max_calls is not None and self.calls >= self.max_calls:
+                self.stop_reason = "call budget exhausted"
                 return LLMResponse(
                     text=f"LLM error: call budget of {self.max_calls} exhausted", model="none"
                 )
@@ -277,6 +287,10 @@ class LLMBackend:
             text,
         )
 
+        with self._calls_lock:
+            for key, value in usage.items():
+                if isinstance(value, int):
+                    self.usage[key] = self.usage.get(key, 0) + value
         return LLMResponse(
             text=text.strip() if text else "",
             model=self._model,
@@ -301,7 +315,11 @@ class LLMBackend:
         of findings from silently vanishing from a hunt (HN-08)."""
         error = "no attempt made"
         for attempt in range(_RETRY_ATTEMPTS):
+            if self.cancel_event.is_set():
+                self.stop_reason = "cancelled"
+                return "cancelled"
             retryable, delay = False, None
+            status = None
             try:
                 response = httpx.post(url, json=body, headers=headers, timeout=self._timeout)
                 response.raise_for_status()
@@ -311,6 +329,14 @@ class LLMBackend:
                 status = e.response.status_code
                 error = f"{e}"
                 retryable = status == 429 or status >= 500
+                try:
+                    error_code = e.response.json().get("error", {}).get("code", "")
+                except (ValueError, AttributeError):
+                    error_code = ""
+                if status == 429:
+                    if isinstance(error_code, str) and error_code in {"insufficient_quota", "billing_hard_limit_reached", "quota_exceeded"}:
+                        self.stop_reason = "quota exhausted; resume after restoring backend quota"
+                        return self.stop_reason
                 delay = _retry_after_seconds(e.response.headers.get("Retry-After"))
             except httpx.HTTPError as e:
                 return f"{e}"
@@ -321,10 +347,16 @@ class LLMBackend:
                     return f"non-JSON response ({response.status_code})"
                 return data if isinstance(data, dict) else "non-object JSON response"
             if not retryable or attempt == _RETRY_ATTEMPTS - 1:
+                if status in {401, 402, 403, 404} or (status == 400 and isinstance(error_code, str) and error_code in {"model_not_found", "invalid_model", "unsupported_parameter"}):
+                    self.stop_reason = f"request rejected (HTTP {status}); check model, credentials and endpoint"
                 break
             wait = delay if delay is not None else _RETRY_BASE_SECONDS * (2**attempt)
+            wait = min(wait, 30.0)
             logger.warning("LLM request failed (%s); retrying in %.0fs", error, wait)
-            time.sleep(wait)
+            self.retry_count += 1
+            if self.cancel_event.wait(wait):
+                self.stop_reason = "cancelled"
+                return "cancelled"
         logger.warning("LLM request failed: %s", error)
         return error
 
@@ -348,7 +380,21 @@ class LLMBackend:
         if response.text.startswith("LLM"):
             return {"error": response.text}
 
-        return self._parse_json_response(response.text)
+        value = self._parse_json_response(response.text)
+        if output_schema:
+            Draft202012Validator.check_schema(output_schema)
+            if "error" in value or not Draft202012Validator(output_schema).is_valid(value):
+                # One bounded repair call; it consumes the same max_calls budget.
+                repaired = self.generate(
+                    full_prompt + "\nYour last response did not match the required schema. Return only a matching JSON object.",
+                    system=system, temperature=temperature,
+                )
+                if repaired.text.startswith("LLM"):
+                    return {"error": repaired.text}
+                value = self._parse_json_response(repaired.text)
+                if "error" in value or not Draft202012Validator(output_schema).is_valid(value):
+                    return {"error": "LLM response failed schema validation after bounded repair"}
+        return value
 
     @staticmethod
     def _parse_json_response(text: str) -> dict[str, Any]:

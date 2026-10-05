@@ -456,7 +456,7 @@ class TestMultiBatchVerdictIndexing:
             for i in range(5)
         ]
         workflow, state = _make_state(hypotheses=hypotheses)
-        state.llm._backend = "ollama"  # batch_size=4 -> forces 2 batches for 5 candidates
+        state.llm._backend = "ollama"  # richer verification runs serial, single-claim batches
 
         def fake_generate_structured(prompt, **kwargs):
             claims = json.loads(prompt.split("Claims:\n", 1)[1].split("\n\nReturn:", 1)[0])
@@ -477,15 +477,16 @@ class TestMultiBatchVerdictIndexing:
         next_stage = workflow._verify()
 
         assert next_stage == "deepdive"
-        # Only hypothesis index 4 (second batch) should be refuted; the
+        # Bare upheld responses without inspected evidence are uncertain.
+        # Only hypothesis index 4 (final batch) should be refuted; the
         # bug reported in #112 caused batch-1 verdicts to either miss their
         # target (falling back to a no-op rule-id-only lookup that can't
         # disambiguate 5 same-rule_id candidates) or overwrite batch-0's
         # verdict at the colliding (rule_id, local_idx) key.
         assert [h["exploitability"] for h in hypotheses] == [
-            "confirmed", "confirmed", "confirmed", "confirmed", "false_positive",
+            "likely", "likely", "likely", "likely", "false_positive",
         ]
-        assert state.verify_stats == {"upheld": 4, "refuted": 1, "uncertain": 0}
+        assert state.verify_stats == {"upheld": 0, "refuted": 1, "uncertain": 4}
 
 
 # ── _text_summary integration ─────────────────────────────────────

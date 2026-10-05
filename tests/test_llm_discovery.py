@@ -311,7 +311,10 @@ class TestQuarantine:
 def _verdict_response(*verdicts: str) -> dict:
     return {
         "verdicts": [
-            {"_claim_idx": i, "verdict": v, "reason": "because the code says so"}
+            {"_claim_idx": i, "verdict": v, "reason": "because the code says so",
+             "reachability_assessment": {"status": "reachable", "entrypoint": "app.py:5" if i == 0 else "app.py:11"},
+             "evidence": {key: ("app.py:7 inspected source" if i == 0 else "app.py:12 inspected source") for key in (
+                 "attacker_control", "path", "sink", "protection", "protection_failure", "impact")}}
             for i, v in enumerate(verdicts)
         ]
     }

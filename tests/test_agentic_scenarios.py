@@ -315,7 +315,7 @@ class TestHuntAimlLane:
 
         captured = {}
 
-        def fake_generate_structured(prompt, system, temperature):
+        def fake_generate_structured(prompt, system, temperature, output_schema):
             captured["system"] = system
             return {"hypotheses": [{"rule_id": "ns-aiml-030", "exploitability": "likely"}]}
 

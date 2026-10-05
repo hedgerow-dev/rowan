@@ -606,7 +606,7 @@ def install_engine(prefix: Path | None, version: str | None, allow_unverified: b
 @click.option(
     "--discover",
     is_flag=True,
-    help="Enable the LLM discovery stage: asks the model to find vulnerabilities the rule corpus cannot express, in files the scan already implicated (off by default; costs extra LLM calls)",
+    help="Enable the LLM discovery stage: asks the model to find vulnerabilities the rule corpus cannot express, across recognized attack surfaces and files the scan implicated (off by default; costs extra LLM calls)",
 )
 @click.option(
     "--base-url",
@@ -639,6 +639,13 @@ def install_engine(prefix: Path | None, version: str | None, allow_unverified: b
     default=True,
     help="Load the target's .rowan.yml (use --no-project-config on code you do not trust: its excludes remove paths from Recon)",
 )
+@click.option("--discovery-files", type=click.IntRange(1, 500), default=25, show_default=True)
+@click.option("--discovery-lines", type=click.IntRange(1, 10000), default=400, show_default=True)
+@click.option("--verification-lines", type=click.IntRange(1, 5000), default=240, show_default=True)
+@click.option("--verification-files", type=click.IntRange(1, 25), default=4, show_default=True)
+@click.option("--checkpoint", type=click.Path(path_type=Path), help="Save resumable successful calls outside the scanned target; contains source-derived data")
+@click.option("--resume", is_flag=True, help="Replay successful calls from --checkpoint against unchanged inputs")
+@click.option("--hunt-view", type=click.Choice(["full", "verified"]), default="full", help="JSON finding view; full retains the static audit inventory")
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 def hunt(
     target: Path,
@@ -656,6 +663,13 @@ def hunt(
     output_format: str,
     project_config: bool,
     verbose: bool,
+    discovery_files: int,
+    discovery_lines: int,
+    verification_lines: int,
+    verification_files: int,
+    checkpoint: Path | None,
+    resume: bool,
+    hunt_view: str,
 ):
     """Autonomous vulnerability hunting with LLM-powered triage.
 
@@ -672,6 +686,12 @@ def hunt(
     Cloud backends require their API key. The default auto mode can instead use
     a reachable local Ollama service without cloud credentials or credits.
     """
+    if resume and checkpoint is None:
+        raise click.UsageError("--resume requires --checkpoint")
+    if checkpoint and exploit:
+        raise click.UsageError("Checkpoint replay cannot be combined with live exploit probes")
+    if hunt_view != "full" and output_format != "json":
+        raise click.UsageError("--hunt-view verified requires --format json")
     base_url = _validate_hunt_options(
         discover=discover,
         no_verify=no_verify,
@@ -760,7 +780,7 @@ def hunt(
             )
         else:
             console.print(
-                "[bold]LLM discovery enabled:[/bold] the model will be asked to find defects the rule corpus cannot express, in files the scan already implicated. These findings carry no rule and are tagged [bold]engine=llm-discovery[/bold]; treat them as leads, not results.\n"
+                "[bold]LLM discovery enabled:[/bold] the model will be asked to find defects the rule corpus cannot express, across recognized attack surfaces and files the scan implicated. These findings carry no rule and are tagged [bold]engine=llm-discovery[/bold]; treat them as leads, not results.\n"
             )
 
     from rowan.agents.workflow import resolve_hunt_scan_config
@@ -778,6 +798,8 @@ def hunt(
     except ValueError as exc:
         raise click.UsageError(str(exc)) from exc
 
+    from rowan.agents.hunt_inventory import HuntBudgets
+
     state = HuntState(
         target_path=target,
         config=config,
@@ -785,6 +807,9 @@ def hunt(
         enable_exploit=exploit,
         enable_discovery=discover,
         base_url=base_url,
+        budgets=HuntBudgets(discovery_files, discovery_lines, verification_lines, verification_files),
+        checkpoint_path=checkpoint,
+        resume=resume,
     )
 
     workflow = HuntWorkflow(state)
@@ -796,17 +821,22 @@ def hunt(
     console.print(f"[bold]Stages:[/bold] {' -> '.join(stages)}")
     console.print()
 
-    workflow.run()
+    try:
+        workflow.run()
+    except ValueError as exc:
+        raise click.UsageError(str(exc)) from exc
 
     if output_format == "json":
         from rowan.reporters import hunt_to_json
 
-        payload = hunt_to_json(state)
+        payload = hunt_to_json(state, view=hunt_view)
         if output:
             output.write_text(payload, encoding="utf-8")
             console.print(f"[green]JSON report written to:[/green] {output}")
         else:
             click.echo(payload)
+        if state.run_status in {"incomplete", "interrupted"}:
+            click.get_current_context().exit(1)
         return
 
     # Print summary
@@ -873,11 +903,15 @@ def hunt(
         output.write_text(state.report, encoding="utf-8")
         console.print(f"\n[green]Report saved to:[/green] {output}")
 
+    console.print(f"Hunt status: {state.run_status}")
+
     if state.errors:
         console.print()
         console.print("[yellow]Errors encountered:[/yellow]")
         for err in state.errors:
             console.print(f"  [dim]{err}[/dim]")
+    if state.run_status in {"incomplete", "interrupted"}:
+        click.get_current_context().exit(1)
 
 
 
@@ -901,6 +935,11 @@ def _print_chains(chains: list[dict]) -> None:
                     f"  Lead: {c.get('lead_reason', 'not confirmed')} "
                     f"(evidence: {c.get('evidence_state', 'unknown')})"
                 )
+            if c.get("reachability_assessment"):
+                assessment = c["reachability_assessment"]
+                console.print(f"  Reachability: {assessment.get('status', 'unresolved')}")
+                if assessment.get("prerequisites"):
+                    console.print("  Prerequisites: " + "; ".join(assessment["prerequisites"]))
             if c.get("attack_story"):
                 console.print(f"  {c['attack_story']}")
             console.print()
@@ -939,6 +978,10 @@ def _note_project_config(target: Path, enabled: bool) -> None:
     is_flag=True,
     help="Include the LLM discovery stage in the estimate (matches `hunt --discover`)",
 )
+@click.option("--discovery-files", type=click.IntRange(1, 500), default=25, show_default=True)
+@click.option("--discovery-lines", type=click.IntRange(1, 10000), default=400, show_default=True)
+@click.option("--verification-lines", type=click.IntRange(1, 5000), default=240, show_default=True)
+@click.option("--verification-files", type=click.IntRange(1, 25), default=4, show_default=True)
 @click.option(
     "--project-config/--no-project-config",
     default=True,
@@ -951,6 +994,10 @@ def estimate(
     no_sca: bool,
     discover: bool,
     project_config: bool,
+    discovery_files: int,
+    discovery_lines: int,
+    verification_lines: int,
+    verification_files: int,
 ):
     """Preview hunt's LLM scope/cost for a target (spends zero tokens).
 
@@ -975,6 +1022,10 @@ def estimate(
         backend=backend,
         discover=discover,
         project_config=project_config,
+        discovery_files=discovery_files,
+        discovery_lines=discovery_lines,
+        verification_lines=verification_lines,
+        verification_files=verification_files,
     )
     console.print(result.render())
 

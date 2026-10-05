@@ -9,13 +9,17 @@ call to any LLM backend is made.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from rowan.agents.hunt_inventory import HuntBudgets
+from rowan.agents.llm_backend import LLMBackend
 from rowan.agents.workflow import (
     _BATCH_SIZES,
-    _DISCOVERY_MAX_FILE_LINES,
+    HuntState,
     HuntWorkflow,
+    _verification_batch_size,
     resolve_hunt_scan_config,
 )
 from rowan.pipeline import ScanPipeline
@@ -77,6 +81,7 @@ class HuntEstimate:
     discover: bool = False
     discover_files: int = 0
     discover_calls: int = 0
+    discover_skipped_surfaces: int = 0
 
     def render(self) -> str:
         lines = [
@@ -94,7 +99,7 @@ class HuntEstimate:
         if self.discover:
             lines += [
                 f"  discover files         : {self.discover_files} "
-                f"(whole-file context, capped at {_DISCOVERY_MAX_FILE_LINES} lines each)",
+                "(whole-file or bounded excerpts; same budgets as hunt)",
                 f"  discover calls (est)   : {self.discover_calls} "
                 "(one per file, plus verification of what it finds)",
             ]
@@ -109,10 +114,11 @@ class HuntEstimate:
             "  add more on top and aren't modeled here.",
         ]
         if self.discover:
+            lines.append(f"  budget-skipped surfaces : {self.discover_skipped_surfaces}")
             lines.append(
                 "  note: discover file count is a floor -- it omits this run's "
                 "deep-dive\n  targets (they don't exist until hypothesize runs) "
-                "and sink-only files."
+                "(LLM-selected paths can change the schedule)."
             )
         if self.scan_errors:
             lines.append(f"  scan errors             : {len(self.scan_errors)} (see -v for detail)")
@@ -126,6 +132,10 @@ def estimate_hunt(
     backend: str = "deepseek",
     discover: bool = False,
     project_config: bool = True,
+    discovery_files: int = 25,
+    discovery_lines: int = 400,
+    verification_lines: int = 240,
+    verification_files: int = 4,
 ) -> HuntEstimate:
     """Run hunt's recon stage only and project the LLM cost of a full run.
 
@@ -155,7 +165,8 @@ def estimate_hunt(
     hyp_batches = _batch_count(len(aiml), batch_size) + _batch_count(len(generic), batch_size)
 
     verify_estimate = round(len(priority) * _VERIFY_SURVIVAL_RATE)
-    verify_batches = _batch_count(verify_estimate, batch_size)
+    verify_batch_size = _verification_batch_size(backend)
+    verify_batches = _batch_count(verify_estimate, verify_batch_size)
 
     input_tokens = (
         (len(priority) * _CONTEXT_CHARS_PER_FINDING // _CHARS_PER_TOKEN)
@@ -163,31 +174,35 @@ def estimate_hunt(
     )
     output_tokens = (len(priority) + verify_estimate) * _OUTPUT_TOKENS_PER_FINDING
 
+    state = HuntState(target_path=target.resolve(), config=config,
+                      llm=LLMBackend(backend=backend), enable_discovery=discover,
+                      budgets=HuntBudgets(discovery_files, discovery_lines, verification_lines, verification_files))
+    state.surface = result.findings
+    workflow = HuntWorkflow(state)
+    # Measure retrieval with the same per-claim budgets rather than silently
+    # pricing the old narrow source window. Survival remains an estimate.
+    verification_chars = sum(len(json.dumps(workflow._verify_claim_context({
+        "file": f.file_path, "line": f.start_line, "rule_id": f.rule_id,
+    }))) for f in priority)
+    input_tokens += round(verification_chars * _VERIFY_SURVIVAL_RATE) // _CHARS_PER_TOKEN
     discover_files = 0
     discover_calls = 0
+    discover_skipped = 0
     if discover:
-        # Same selection logic the real stage uses, minus the deep-dive
-        # targets (which don't exist until hypothesize has run) and sinks
-        # (whose files are almost always already in the priority set, since
-        # sinks are themselves derived from findings). Documented as a floor.
-        candidates = HuntWorkflow._discovery_files_from_surface(
-            target, result.findings, []
-        )
+        state.http_sinks = workflow._extract_http_sinks(result)
+        state.command_sinks = workflow._extract_command_sinks(result)
+        state.lfi_sinks = workflow._extract_lfi_sinks(result)
+        candidates = workflow._discovery_candidate_files()
         discover_files = len(candidates)
-
-        # Unlike every other stage, this one's input cost is measurable
-        # directly: the files are right there on disk. Measure rather than
-        # guess, capping each at what `_discovery_file_payload` would send.
+        discover_skipped = sum(r["reason"] == "file_budget" for r in state.inventory)
         discover_chars = 0
-        for path in candidates:
-            try:
-                file_lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
-            except OSError:
-                continue
-            discover_chars += sum(len(line) + 1 for line in file_lines[:_DISCOVERY_MAX_FILE_LINES])
+        for path, anchors in candidates.items():
+            payload = workflow._discovery_file_payload(path, anchors)
+            if payload:
+                discover_chars += sum(len(x) for x in payload)
 
         discover_claims = round(discover_files * _DISCOVERY_CLAIMS_PER_FILE)
-        discover_verify_batches = _batch_count(discover_claims, batch_size)
+        discover_verify_batches = _batch_count(discover_claims, verify_batch_size)
         discover_calls = discover_files + discover_verify_batches
 
         input_tokens += (
@@ -212,4 +227,5 @@ def estimate_hunt(
         discover=discover,
         discover_files=discover_files,
         discover_calls=discover_calls,
+        discover_skipped_surfaces=discover_skipped,
     )

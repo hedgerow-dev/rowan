@@ -399,9 +399,9 @@ def test_hunt_to_json_labels_verified_discovered_findings():
     data = json.loads(hunt_to_json(state))
 
     assert data["hunt"]["discovered_findings"][0]["evidence_state"] == (
-        "statically_validated"
+        "verifier_upheld"
     )
-    assert data["hunt"]["evidence_states"] == {"statically_validated": 1}
+    assert data["hunt"]["evidence_states"] == {"verifier_upheld": 1}
 
 
 @pytest.fixture

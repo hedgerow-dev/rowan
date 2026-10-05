@@ -252,23 +252,21 @@ Structured Hunt chains include `evidence_state`. Values progress from
 evidence resolves; `actively_confirmed` is reserved for a successful opt-in
 live probe. Existing `status` and `evidence_status` remain for compatibility.
 Hunt JSON also exposes the projected state on hypotheses and verified
-discovered findings, plus `evidence_states` record counts in both the summary
+discovered findings (`verifier_upheld` for model discoveries), plus `evidence_states` record counts in both the summary
 and Hunt block. These counts describe serialized evidence records, not unique
 vulnerabilities.
 
-The **verify stage** is an independent second-opinion LLM pass that tries to refute each `confirmed`/`likely` hypothesis before it advances to deep-dive. Refuted hypotheses are demoted to `false_positive` and dropped; uncertain ones are downgraded one notch. This cuts hallucinated findings without touching true positives. Skip it with `--no-verify`.
+The **verify stage** is an independent second-opinion LLM pass that tries to refute each `confirmed`/`likely` hypothesis before it advances to deep-dive. Refuted hypotheses are demoted to `false_positive` and dropped; uncertain ones are downgraded one notch. An upheld verdict requires structured source-backed evidence; insufficient evidence becomes uncertain. This can also withhold real defects whose paths cannot be established from the available context. Skip it with `--no-verify`.
 
 **Before any source code is sent to an LLM endpoint, you will be shown the endpoint URL and asked to confirm. In non-interactive sessions (CI), the LLM stage is skipped unless `--yes` is passed.**
 
 **The discovery stage (`--discover`, experimental)**
 
-Every other LLM stage in `hunt` is *subtractive*: it rates, refutes or narrates findings the rule corpus already produced, so by construction `hunt` could never report anything the static scan missed. `--discover` adds the one stage that can produce a new finding, by asking the model for the **complement** of the rule corpus: business-logic flaws, a handler missing a check its siblings have, composition bugs, and other classes a pattern cannot express.
+Discovery asks the model for defects beyond static rules. It schedules both static-implicated files and recognized Python routes, jobs, assistant tools, and sensitive operations with no static hit. File and source-line budgets bound the work; partial/skipped coverage and unsupported inventory languages remain explicit. Whole files or excerpts are supplied, rather than a guaranteed whole-repository review.
 
-Three properties are worth knowing before you turn it on:
+A discovery must pass snippet provenance and an independent, structured evidence review. Upheld claims cite inspected source and identify a reachable path without unresolved assumptions. Other candidates remain audit observations. Findings carry `engine="llm-discovery"` and confidence capped at 0.65; filter that engine when measuring static-rule precision.
 
-- **Scope is bounded by finding density, not repo size.** Only files the static scan already implicated are reviewed (deep-dive targets, priority-finding files, sink-enclosing route files), capped per run. This is what keeps `estimate` predictive; run `rowan estimate <TARGET> --discover` to see the projected file count and cost before spending anything.
-- **Nothing the model says is trusted.** Every claim must cite a snippet that is then mechanically checked against the file on disk; if the cited code is not there, the finding is discarded. Survivors go through an adversarial verification pass that keeps only `upheld`: `uncertain` is dropped, not downgraded, because unlike a hypothesis there is no rule or taint flow to fall back on. Consequently `--discover --no-verify` produces nothing at all, by design.
-- **Output is quarantined.** Discovered findings are tagged `engine="llm-discovery"` with rule ids of the form `LLM-DISCOVERY-CWE-<n>` and a confidence capped below every rule-based tier. Filter them out with a single predicate (`engine != "llm-discovery"`) when measuring rule-corpus precision. Treat them as leads for a human, not as scanner results.
+Hunt JSON schema version 2 separates the full static inventory from verification outcomes. `--hunt-view verified` selects upheld findings; summary counts match the emitted view. Successful calls can be saved outside the target and resumed with unchanged inputs. See [coverage, evidence, and recovery](hunt-evidence-and-recovery.md) for contracts, limitations, schema changes, and examples.
 
 **Options**
 
@@ -282,6 +280,13 @@ Three properties are worth knowing before you turn it on:
 | `--exploit` | | Enable live HTTP exploit probes (off by default: sends real requests to targets) |
 | `--base-url URL` | | Absolute HTTP(S) base URL of the scanned app (e.g. `http://localhost:5000`), required with `--exploit` and rejected without it; credentials, query strings, fragments, and whitespace are not accepted |
 | `--discover` | | Enable the LLM **discovery** stage: ask the model for defects the rule corpus cannot express (off by default: costs extra LLM calls) |
+| `--discovery-files N` | | Discovery file budget, default 25 (maximum 500) |
+| `--discovery-lines N` | | Hard source-line budget per discovery file, default 400 |
+| `--verification-lines N` | | Retrieved verification context line budget, default 240 |
+| `--verification-files N` | | Retrieved verification context file budget, default 4 |
+| `--checkpoint PATH` | | Atomically save successful calls outside the scanned target; contains source-derived data |
+| `--resume` | | Rebuild state and reuse valid successful calls from the checkpoint; changed inputs are rejected |
+| `--hunt-view full\|verified` | | JSON finding view; default full preserves static inventory |
 | `--yes` / `-y` | | Skip the LLM egress confirmation prompt (for trusted CI environments) |
 | `--output PATH` | `-o` | Save report to file |
 | `--format FORMAT` | `-f` | `text` (default) or `json` |
@@ -379,7 +384,7 @@ rowan estimate <TARGET> [OPTIONS]
 
 Runs hunt's own free recon (static scan) stage against `TARGET`, then applies hunt's real priority-filtering and batching logic (the same code `hunt`'s hypothesize stage uses) to project how many LLM calls, and roughly how many tokens, a full `hunt` run would make. **No LLM backend is contacted; this command spends nothing.**
 
-Unlike a blind bytes-in-the-repo heuristic, the estimate reflects this specific target's actual finding density: hunt never sends whole files to the LLM, only narrow code-context windows around each finding, so the real cost driver is finding count, not repo size.
+The estimate reflects static finding density plus bounded source inventory and context retrieval. With discovery enabled, Hunt may send whole files or excerpts. The same four discovery/verification budget options apply to `estimate` and `hunt`; future model-selected paths and actual claim counts remain unknown.
 
 **Options**
 
@@ -395,7 +400,7 @@ rowan estimate ./my-project
 rowan estimate ./my-project --backend ollama --lang python
 ```
 
-**Note:** the estimate models `hypothesize` and `verify` calls only. It does not model `deepdive`, `report`, or `webexploit` calls, so treat it as a floor, not a full bill.
+**Note:** the estimate models `hypothesize`, `verify`, and optional discovery/verification calls. It does not model `deepdive`, `report`, or `webexploit` calls, so treat it as a floor, not a full bill.
 
 ---
 

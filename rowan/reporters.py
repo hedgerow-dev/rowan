@@ -294,7 +294,7 @@ def to_json(result: ScanResult, source_root: str = "") -> str:
     }, indent=2)
 
 
-def hunt_to_json(state) -> str:
+def hunt_to_json(state, view: str = "full") -> str:
     """Serialize a HuntState to JSON.
 
     Emits the same scan-compatible ``{summary, findings}`` shape as
@@ -303,6 +303,12 @@ def hunt_to_json(state) -> str:
     chains, the generated report). This lets downstream consumers parse hunt
     output with the exact same code path as a plain ``scan``.
     """
+    if view not in {"full", "verified"}:
+        raise ValueError("Hunt report view must be full or verified")
+    import hashlib
+
+    from rowan.agents.hunt_inventory import reachability_assessment
+
     recon_result = getattr(state, "recon_result", None)
     base = json.loads(to_json(recon_result if recon_result is not None else ScanResult()))
 
@@ -318,18 +324,86 @@ def hunt_to_json(state) -> str:
             json.loads(to_json(ScanResult(findings=discovered)))["findings"]
         )
 
+    static_count = len(base["findings"]) - len(discovered)
+    root = getattr(state, "target_path", None)
+    def normalize_file(raw):
+        path = Path(str(raw))
+        return str(((root / path) if root is not None and not path.is_absolute() else path).resolve())
+    # Join by file, line and rule rather than rule alone (one rule may hit many sites).
+    hypothesis_map = {}
+    for hypothesis in state.hypotheses:
+        try:
+            file = str(Path(str(hypothesis.get("file", ""))).resolve())
+            if not Path(str(hypothesis.get("file", ""))).is_absolute():
+                if not hasattr(state, "target_path"):
+                    continue
+                file = str((state.target_path / str(hypothesis.get("file", ""))).resolve())
+            key = (file, int(hypothesis.get("line", 0)), str(hypothesis.get("rule_id", "")))
+        except (ValueError, TypeError):
+            continue
+        hypothesis_map.setdefault(key, []).append(hypothesis)
+    for i, finding in enumerate(base["findings"]):
+        normalized_file = normalize_file(finding["file"])
+        source_path = Path(normalized_file)
+        identity_file = str(source_path.relative_to(root.resolve())) if root is not None and source_path.is_relative_to(root.resolve()) else finding["file"]
+        identity = json.dumps([identity_file, finding["line"], finding["rule_id"], finding["engine"], finding["category"], finding["cwe"], finding["message"]])
+        finding["hunt_id"] = hashlib.sha256(identity.encode()).hexdigest()[:20]
+        finding["origin"] = "discovery" if i >= static_count else "static"
+        key = (normalized_file, finding["line"], finding["rule_id"])
+        matches = hypothesis_map.get(key, [])
+        # Ambiguous joins are explicit, never guessed.
+        hypothesis = matches[0] if len(matches) == 1 else {}
+        finding["verification_verdict"] = "upheld" if i >= static_count else hypothesis.get("verify_verdict", "unverified")
+        finding["verification_reason"] = discovered[i - static_count].metadata.get("verify_reason", "") if i >= static_count else hypothesis.get("verify_reason", "")
+        finding["reachability_assessment"] = (discovered[i - static_count].metadata.get("reachability_assessment", {})
+            if i >= static_count else reachability_assessment(hypothesis.get("reachability_assessment")))
+        finding["verification_evidence"] = (discovered[i - static_count].metadata.get("verification_evidence", {})
+            if i >= static_count else hypothesis.get("verification_evidence", {}))
+        finding["candidate_id"] = discovered[i - static_count].metadata.get("candidate_id") if i >= static_count else None
+        finding["evidence_state"] = "verifier_upheld" if finding["verification_verdict"] == "upheld" else "triaged" if matches else "surface"
+    full_inventory = list(base["findings"])
+    verdict_counts = {v: sum(f["verification_verdict"] == v for f in full_inventory)
+                      for v in ("upheld", "refuted", "uncertain", "unverified")}
+    if view == "verified":
+        base["findings"] = [f for f in full_inventory if f["verification_verdict"] == "upheld"]
+    # Cluster fields describe the serialized view, not the recon-only inventory.
+    chosen = [*(recon_result.findings if recon_result is not None else []), *discovered]
+    if view == "verified":
+        chosen = [f for f, item in zip(chosen, full_inventory, strict=True) if item["verification_verdict"] == "upheld"]
+    rendered = json.loads(to_json(ScanResult(findings=chosen)))
+    for finding, fresh in zip(base["findings"], rendered["findings"], strict=True):
+        for field in ("root_cause_id", "root_cause_primary", "root_cause_variant_index", "root_cause_variant_count"):
+            finding[field] = fresh[field]
+    base["clusters"] = rendered["clusters"]
+    for field in ("total", "raw_total", "clustered_total", "critical", "high", "medium", "low", "code_findings", "sca_findings"):
+        base["summary"][field] = rendered["summary"][field]
+    base["summary"]["info"] = sum(f.severity == Severity.INFO for f in chosen)
+    base["report_view"] = view
+
     chains = [dict(chain) for chain in state.chains]
-    chain_states: dict[tuple[str, str], str] = {}
+    chain_states: dict[tuple[str, str, int], str] = {}
     for chain in chains:
-        source_file = str(chain.get("source", "")).rpartition(":")[0]
-        chain_states[(str(chain.get("type", "")), source_file)] = str(
+        source_file, _, source_line = str(chain.get("source", "")).rpartition(":")
+        try:
+            line = int(source_line)
+        except ValueError:
+            continue
+        chain_states[(str(chain.get("type", "")), normalize_file(source_file), line)] = str(
             chain.get("evidence_state", "triaged")
         )
+
+    for finding in base["findings"]:
+        key = (finding["rule_id"], normalize_file(finding["file"]), finding["line"])
+        if key in chain_states:
+            finding["evidence_state"] = chain_states[key]
 
     hypotheses = []
     for original in state.hypotheses:
         hypothesis = dict(original)
-        key = (str(hypothesis.get("rule_id", "")), str(hypothesis.get("file", "")))
+        try:
+            key = (str(hypothesis.get("rule_id", "")), normalize_file(hypothesis.get("file", "")), int(hypothesis.get("line", 0)))
+        except (TypeError, ValueError):
+            key = None
         state_name = chain_states.get(key)
         if state_name is None:
             state_name = (
@@ -340,9 +414,9 @@ def hunt_to_json(state) -> str:
         hypothesis["evidence_state"] = state_name
         hypotheses.append(hypothesis)
 
-    discovered_json = json.loads(to_json(ScanResult(findings=discovered)))["findings"]
+    discovered_json = [dict(item) for item in full_inventory if item["origin"] == "discovery"]
     for finding in discovered_json:
-        finding["evidence_state"] = "statically_validated"
+        finding["evidence_state"] = "verifier_upheld"
 
     evidence_state_counts: dict[str, int] = {}
     for item in [*hypotheses, *chains, *discovered_json]:
@@ -367,6 +441,17 @@ def hunt_to_json(state) -> str:
         "report": state.report,
         "errors": list(state.errors),
         "discovery_stats": dict(getattr(state, "discovery_stats", {})),
+        "schema_version": 2,
+        "run_status": getattr(state, "run_status", "not_started"),
+        "coverage_inventory": list(getattr(state, "inventory", [])),
+        "observations": list(getattr(state, "observations", [])),
+        "discovery_candidates": sorted(getattr(state, "discovery_candidates", []), key=lambda r: (r["file"], r["candidate_id"])) ,
+        "recovery": dict(getattr(state, "recovery", {})),
+        "run_manifest": dict(getattr(state, "manifest", {})),
+        "accounting": {"static_inventory": static_count, "verified_discoveries": len(discovered),
+                       "combined_inventory": len(full_inventory), "displayed_findings": len(base["findings"]),
+                       "discovery_candidate_verdicts": {v: sum(r.get("verdict") == v for r in getattr(state, "observations", [])) for v in ("upheld", "refuted", "uncertain")},
+                       "verdicts": verdict_counts, "evidence_states_unit": "workflow_records"},
     }
     return json.dumps(base, indent=2)
 
