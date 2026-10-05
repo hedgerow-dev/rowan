@@ -877,7 +877,8 @@ def test_taint_crash_reports_failed_status(tmp_path, monkeypatch):
 
     monkeypatch.setattr(OpengrepAdapter, "is_installed", lambda self: True)
     monkeypatch.setattr(OpengrepAdapter, "scan_collect_with_rules", crash)
-    (tmp_path / "app.py").write_text("import os\nos.system(input())\n", encoding="utf-8")
+    # Engine failure reporting only needs a Python source file.
+    (tmp_path / "app.py").write_text("value = 1\n", encoding="utf-8")
 
     result = ScanPipeline(ScanConfig(target=tmp_path, no_sca=True)).run()
 
@@ -902,8 +903,9 @@ def test_run_twice_starts_from_an_empty_result(tmp_path, monkeypatch):
     Enrichment dedup hides the duplicates in the final count, so compare the
     count entering the enrichment stage.
     """
+    # A weak-hash finding exercises state reset without a command-execution fixture.
     (tmp_path / "app.py").write_text(
-        "import os\n\ndef handler(request):\n    os.system(request.args['cmd'])\n",
+        "import hashlib\nvalue = hashlib.md5(b'fixture').hexdigest()\n",
         encoding="utf-8",
     )
     before_enrichment = []
