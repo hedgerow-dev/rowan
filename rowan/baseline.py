@@ -127,7 +127,7 @@ def filter_new(result: ScanResult, baseline: set[str], root: Path) -> int:
     """Drop findings present in the baseline in place; return the count dropped."""
     kept: list[Finding] = []
     suppressed = 0
-    for f, fp in zip(result.findings, fingerprints(result.findings, root)):
+    for f, fp in zip(result.findings, fingerprints(result.findings, root), strict=True):
         if fp in baseline:
             suppressed += 1
         else:
