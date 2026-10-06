@@ -139,6 +139,7 @@ class TaintPass:
             "jobs_per_batch": outcome.jobs_per_batch,
             "timeout": outcome.timeout,
             "cpu_budget": config.concurrency,
+            "opengrep_version": self._adapter.get_version(),
         }
 
         if outcome.status in ("timeout", "partial", "error"):

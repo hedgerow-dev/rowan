@@ -3,7 +3,8 @@
 Fingerprints findings so a scan can report (and a CI run can gate on) only
 *new* findings relative to a committed baseline. Fingerprints are content-
 addressed (based on the rule id, the file's path relative to the scan root,
-and the stripped source at the finding line), so findings that merely shift to
+and the stripped source at the finding line, plus an occurrence index for
+identical lines), so findings that merely shift to
 a different line number do not churn the baseline.
 """
 
@@ -16,7 +17,7 @@ from pathlib import Path
 
 from rowan.core.findings import Finding, ScanResult
 
-BASELINE_VERSION = 1
+BASELINE_VERSION = 2
 
 
 def _relpath(file_path: str, root: Path) -> str:
@@ -75,6 +76,26 @@ def fingerprint(finding: Finding, root: Path) -> str:
     return hashlib.sha256(basis.encode("utf-8")).hexdigest()
 
 
+def fingerprints(findings: list[Finding], root: Path) -> list[str]:
+    """Fingerprint each finding, aligned with ``findings``.
+
+    Findings that share a base fingerprint (same rule, file and code text) get
+    an occurrence suffix in source order. The first keeps the plain base hash,
+    so older baselines stay valid, but a baseline entry can no longer hide
+    every identical copy, including ones added later.
+    """
+    bases = [fingerprint(f, root) for f in findings]
+    groups: dict[str, list[int]] = {}
+    for i, base in enumerate(bases):
+        groups.setdefault(base, []).append(i)
+    out = list(bases)
+    for base, idxs in groups.items():
+        idxs.sort(key=lambda i: (findings[i].file_path, findings[i].start_line))
+        for n, i in enumerate(idxs[1:], start=1):
+            out[i] = hashlib.sha256(f"{base}#{n}".encode()).hexdigest()
+    return out
+
+
 def write_baseline(
     result: ScanResult,
     path: Path,
@@ -87,7 +108,7 @@ def write_baseline(
     `view` and `severity` record the run's report filters for diagnosis only;
     the fingerprints always cover the unfiltered result.
     """
-    fps = sorted({fingerprint(f, root) for f in result.findings})
+    fps = sorted(set(fingerprints(result.findings, root)))
     payload = {"version": BASELINE_VERSION, "fingerprints": fps, "view": view, "severity": severity}
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     return len(fps)
@@ -96,6 +117,9 @@ def write_baseline(
 def load_baseline(path: Path) -> set[str]:
     """Load the set of baseline fingerprints from ``path``."""
     data = json.loads(path.read_text(encoding="utf-8"))
+    version = data.get("version", 1)
+    if not isinstance(version, int) or version > BASELINE_VERSION:
+        raise ValueError(f"Unsupported baseline version {version!r}; this Rowan reads up to {BASELINE_VERSION}")
     return set(data.get("fingerprints", []))
 
 
@@ -103,8 +127,8 @@ def filter_new(result: ScanResult, baseline: set[str], root: Path) -> int:
     """Drop findings present in the baseline in place; return the count dropped."""
     kept: list[Finding] = []
     suppressed = 0
-    for f in result.findings:
-        if fingerprint(f, root) in baseline:
+    for f, fp in zip(result.findings, fingerprints(result.findings, root)):
+        if fp in baseline:
             suppressed += 1
         else:
             kept.append(f)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import hashlib
 import json
 import logging
 import threading
@@ -14,6 +15,7 @@ from pathlib import Path
 
 import yaml
 
+from rowan import __version__
 from rowan.analysis.request_sources import is_http_route
 from rowan.config import ScanConfig
 from rowan.core.findings import Category, Finding, ScanResult
@@ -51,6 +53,22 @@ def _dataflow_languages(taint_rules_dir: Path) -> set[str]:
             if rule.get("mode") == "taint":
                 langs.update(str(lang).lower() for lang in rule.get("languages", []))
     return langs
+
+
+def _rule_set_digest(rule_dirs: list[Path], extra_file: Path | None) -> str:
+    """Hash the rule files a scan used (names and bytes) so runs can be compared."""
+    files: set[Path] = {extra_file} if extra_file else set()
+    for rule_dir in rule_dirs:
+        files.update(rule_dir.glob("*.yaml"))
+        files.update(rule_dir.glob("converted/*.yaml"))
+    digest = hashlib.sha256()
+    for path in sorted(files):
+        digest.update(path.parent.name.encode("utf-8") + b"/" + path.name.encode("utf-8") + b"\0")
+        try:
+            digest.update(path.read_bytes())
+        except OSError:
+            digest.update(b"<unreadable>")
+    return digest.hexdigest()
 
 
 class ScanPipeline:
@@ -271,12 +289,18 @@ class ScanPipeline:
             "patterns_only_languages": patterns_only,
             "unsupported_languages": unsupported,
         }
+        self._context.result.metadata["scan_manifest"] = {
+            "rowan_version": __version__,
+            "opengrep_version": execution.get("opengrep_version"),
+            "rule_set_sha256": _rule_set_digest(
+                [rules_dir, taint_dir], self._config.neuroscan_rules
+            ),
+        }
 
         # VEX/SBOM are supply-chain artifacts of the *complete* dependency
         # inventory, so emit them from the full result before the severity/
         # baseline/ignore filters below prune it -- otherwise a `--severity
-        # high` run would silently drop every `not_affected` (LOW, unreachable)
-        # VEX statement, which is exactly the signal VEX exists to carry.
+        # high` run would silently drop VEX statements for filtered findings.
         sca_degraded = self._context.result.degraded_passes.get("sca")
         if self._config.vex_path and sca_degraded:
             # An empty VEX from a failed OSV lookup reads as "no known
@@ -357,7 +381,7 @@ class ScanPipeline:
         filter_counts["post_severity"] = len(self._context.result.findings)
 
         self._context.result.findings.sort(
-            key=lambda f: (f.severity_order, f.file_path, f.start_line)
+            key=lambda f: (f.severity_order, f.file_path, f.start_line, f.rule_id, f.message)
         )
 
         if self._config.baseline_path:

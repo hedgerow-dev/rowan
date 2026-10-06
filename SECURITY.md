@@ -30,6 +30,32 @@ Out of scope:
 - Vulnerabilities in a project that Rowan's own rules or benchmarks reference. Report those to
   that project directly.
 
+## Threat model
+
+Rowan reads untrusted source code. It never executes the scanned project, but it does parse it,
+pass it to Opengrep, and optionally send snippets to an LLM. Know where the limits are.
+
+What Rowan does:
+
+- Runs Opengrep as an argument list (no shell) with per-batch timeouts and a per-file size cap.
+- Passes Opengrep only an allowlisted environment, so API keys in your shell are not inherited.
+- Skips symlinks during discovery and escapes user-derived text in HTML reports.
+- Restricts the MCP server to allowed root directories and disables project config there.
+- Asks for consent before sending source to a cloud LLM, and requires `--exploit` plus an
+  explicit `--base-url` for live probes.
+
+What Rowan does not do:
+
+- It is not a sandbox. There are no CPU, memory or process limits, and a crafted file can make a
+  parser slow or large.
+- It does not redact secrets from snippets sent to an LLM, and `--yes` skips the consent prompt.
+- It does not check that you are authorised to probe the `--base-url` target.
+- It keeps no audit log of LLM calls or probes.
+- Prompt-injection defence for LLM stages is prompt wording, not isolation.
+
+If you scan code you do not trust, run Rowan in a container or VM with no network and no secrets
+in its environment. Only use `--exploit` against systems you are authorised to test.
+
 ## Disclosure
 
 We ask for a reasonable window to investigate and ship a fix before any public disclosure. We'll credit

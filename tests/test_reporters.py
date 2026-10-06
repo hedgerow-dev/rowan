@@ -484,3 +484,27 @@ class TestReachabilitySurfacedInReports:
         assert "REACHABLE" in html
         assert "UNREACHABLE" in html
         assert "<th>Reachable</th>" in html
+
+
+def test_json_report_has_schema_version_and_findings_match_schema():
+    import json
+    from pathlib import Path
+
+    import jsonschema
+
+    from rowan.core.findings import Category, Finding, ScanResult, Severity
+    from rowan.reporters import REPORT_SCHEMA_VERSION, to_json
+
+    result = ScanResult()
+    result.add_finding(Finding(
+        rule_id="NS-X", message="m", severity=Severity.HIGH, category=Category.INJECTION,
+        file_path="a.py", start_line=3, engine="neuroscan",
+        metadata={"evidence_tier": "pattern-only"},
+    ))
+    report = json.loads(to_json(result, "."))
+    schema_path = Path(__file__).parent.parent / "docs" / "schema" / "finding.schema.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+
+    assert report["schema_version"] == REPORT_SCHEMA_VERSION
+    for finding in report["findings"]:
+        jsonschema.validate(finding, schema)

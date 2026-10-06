@@ -153,7 +153,10 @@ their `--no-*` forms remove one.
 |------|---------|
 | `0` | Success: no findings (or non-CI run) |
 | `1` | CI mode: findings present and scan was complete |
-| `2` | CI mode: scan was degraded (incomplete results: do not treat as clean) |
+| `2` | Scan was degraded (incomplete results: do not treat as clean). Needs `--ci` or `--fail-on-degraded` |
+
+Click usage errors (bad flags) also exit `2`, and an unreadable target exits `1`, so check the
+message when a script needs to tell them apart.
 
 **Examples**
 
@@ -492,6 +495,13 @@ both *lower* severity for reasons unrelated to the finding's truth:
   importers, benchmark dirs, build configs) caps at LOW.
 
 Nothing is deleted by either rule. Use `-s info` to see everything.
+
+## Scan manifest
+
+The JSON report's `scan_manifest` records what produced the result: the Rowan
+version, the Opengrep version (when the engine ran), and a SHA-256 over the rule
+files used. Compare it between runs before trusting a diff. It does not yet
+record the target commit or the OSV and EPSS data snapshots.
 
 ## Analysis coverage
 

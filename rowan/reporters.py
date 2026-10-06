@@ -12,6 +12,9 @@ from rowan.core.finding_clusters import FindingCluster, cluster_findings
 from rowan.core.findings import Finding, ScanResult, Severity
 from rowan.core.rule_class import rule_class
 
+# Bump when a top-level JSON report field is removed or changes meaning.
+REPORT_SCHEMA_VERSION = 1
+
 # OSV/scanner ecosystem name -> Package URL (purl) type, for building the
 # `pkg:<type>/<name>@<version>` identifiers that VEX and CycloneDX use to name
 # a component unambiguously across tools.
@@ -262,6 +265,7 @@ def to_json(result: ScanResult, source_root: str = "") -> str:
 
     return json.dumps({
         "scanner": "rowan",
+        "schema_version": REPORT_SCHEMA_VERSION,
         "version": __version__,
         "summary": {
             "total": result.total_count,
@@ -279,6 +283,7 @@ def to_json(result: ScanResult, source_root: str = "") -> str:
             "warnings": _build_warnings(result),
         },
         "analysis_capability": result.metadata.get("analysis_capability"),
+        "scan_manifest": result.metadata.get("scan_manifest"),
         "resolved_policy": result.metadata.get("resolved_policy"),
         "pass_outcomes": result.metadata.get("pass_outcomes", []),
         "skipped_passes": result.metadata.get("skipped_passes", []),
@@ -770,8 +775,9 @@ def to_vex(result: ScanResult, timestamp: str | None = None) -> dict:
     call-graph reachability already computed in ``SCAPass``:
 
     * unreachable vulnerable function -> ``not_affected`` with justification
-      ``vulnerable_code_not_in_execute_path`` (the machine-readable claim a
-      downstream consumer needs to suppress the CVE with confidence);
+      ``vulnerable_code_not_in_execute_path``. SCAPass does not currently set
+      ``unreachable`` (absence from the call index is not proof), so this
+      branch only fires for externally supplied metadata;
     * reachable -> ``affected``, carrying an action statement to upgrade;
     * no reachability determination (package not in the vuln-function map, or
       a non-Python codebase) -> ``under_investigation`` rather than a guessed

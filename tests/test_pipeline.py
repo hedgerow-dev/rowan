@@ -923,3 +923,51 @@ def test_run_twice_starts_from_an_empty_result(tmp_path, monkeypatch):
     assert first.findings
     assert second is not first
     assert before_enrichment[0] == before_enrichment[1]
+
+
+def test_scan_manifest_records_versions_and_rule_hash(tmp_path):
+    from rowan import __version__
+
+    (tmp_path / "app.py").write_text("x = 1\n", encoding="utf-8")
+
+    first = ScanPipeline(ScanConfig(target=tmp_path, no_sca=True, no_taint=True)).run()
+    second = ScanPipeline(ScanConfig(target=tmp_path, no_sca=True, no_taint=True)).run()
+
+    manifest = first.metadata["scan_manifest"]
+    assert manifest["rowan_version"] == __version__
+    assert len(manifest["rule_set_sha256"]) == 64
+    assert manifest["rule_set_sha256"] == second.metadata["scan_manifest"]["rule_set_sha256"]
+
+
+def test_scan_manifest_rule_hash_changes_with_rules(tmp_path):
+    rules = tmp_path / "rules"
+    rules.mkdir()
+    (rules / "a.yaml").write_text("rules: []\n", encoding="utf-8")
+    target = tmp_path / "app"
+    target.mkdir()
+    (target / "app.py").write_text("x = 1\n", encoding="utf-8")
+    cfg = dict(target=target, rules_dir=rules, no_sca=True, no_taint=True)
+
+    before = ScanPipeline(ScanConfig(**cfg)).run().metadata["scan_manifest"]["rule_set_sha256"]
+    (rules / "a.yaml").write_text("rules: []\n# changed\n", encoding="utf-8")
+    after = ScanPipeline(ScanConfig(**cfg)).run().metadata["scan_manifest"]["rule_set_sha256"]
+
+    assert before != after
+
+
+def test_scan_manifest_rule_hash_covers_converted_rules(tmp_path):
+    rules = tmp_path / "rules"
+    (rules / "converted").mkdir(parents=True)
+    (rules / "a.yaml").write_text("rules: []\n", encoding="utf-8")
+    converted = rules / "converted" / "b.yaml"
+    converted.write_text("rules: []\n", encoding="utf-8")
+    target = tmp_path / "app"
+    target.mkdir()
+    (target / "app.py").write_text("x = 1\n", encoding="utf-8")
+    cfg = dict(target=target, rules_dir=rules, no_sca=True, no_taint=True)
+
+    before = ScanPipeline(ScanConfig(**cfg)).run().metadata["scan_manifest"]["rule_set_sha256"]
+    converted.write_text("rules: []\n# changed\n", encoding="utf-8")
+    after = ScanPipeline(ScanConfig(**cfg)).run().metadata["scan_manifest"]["rule_set_sha256"]
+
+    assert before != after

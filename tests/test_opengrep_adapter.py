@@ -464,7 +464,8 @@ def test_run_batch_forces_utf8_locale_on_child(tmp_path, monkeypatch):
     than re-running the slow/awkward real-subprocess-under-forced-locale
     path end to end.
     """
-    monkeypatch.setenv("SOME_UNRELATED_PARENT_VAR", "keep-me")
+    monkeypatch.setenv("SOME_UNRELATED_PARENT_VAR", "drop-me")
+    monkeypatch.setenv("OPENAI_API_KEY", "not-a-real-key")
     monkeypatch.setenv("LC_ALL", "C")
     monkeypatch.setenv("LANG", "C")
 
@@ -496,10 +497,11 @@ def test_run_batch_forces_utf8_locale_on_child(tmp_path, monkeypatch):
     assert child_env is not None, "opengrep must be run with an explicit env override"
     assert child_env["LC_ALL"] == "C.UTF-8"
     assert child_env["LANG"] == "C.UTF-8"
-    # Must inherit the rest of the parent environment (PATH, HOME, etc.),
-    # not replace it wholesale.
-    assert child_env.get("SOME_UNRELATED_PARENT_VAR") == "keep-me"
+    # Only allowlisted variables are inherited: PATH stays, secrets and
+    # unrelated variables do not reach the child.
     assert "PATH" in child_env
+    assert "OPENAI_API_KEY" not in child_env
+    assert "SOME_UNRELATED_PARENT_VAR" not in child_env
 
 
 def test_run_batch_returns_stderr_detail_on_non_timeout_failure(tmp_path, monkeypatch):

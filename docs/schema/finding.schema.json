@@ -173,6 +173,22 @@
       "maximum": 1.0,
       "description": "EPSS exploit prediction score for the CVE, if available."
     },
+    "root_cause_id": {
+      "type": "string",
+      "description": "Identifier of the root-cause cluster this finding belongs to."
+    },
+    "root_cause_primary": {
+      "type": "boolean",
+      "description": "True for the finding chosen to represent its root-cause cluster."
+    },
+    "root_cause_variant_index": {
+      "type": "integer",
+      "description": "Position of this finding within its root-cause cluster."
+    },
+    "root_cause_variant_count": {
+      "type": "integer",
+      "description": "Number of findings in this finding's root-cause cluster."
+    },
     "epss_percentile": {
       "type": ["number", "null"],
       "minimum": 0.0,

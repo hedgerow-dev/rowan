@@ -162,6 +162,17 @@ def _resolve_category(rule_id: str, message: str, metadata: dict[str, Any]) -> C
     return _infer_category(rule_id, message)
 
 
+_CHILD_ENV_ALLOW = frozenset({
+    "PATH", "HOME", "USER", "LOGNAME", "SHELL", "TERM", "TZ",
+    "TMPDIR", "TEMP", "TMP",
+    "USERPROFILE", "APPDATA", "LOCALAPPDATA", "SYSTEMROOT", "SYSTEMDRIVE",
+    "COMSPEC", "PATHEXT", "WINDIR",
+    "SSL_CERT_FILE", "SSL_CERT_DIR", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE",
+    "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY",
+})
+_CHILD_ENV_PREFIXES = ("LC_", "XDG_", "OPENGREP_")
+
+
 @dataclass
 class ScanOutcome:
     """Result of a (possibly batched) opengrep scan, including health status."""
@@ -847,9 +858,14 @@ class OpengrepAdapter:
         #     "C"/POSIX behavior opengrep already runs under, changing only
         #     the character-decoding codeset that was actually broken.
         #
-        # The rest of the parent environment is inherited (PATH, HOME, the
-        # managed-binary lookup, etc.) -- only the locale is overridden.
-        child_env = dict(os.environ)
+        # Only an allowlisted slice of the parent environment is passed on
+        # (PATH, HOME, temp dirs, TLS and proxy settings, ...) so API keys and
+        # tokens in the scanner's environment never reach the child process.
+        child_env = {
+            k: v
+            for k, v in os.environ.items()
+            if k.upper() in _CHILD_ENV_ALLOW or k.upper().startswith(_CHILD_ENV_PREFIXES)
+        }
         child_env["LC_ALL"] = "C.UTF-8"
         child_env["LANG"] = "C.UTF-8"
 

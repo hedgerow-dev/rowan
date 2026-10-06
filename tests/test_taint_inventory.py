@@ -21,6 +21,9 @@ class _CapturingAdapter:
         self.probes += 1
         return True
 
+    def get_version(self):
+        return "0.0-test"
+
     def configure(self, **kwargs):
         return None
 

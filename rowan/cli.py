@@ -202,7 +202,12 @@ def main(ctx: click.Context):
     show_default=True,
     help="Scan policy; primitive flags override its capabilities",
 )
-@click.option("--ci", "ci_mode", is_flag=True, help="CI mode: exit 1 if findings found")
+@click.option("--ci", "ci_mode", is_flag=True, help="CI mode: exit 1 if findings found, 2 if the scan is degraded")
+@click.option(
+    "--fail-on-degraded",
+    is_flag=True,
+    help="Exit 2 if the scan is degraded (incomplete), with or without --ci",
+)
 @click.option(
     "--exclude",
     "excludes",
@@ -311,6 +316,7 @@ def scan(
     enable_multiagent: bool | None,
     policy: str,
     ci_mode: bool,
+    fail_on_degraded: bool,
     excludes: tuple[str, ...],
     project_config: bool | None,
     explain_plan: bool,
@@ -498,9 +504,9 @@ def scan(
             file=sys.stderr,
         )
 
+    if (ci_mode or fail_on_degraded) and result.degraded:
+        sys.exit(2)
     if ci_mode:
-        if result.degraded:
-            sys.exit(2)
         if result.total_count > 0:
             sys.exit(1)
 

@@ -122,3 +122,45 @@ def test_write_baseline_covers_hidden_findings(tmp_path, monkeypatch):
     assert set(payload["fingerprints"]) == {baseline.fingerprint(f, app) for f in full.findings}
     assert payload["view"] == "actionable"
     assert payload["severity"] == "critical"
+
+
+def test_duplicate_code_lines_get_distinct_fingerprints(tmp_path):
+    """Identical lines in one file must not collapse into a single entry."""
+    f = tmp_path / "a.py"
+    f.write_text("os.system(x)\nos.system(x)\n")
+    result = ScanResult()
+    result.add_finding(_finding(f, 1))
+    result.add_finding(_finding(f, 2))
+    bpath = tmp_path / "b.json"
+
+    assert baseline.write_baseline(result, bpath, tmp_path) == 2
+
+
+def test_new_duplicate_is_not_hidden_by_old_baseline_entry(tmp_path):
+    f = tmp_path / "a.py"
+    f.write_text("os.system(x)\n")
+    first = ScanResult()
+    first.add_finding(_finding(f, 1))
+    bpath = tmp_path / "b.json"
+    baseline.write_baseline(first, bpath, tmp_path)
+
+    f.write_text("os.system(x)\nos.system(x)\n")  # a second copy is added
+    rescan = ScanResult()
+    rescan.add_finding(_finding(f, 1))
+    rescan.add_finding(_finding(f, 2))
+    baseline._line_cache.clear()
+
+    suppressed = baseline.filter_new(rescan, baseline.load_baseline(bpath), tmp_path)
+
+    assert suppressed == 1
+    assert len(rescan.findings) == 1
+
+
+def test_load_baseline_rejects_unknown_version(tmp_path):
+    import pytest
+
+    bpath = tmp_path / "b.json"
+    bpath.write_text('{"version": 99, "fingerprints": []}')
+
+    with pytest.raises(ValueError, match="version"):
+        baseline.load_baseline(bpath)

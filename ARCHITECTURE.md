@@ -387,8 +387,9 @@ flags npm `preinstall`/`install`/`postinstall` scripts running network
 fetches, pipe-to-shell, or inline `eval`.
 
 **Supply-chain artifacts:** `--vex` writes an OpenVEX document whose per-CVE
-status is driven by the reachability signal (unreachable →
-`not_affected`/`vulnerable_code_not_in_execute_path`), and `--sbom` writes a
+status is driven by the reachability signal (reachable → `affected`; anything
+else → `under_investigation`, because absence from the call index is not proof
+of unreachability, so Rowan does not currently emit `not_affected`), and `--sbom` writes a
 CycloneDX 1.5 bill of materials of the full inventory. Both are generated from
 the complete, unfiltered result *before* the severity filter runs (`pipeline.py`),
 so `--severity high` can't drop the `not_affected` VEX statements.
@@ -1060,9 +1061,11 @@ for computed dataflow facts instead of inferring them. The design constraints:
    (`-f sarif`, for GitHub Code Scanning / IDE integration); it is no
    longer the internal pipeline interchange format.
 
-3. **Pipeline not DAG**: passes run sequentially, not in parallel. This
-   simplifies the architecture and allows later passes to use findings
-   from earlier passes (e.g., CrossFilePass reads TaintPass results).
+3. **Staged pipeline**: passes run in ordered stages (see Pipeline above).
+   Independent detectors run concurrently within a stage, but stages are
+   sequential and results merge in plan order. This lets later passes use
+   findings from earlier ones (e.g., CrossFilePass reads TaintPass results)
+   while keeping output deterministic.
 
 4. **Two rule engines**: regex rules are fast but imprecise; taint rules
    are slow but precise. The combination catches more vulnerabilities

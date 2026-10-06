@@ -101,6 +101,9 @@ class _FakeAdapter:
     def is_installed(self) -> bool:
         return True
 
+    def get_version(self) -> str:
+        return "0.0-test"
+
     def configure(self, timeout=None, workers=None, jobs=None, cpu_budget=None) -> None:
         if timeout is not None:
             self._timeout = timeout

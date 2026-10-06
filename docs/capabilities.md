@@ -133,6 +133,23 @@ read the [caveats](../benchmark/results/realvuln-2026-10-02/README.md#read-these
 Hedgerow wrote this benchmark too, and its cases are what Hayward was built to
 catch: see the [caveats](../benchmark/results/quickset-2026-10-02/README.md#read-these-numbers-carefully).
 
+## Coverage by language
+
+| Language | Taint rules | Cross-file dataflow | Authz (`--authz`) | Dependency scan |
+|---|---|---|---|---|
+| Python | Yes | Yes | Yes | PyPI, with reachability |
+| JavaScript / TypeScript | Yes | Yes | Yes | npm |
+| Go | Yes | Limited | No | Go modules |
+| Java | Yes (within file) | No | No | Maven |
+| Kotlin | Yes (within file) | No | No | Not covered |
+| C# | Yes (within file) | No | No | NuGet |
+| Ruby | Pattern checks only | No | No | RubyGems |
+| PHP | Pattern checks only | No | No | Packagist |
+| Rust | Pattern checks only | No | No | crates.io |
+
+Scan output lists the languages in your target that fall into each group under
+`analysis_capability`, so a clean result on a pattern-only language is visible as such.
+
 ## Known limits
 
 - **Alpha.** Expect false positives and misses. Treat findings as leads.
@@ -142,7 +159,11 @@ catch: see the [caveats](../benchmark/results/quickset-2026-10-02/README.md#read
   Ruby, PHP and Rust get pattern checks only. Templates (`.html`, Jinja) get pattern checks only.
 - **No Java cross-file analysis yet.**
 - **Model files:** 7z archives are not opened; very large files are skipped and reported.
-- **Reachability for dependency CVEs** covers a small set of well-known packages.
+- **Reachability for dependency CVEs** covers a small set of well-known Python packages.
+  Other ecosystems are reported as `under_investigation` in VEX output.
+- **Incomplete scans.** A pass that fails or lacks its optional parser is marked degraded.
+  Without `--ci` the exit code is still 0, so check `coverage_summary` or use `--ci`
+  (exit 2 on a degraded scan).
 
 ## Measure it yourself
 
