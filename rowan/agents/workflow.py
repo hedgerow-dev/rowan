@@ -750,6 +750,7 @@ class HuntWorkflow:
 
     def __init__(self, state: HuntState):
         self.state = state
+        self._inventory_index: tuple[list, int, dict[Path, list[dict[str, Any]]]] | None = None
         self._nodes: dict[str, Callable[[], str]] = {
             "recon": self._recon,
             "hypothesize": self._hypothesize,
@@ -1862,6 +1863,18 @@ class HuntWorkflow:
                 record.update(status="skipped", reason="file_budget")
         return candidates
 
+    def _inventory_for(self, path: Path) -> list[dict[str, Any]]:
+        """Inventory records for one resolved file, from an index built once."""
+        inventory = self.state.inventory
+        cached = self._inventory_index
+        if cached is None or cached[0] is not inventory or cached[1] != len(inventory):
+            root = self.state.target_path
+            index: dict[Path, list[dict[str, Any]]] = {}
+            for record in inventory:
+                index.setdefault((root / record["file"]).resolve(), []).append(record)
+            cached = self._inventory_index = (inventory, len(inventory), index)
+        return cached[2].get(path.resolve(), [])
+
     @staticmethod
     def _numbered(lines: list[str], lo: int, hi: int) -> str:
         """Render lines[lo:hi] (0-indexed, half-open) with 1-indexed numbers."""
@@ -1889,9 +1902,8 @@ class HuntWorkflow:
             code = self._numbered(lines, 0, len(lines))
         else:
             centers = sorted({f.start_line for f in anchor_findings if f.start_line} | {
-                r["line"] for r in self.state.inventory
-                if (self.state.target_path / r["file"]).resolve() == path.resolve()
-                and r["kind"] in {"entrypoint", "sensitive_operation"}
+                r["line"] for r in self._inventory_for(path)
+                if r["kind"] in {"entrypoint", "sensitive_operation"}
             })
             if not centers:
                 # No anchor to window around: send the head, which is where
@@ -1918,8 +1930,8 @@ class HuntWorkflow:
             code = "\n".join(numbered[:self.state.budgets.source_lines])
         supplied = {int(x.strip().split(":", 1)[0]) for x in code.splitlines()
                     if x.strip().split(":", 1)[0].isdigit()}
-        for record in self.state.inventory:
-            if (self.state.target_path / record["file"]).resolve() != path.resolve() or record["kind"] == "unresolved":
+        for record in self._inventory_for(path):
+            if record["kind"] == "unresolved":
                 continue
             whole = all(n in supplied for n in range(record["line"], record.get("end_line", record["line"]) + 1))
             record.update(status="context_supplied" if whole else "partial",
@@ -1968,15 +1980,19 @@ class HuntWorkflow:
             path, anchor_findings = item
             payload = self._discovery_file_payload(path, anchor_findings)
             if payload is None:
-                for record in self.state.inventory:
-                    if (self.state.target_path / record["file"]).resolve() == path.resolve():
-                        record.update(status="unresolved", reason="unreadable_or_empty")
+                for record in self._inventory_for(path):
+                    record.update(status="unresolved", reason="unreadable_or_empty")
                 return []
             code, already = payload
             claims = self._llm_discover_file(path, code, already)
-            for record in self.state.inventory:
-                if (self.state.target_path / record["file"]).resolve() == path.resolve() and record["status"] == "context_supplied":
-                    record["status"] = "reviewed" if not any(e.startswith(f"discover({path.relative_to(self.state.target_path.resolve())})") for e in self.state.errors) else "unresolved"
+            supplied_records = [
+                r for r in self._inventory_for(path) if r["status"] == "context_supplied"
+            ]
+            if supplied_records:
+                prefix = f"discover({path.relative_to(self.state.target_path.resolve())})"
+                errored = any(e.startswith(prefix) for e in self.state.errors)
+                for record in supplied_records:
+                    record["status"] = "unresolved" if errored else "reviewed"
             supplied_lines = {int(x.strip().split(":", 1)[0]) for x in code.splitlines()
                               if x.strip().split(":", 1)[0].isdigit()}
             return self._validate_discovered(path, claims, supplied_lines=supplied_lines)

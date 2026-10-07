@@ -98,6 +98,10 @@ class HuntCheckpoint:
         self.previous_backend_calls = 0
         self.previous_usage: dict[str, int] = {}
         self.backend = None
+        # Each save rewrites every recorded call, so per-call saves are throttled.
+        # Stage boundaries, failures and the end of a run always save.
+        self.save_interval = 1.0
+        self._last_save = 0.0
         if resume:
             if not path.is_file():
                 raise ValueError(f"Checkpoint does not exist: {path}")
@@ -141,6 +145,11 @@ class HuntCheckpoint:
             raise ValueError("Checkpoint already exists; use --resume or choose a new path")
         self.save()
 
+    def save_if_due(self) -> None:
+        with self.lock:
+            if time.monotonic() - self._last_save >= self.save_interval:
+                self.save()
+
     def save(self) -> None:
         with self.lock:
             self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -162,6 +171,7 @@ class HuntCheckpoint:
                     stream.flush()
                     os.fsync(stream.fileno())
                 os.replace(temporary, self.path)
+                self._last_save = time.monotonic()
             finally:
                 if os.path.exists(temporary):
                     os.unlink(temporary)
@@ -256,7 +266,7 @@ class CheckpointBackend:
                     if isinstance(value, dict)
                     else "Invalid structured response"
                 }
-            self.checkpoint.save()
+            self.checkpoint.save_if_due()
         return value
 
     def generate(self, prompt: str, **kwargs) -> LLMResponse:
@@ -291,5 +301,5 @@ class CheckpointBackend:
                 }
             else:
                 self.checkpoint.failed += 1
-            self.checkpoint.save()
+            self.checkpoint.save_if_due()
         return response

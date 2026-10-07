@@ -314,6 +314,7 @@ def test_successful_calls_replay_but_errors_and_invalid_schema_do_not(tmp_path):
         {"verdicts": "wrong"},
     ]
     checkpoint = HuntCheckpoint(path, "same-inputs")
+    checkpoint.save_interval = 0
     wrapped = CheckpointBackend(backend, checkpoint)
     for prompt in ("good", "quota", "invalid"):
         wrapped.generate_structured(prompt, output_schema=schema)
@@ -333,6 +334,7 @@ def test_successful_calls_replay_but_errors_and_invalid_schema_do_not(tmp_path):
 def test_schema_invalid_cached_entry_is_not_reused(tmp_path):
     path = tmp_path / "checkpoint.json"
     checkpoint = HuntCheckpoint(path, "id")
+    checkpoint.save_interval = 0
     backend = MagicMock()
     backend.generate_structured.return_value = {"verdicts": []}
     wrapped = CheckpointBackend(backend, checkpoint)
@@ -417,6 +419,7 @@ def test_checkpoint_rejects_invalid_recovery_counters(tmp_path):
 
 def test_parallel_checkpoint_writes_preserve_all_results(tmp_path):
     checkpoint = HuntCheckpoint(tmp_path / "checkpoint.json", "id")
+    checkpoint.save_interval = 0
     backend = MagicMock()
     backend.generate_structured.return_value = {"findings": []}
     wrapped = CheckpointBackend(backend, checkpoint)
@@ -525,3 +528,36 @@ def test_checkpoint_identity_accepts_symlinked_target(tmp_path):
     linked.target_path = alias
     linked.config = direct.config
     assert run_identity(linked) == run_identity(direct)
+
+
+def test_checkpoint_throttles_per_call_saves_but_explicit_save_persists_all(tmp_path):
+    checkpoint = HuntCheckpoint(tmp_path / "checkpoint.json", "id")
+    saves = []
+    original = checkpoint.save
+    checkpoint.save = lambda: (saves.append(1), original())[1]
+    backend = MagicMock()
+    backend.generate_structured.return_value = {"findings": []}
+    wrapped = CheckpointBackend(backend, checkpoint)
+
+    for i in range(12):
+        wrapped.generate_structured(str(i), output_schema=OBJECT_LISTS["findings"])
+
+    assert len(saves) < 12
+    checkpoint.save()
+    assert len(json.loads(checkpoint.path.read_text())["calls"]) == 12
+
+
+def test_inventory_index_returns_records_per_file_and_follows_replaced_inventory(tmp_path):
+    root = tmp_path.resolve()
+    (root / "a.py").write_text("x = 1\n")
+    state = state_for(root)
+    workflow = HuntWorkflow(state)
+    first = {"file": "a.py", "line": 1, "kind": "helper", "status": "skipped"}
+    state.inventory = [first]
+
+    assert workflow._inventory_for(root / "a.py") == [first]
+    assert workflow._inventory_for(root / "missing.py") == []
+
+    second = {"file": "a.py", "line": 2, "kind": "helper", "status": "skipped"}
+    state.inventory = [second]
+    assert workflow._inventory_for(root / "a.py") == [second]
