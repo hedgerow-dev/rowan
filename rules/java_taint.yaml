@@ -1059,3 +1059,90 @@ rules:
       # pattern/replacement args, which this pattern doesn't pin down --
       # $S.replaceAll("unrelated", "x") clears taint here even though it
       # does nothing to remove \n/\r. See docs/taint-sanitizer-audit.md.
+
+  - id: tnt-ja-redirect-001
+    mode: taint
+    languages: [java]
+    severity: WARNING
+    message: >-
+      User input reaches a redirect target: open redirect. An attacker can send
+      victims to an external phishing page from a trusted link.
+    metadata:
+      cwe:
+        - "CWE-601: URL Redirection to Untrusted Site ('Open Redirect')"
+      confidence: HIGH
+      category: general
+      fix: "Redirect only to internal paths or an allowlist of hosts; never to a raw user-supplied URL."
+    pattern-sources:
+      # rowan-registry:begin source=web_request_java
+      - patterns:
+          - pattern-either:
+              - pattern: (HttpServletRequest $REQ).getParameter(...)
+              - pattern: request.getParameter(...)
+              - patterns:
+                  - pattern: $PARAM
+                  - pattern-inside: |
+                      $RET $METHOD(..., @RequestParam $TYPE $PARAM, ...) {
+                        ...
+                      }
+              - patterns:
+                  - pattern: $PARAM
+                  - pattern-inside: |
+                      $RET $METHOD(..., @RequestParam(...) $TYPE $PARAM, ...) {
+                        ...
+                      }
+              - patterns:
+                  - pattern: $PARAM
+                  - pattern-inside: |
+                      $RET $METHOD(..., @PathVariable $TYPE $PARAM, ...) {
+                        ...
+                      }
+              - patterns:
+                  - pattern: $PARAM
+                  - pattern-inside: |
+                      $RET $METHOD(..., @PathVariable(...) $TYPE $PARAM, ...) {
+                        ...
+                      }
+              - patterns:
+                  - pattern: $PARAM
+                  - pattern-inside: |
+                      $RET $METHOD(..., @RequestBody $TYPE $PARAM, ...) {
+                        ...
+                      }
+              - patterns:
+                  - pattern: $PARAM
+                  - pattern-inside: |
+                      $RET $METHOD(..., @RequestBody(...) $TYPE $PARAM, ...) {
+                        ...
+                      }
+              - patterns:
+                  - pattern: $PARAM
+                  - pattern-inside: |
+                      $RET $METHOD(..., @QueryParam $TYPE $PARAM, ...) {
+                        ...
+                      }
+              - patterns:
+                  - pattern: $PARAM
+                  - pattern-inside: |
+                      $RET $METHOD(..., @QueryParam(...) $TYPE $PARAM, ...) {
+                        ...
+                      }
+              - patterns:
+                  - pattern: $PARAM
+                  - pattern-inside: |
+                      @$MAPPING(...)
+                      $RET $METHOD(..., String $PARAM, ...) {
+                        ...
+                      }
+                  - metavariable-regex:
+                      metavariable: $MAPPING
+                      regex: ^(GetMapping|PostMapping|PutMapping|DeleteMapping|RequestMapping|PatchMapping)$
+      # rowan-registry:end source=web_request_java
+    pattern-sinks:
+      - pattern: (HttpServletResponse $RESP).sendRedirect(...)
+      - pattern: $RESP.sendRedirect(...)
+      - pattern: new RedirectView(...)
+      # Spring MVC view name: only the part after "redirect:" is the target.
+      - patterns:
+          - pattern: '"redirect:" + $URL'
+          - focus-metavariable: $URL

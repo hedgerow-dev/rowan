@@ -272,9 +272,40 @@ rules:
       - pattern: res.set(...)
       - pattern: res.header(...)
       - pattern: res.cookie(...)
-      - pattern: res.redirect(...)
     pattern-sanitizers:
       - pattern: encodeURIComponent(...)
+
+  - id: tnt-js-redirect-001
+    mode: taint
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: >-
+      User input reaches a redirect target: open redirect. An attacker can send
+      victims to an external phishing page from a trusted link.
+    metadata:
+      cwe:
+        - "CWE-601: URL Redirection to Untrusted Site ('Open Redirect')"
+      confidence: HIGH
+      category: general
+      fix: "Redirect only to internal paths or an allowlist of hosts; never to a raw user-supplied URL."
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.body
+      - pattern: req.params
+      - pattern: req.headers
+      - pattern: request.query
+      - pattern: request.body
+      - pattern: request.params
+      - pattern: ctx.query
+      - pattern: ctx.request.query
+      - pattern: ctx.request.body
+      - pattern: ctx.params
+      - pattern: ctx.headers
+    pattern-sinks:
+      - pattern: res.redirect(...)
+      - pattern: res.location(...)
+      - pattern: ctx.redirect(...)
+      - pattern: reply.redirect(...)
 
   - id: tnt-js-proto-001
     mode: taint

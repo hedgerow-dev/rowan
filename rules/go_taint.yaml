@@ -449,8 +449,6 @@ rules:
     pattern-sinks:
       - pattern: $W.Header().Set(...)
       - pattern: $W.Header().Add(...)
-      - pattern: http.Redirect(...)
-      - pattern: $C.Redirect(...)
     pattern-sanitizers:
       - pattern: url.QueryEscape(...)
       # NOT strings.ReplaceAll(...): its neutralizing effect depends
@@ -458,3 +456,39 @@ rules:
       # pin down -- strings.ReplaceAll($S, "unrelated", "x") clears taint
       # here even though it does nothing to remove \n/\r. See
       # docs/taint-sanitizer-audit.md.
+
+  - id: tnt-go-redirect-001
+    mode: taint
+    languages: [go]
+    severity: WARNING
+    message: >-
+      User input reaches a redirect target: open redirect. An attacker can send
+      victims to an external phishing page from a trusted link.
+    metadata:
+      cwe:
+        - "CWE-601: URL Redirection to Untrusted Site ('Open Redirect')"
+      confidence: HIGH
+      category: general
+      fix: "Redirect only to internal paths or an allowlist of hosts; never to a raw user-supplied URL."
+    pattern-sources:
+      # rowan-registry:begin source=web_request_go
+      - patterns:
+          - pattern-either:
+              - pattern: $R.URL.Query()
+              - pattern: $R.FormValue(...)
+              - pattern: $R.Body
+              - pattern: $C.Param(...)
+              - pattern: "($C : *gin.Context).Query(...)"
+              - pattern: $C.ShouldBindJSON(...)
+      # rowan-registry:end source=web_request_go
+      # Bare form as in tnt-go-header-001: Redirect is not a SQL sink, so it
+      # cannot collide with $DB.Query(...).
+      - pattern: $C.Query(...)
+    pattern-sinks:
+      # Only the URL argument is the target; status codes and writers are not.
+      - patterns:
+          - pattern: http.Redirect($W, $R, $URL, ...)
+          - focus-metavariable: $URL
+      - patterns:
+          - pattern: $C.Redirect($CODE, $URL)
+          - focus-metavariable: $URL

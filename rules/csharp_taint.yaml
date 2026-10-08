@@ -372,3 +372,43 @@ rules:
     pattern-sanitizers:
       - pattern: $S.Replace("\n", "")
       - pattern: $S.Replace("\r", "")
+
+  - id: tnt-cs-redirect-001
+    mode: taint
+    languages: [csharp]
+    severity: WARNING
+    message: >-
+      User input reaches a redirect target: open redirect. An attacker can send
+      victims to an external phishing page from a trusted link.
+    metadata:
+      cwe:
+        - "CWE-601: URL Redirection to Untrusted Site ('Open Redirect')"
+      confidence: HIGH
+      category: general
+      fix: "Use LocalRedirect() or check Url.IsLocalUrl() before redirecting; never redirect to a raw user-supplied URL."
+    pattern-sources:
+      - pattern: Request.Query[$KEY]
+      - pattern: Request.Form[$KEY]
+      - patterns:
+          - pattern: $PARAM
+          - pattern-inside: |
+              $RET $METHOD(..., [FromQuery] $TYPE $PARAM, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $PARAM
+          - pattern-inside: |
+              $RET $METHOD(..., [FromForm] $TYPE $PARAM, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $PARAM
+          - pattern-inside: |
+              $RET $METHOD(..., [FromRoute] $TYPE $PARAM, ...) {
+                ...
+              }
+    pattern-sinks:
+      - pattern: Redirect(...)
+      - pattern: RedirectPermanent(...)
+      - pattern: Response.Redirect(...)
+      - pattern: new RedirectResult(...)
