@@ -307,6 +307,47 @@ rules:
       - pattern: ctx.redirect(...)
       - pattern: reply.redirect(...)
 
+  - id: tnt-js-deser-001
+    mode: taint
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >-
+      User input reaches a deserializer that can execute code (node-serialize,
+      funcster, cryo, or js-yaml with the full schema), enabling remote code
+      execution.
+    metadata:
+      cwe:
+        - "CWE-502: Deserialization of Untrusted Data"
+      confidence: HIGH
+      category: deserialization
+      fix: "Parse untrusted data with JSON.parse (or js-yaml's default safe schema); never deserialize it with a library that revives functions."
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.body
+      - pattern: req.params
+      - pattern: req.headers
+      - pattern: req.cookies
+      - pattern: request.query
+      - pattern: request.body
+      - pattern: request.params
+      - pattern: ctx.query
+      - pattern: ctx.request.body
+      - pattern: ctx.params
+      - pattern: ctx.headers
+      - pattern: ctx.cookies.get(...)
+    pattern-sinks:
+      # Unsafe in every version: these revive functions from the payload.
+      - pattern: $S.unserialize(...)
+      - pattern: $F.deepDeserialize(...)
+      - pattern: cryo.parse(...)
+      # js-yaml 4 load() is safe by default; only an explicit full schema is
+      # unsafe in every version that has it.
+      - patterns:
+          - pattern-either:
+              - pattern: "$Y.load($DOC, {..., schema: $Y.DEFAULT_FULL_SCHEMA, ...})"
+              - pattern: "$Y.loadAll($DOC, ..., {..., schema: $Y.DEFAULT_FULL_SCHEMA, ...})"
+          - focus-metavariable: $DOC
+
   - id: tnt-js-proto-001
     mode: taint
     languages: [javascript, typescript]
