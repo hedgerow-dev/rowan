@@ -54,6 +54,66 @@ def _require_object(value: Any, text: str) -> dict[str, Any]:
 _RETRY_ATTEMPTS = 3
 _RETRY_BASE_SECONDS = 1.0
 
+REDACTED = "[REDACTED-SECRET]"
+
+# Credential formats with a recognizable shape. Each match is a whole secret.
+_SECRET_FORMATS = re.compile(
+    r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----"
+    r"|\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"
+    r"|\bgh[pousr]_[A-Za-z0-9]{36,}\b"
+    r"|\bgithub_pat_[A-Za-z0-9_]{22,}\b"
+    r"|\bsk-(?:ant-|proj-)?[A-Za-z0-9_-]{20,}"
+    r"|\bxox[abposr]-[A-Za-z0-9-]{10,}"
+    r"|\bAIza[0-9A-Za-z_-]{35}\b"
+    r"|\b[rs]k_(?:live|test)_[0-9A-Za-z]{16,}\b"
+    r"|\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}"
+)
+# The password part of scheme://user:password@host.
+_URL_PASSWORD = re.compile(r"(\b[a-z][a-z0-9+.-]*://[^\s:/@'\"]+:)([^\s@/'\"]+)(@)")
+# A string literal assigned to a secret-named variable or key.
+_SECRET_ASSIGNMENT = re.compile(
+    r"""(?i)(\b(?:password|passwd|pwd|secret|api_?key|apikey|token|access_?key|"""
+    r"""private_?key|client_?secret|auth_?token)\w*["']?\s*[:=]\s*)(["'])([^"'\n]{6,})\2"""
+)
+
+
+def redact_secrets(text: str) -> tuple[str, int]:
+    """Replace likely secrets in `text` with REDACTED; return the new text and count.
+
+    Assignments count only when the literal looks like a real secret: not a
+    placeholder (changeme, xxx, <your-key>) and not low-entropy prose.
+    """
+    from rowan.core.rules import _is_placeholder, _shannon_entropy
+
+    text, count = _SECRET_FORMATS.subn(REDACTED, text)
+    text, n = _URL_PASSWORD.subn(lambda m: m.group(1) + REDACTED + m.group(3), text)
+    count += n
+
+    def assignment(m: re.Match[str]) -> str:
+        nonlocal count
+        value = m.group(3)
+        if value == REDACTED or _is_placeholder(value) or _shannon_entropy(value) < 3.0:
+            return m.group(0)
+        count += 1
+        return f"{m.group(1)}{m.group(2)}{REDACTED}{m.group(2)}"
+
+    text = _SECRET_ASSIGNMENT.sub(assignment, text)
+    return text, count
+
+
+def _is_loopback_url(url: str) -> bool:
+    """True when `url` points at this machine, so a prompt never leaves it."""
+    import ipaddress
+    from urllib.parse import urlsplit
+
+    host = (urlsplit(url).hostname or "").lower()
+    if host == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
 
 def _retry_after_seconds(header: str | None) -> float | None:
     try:
@@ -93,6 +153,8 @@ class LLMBackend:
         self.retry_count = 0
         self.stop_reason = ""
         self.usage: dict[str, int] = {}
+        # Secrets replaced in prompts sent to a non-loopback endpoint.
+        self.redactions = 0
         # Reasoning models (DeepSeek v4, o-series) bill thinking against
         # max_tokens, so an 8192 budget can be spent entirely on reasoning and
         # return finish_reason="length" with an empty content field. Both are
@@ -222,6 +284,14 @@ class LLMBackend:
         if self._backend == "openrouter":
             headers["HTTP-Referer"] = "https://github.com/hedgerow-dev/rowan"
             headers["X-Title"] = "Rowan SAST"
+
+        # Scanned source can hold real credentials. Redact before the body and
+        # the debug log are built, unless the endpoint is on this machine.
+        if not _is_loopback_url(self._base_url):
+            prompt, n_prompt = redact_secrets(prompt)
+            system, n_system = redact_secrets(system)
+            with self._calls_lock:
+                self.redactions += n_prompt + n_system
 
         messages: list[dict[str, str]] = []
         if system:
