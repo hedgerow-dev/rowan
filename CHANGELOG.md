@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.3.6 (alpha)
+
+- New taint rules outside Python: open redirect for JavaScript, Go, Java and
+  C#; XSS for Go; deserialization for JavaScript; template injection for
+  JavaScript and Java; XXE for C#. JavaScript and Go redirects were previously
+  reported as header injection.
+- The new rules flag only what is unsafe in every library version: plain
+  js-yaml `load` and default .NET XML parsing are not flagged, and template
+  injection means user input used as the template, never as render data.
+- A taint flow from a rule whose sources are request reads now keeps its
+  severity in route modules without a framework import and in repositories
+  detected as libraries.
+- Validated on NodeGoat, WebGoat, govwa and WebGoat.NET: the new rules report
+  five planted bugs in the default view, after fixing one false positive and
+  one missed source found that way.
+
+No benchmark here covers JavaScript, Go, Java or C# web code, so evidence for
+the new rules is those apps plus unit fixtures. JavaScript handlers that
+destructure the request (`({ query }: Request)`) are not yet modeled as
+sources.
+
 ## v0.3.5 (alpha)
 
 - Fix 117 rules that declared categories the scanner did not recognize. Some
