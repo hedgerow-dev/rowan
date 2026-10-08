@@ -385,8 +385,13 @@ rules:
         - "CWE-601: URL Redirection to Untrusted Site ('Open Redirect')"
       confidence: HIGH
       category: general
+      source_kind: http_input
       fix: "Use LocalRedirect() or check Url.IsLocalUrl() before redirecting; never redirect to a raw user-supplied URL."
     pattern-sources:
+      # Classic ASP.NET (System.Web) request access, e.g. WebGoat.NET.
+      - pattern: Request.QueryString[$KEY]
+      - pattern: Request.Params[$KEY]
+      - pattern: Request[$KEY]
       - pattern: Request.Query[$KEY]
       - pattern: Request.Form[$KEY]
       - patterns:
@@ -425,9 +430,14 @@ rules:
         - "CWE-611: Improper Restriction of XML External Entity Reference"
       confidence: HIGH
       category: injection
+      source_kind: http_input
       fix: "Leave XmlResolver null and DtdProcessing at Prohibit/Ignore (the defaults since .NET 4.5.2); never set XmlUrlResolver or DtdProcessing.Parse for untrusted XML."
     # .NET parses safely by default, so only an explicit opt-in is flagged.
     pattern-sources:
+      # Classic ASP.NET (System.Web) request access, e.g. WebGoat.NET.
+      - pattern: Request.QueryString[$KEY]
+      - pattern: Request.Params[$KEY]
+      - pattern: Request[$KEY]
       - pattern: Request.Query[$KEY]
       - pattern: Request.Form[$KEY]
       - pattern: Request.Body

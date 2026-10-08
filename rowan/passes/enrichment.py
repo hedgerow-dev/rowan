@@ -563,6 +563,20 @@ def _has_agent_boundary_source(finding: Finding) -> bool:
     return finding.metadata.get("source_kind") in ("tool_param", "llm_output")
 
 
+def _has_proven_external_source(finding: Finding) -> bool:
+    """The finding's own trace proves external input reached the sink.
+
+    A model boundary source, or a taint flow from a rule whose sources are
+    HTTP request reads (`source_kind: http_input`). File- and repo-level
+    guesses (a web-framework import, the library profile) must not demote it:
+    route modules often receive `app` from elsewhere, and routers such as
+    httprouter or Web Forms code-behind carry no import those guesses know.
+    """
+    return _has_agent_boundary_source(finding) or (
+        finding.taint_flow is not None and finding.metadata.get("source_kind") == "http_input"
+    )
+
+
 def _cap_severity(finding: Finding, cap: Severity) -> None:
     if _SEVERITY_RANK[finding.severity] < _SEVERITY_RANK[cap]:
         finding.severity = cap
@@ -1490,7 +1504,7 @@ class EnrichmentPass:
             if f.category == Category.XSS and _is_client_side_js(f.file_path):
                 result.append(f)
                 continue
-            if f.engine == "siblinggate" or _has_agent_boundary_source(f):
+            if f.engine == "siblinggate" or _has_proven_external_source(f):
                 # A whole-repo consistency claim, or a rule whose source is
                 # the agent boundary: the evidence is not an import here.
                 result.append(f)
@@ -2556,7 +2570,7 @@ class EnrichmentPass:
             # profile heuristic must not override an explicitly-requested pass.
             # Model-file findings fire on load, independent of how the
             # project is deployed, so the deployment profile does not apply.
-            if f.engine in ("authz", "js_authz", "mfv") or _has_agent_boundary_source(f):
+            if f.engine in ("authz", "js_authz", "mfv") or _has_proven_external_source(f):
                 result.append(f)
                 continue
             if f.category in disabled:

@@ -60,6 +60,14 @@ class TestCSharp:
         )
         assert self._scan(tmp_path, body)
 
+    def test_web_forms_request_value(self, tmp_path):
+        body = (
+            "    var doc = new XmlDocument();\n"
+            "    doc.XmlResolver = new XmlUrlResolver();\n"
+            '    doc.LoadXml(Request.Form["xml"]);\n'
+        )
+        assert self._scan(tmp_path, body)
+
     def test_default_xml_document_is_safe(self, tmp_path):
         body = "    var doc = new XmlDocument();\n    doc.LoadXml(xml);\n"
         assert not self._scan(tmp_path, body)

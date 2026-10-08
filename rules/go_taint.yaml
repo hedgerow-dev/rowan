@@ -469,6 +469,7 @@ rules:
         - "CWE-601: URL Redirection to Untrusted Site ('Open Redirect')"
       confidence: HIGH
       category: general
+      source_kind: http_input
       fix: "Redirect only to internal paths or an allowlist of hosts; never to a raw user-supplied URL."
     pattern-sources:
       # rowan-registry:begin source=web_request_go
@@ -505,6 +506,7 @@ rules:
         - "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
       confidence: HIGH
       category: xss
+      source_kind: http_input
       fix: "Render through html/template without template.HTML/JS/HTMLAttr/URL wrappers, or escape with html.EscapeString before writing to the response."
     pattern-sources:
       # rowan-registry:begin source=web_request_go

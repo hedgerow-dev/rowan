@@ -118,6 +118,19 @@ class TestJava:
         )
         assert self._scan(tmp_path, src)
 
+    def test_numeric_id_selecting_a_fixed_path_is_not_flagged(self, tmp_path):
+        # WebGoat OpenRedirectSecureController: an Integer cannot carry a URL.
+        src = (
+            "import java.util.Map;\nimport org.springframework.web.bind.annotation.*;\n"
+            "@Controller\npublic class Safe {\n"
+            '  private static final Map<Integer, String> DEST = Map.of(1, "/welcome", 2, "/login");\n'
+            '  @GetMapping("/safe")\n'
+            '  public String safe(@RequestParam(name = "destId") Integer destId) {\n'
+            '    return "redirect:" + DEST.getOrDefault(destId, "/welcome");\n'
+            "  }\n}\n"
+        )
+        assert not self._scan(tmp_path, src)
+
     def test_constant_target_is_not_flagged(self, tmp_path):
         src = (
             "import javax.servlet.http.*;\n"
@@ -150,6 +163,13 @@ class TestCSharp:
     def test_response_redirect_to_query_value(self, tmp_path):
         assert self._scan(
             tmp_path, '  public void Login() { Response.Redirect(Request.Query["next"]); }'
+        )
+
+    def test_web_forms_query_string(self, tmp_path):
+        # WebGoat.NET CustomerLogin.aspx.cs: classic ASP.NET request access.
+        assert self._scan(
+            tmp_path,
+            '  public void Login() { string u = Request.QueryString["ReturnUrl"]; Response.Redirect(u); }',
         )
 
     def test_local_redirect_is_not_flagged(self, tmp_path):

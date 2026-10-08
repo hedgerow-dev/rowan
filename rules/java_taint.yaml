@@ -1072,6 +1072,7 @@ rules:
         - "CWE-601: URL Redirection to Untrusted Site ('Open Redirect')"
       confidence: HIGH
       category: general
+      source_kind: http_input
       fix: "Redirect only to internal paths or an allowlist of hosts; never to a raw user-supplied URL."
     pattern-sources:
       # rowan-registry:begin source=web_request_java
@@ -1146,6 +1147,14 @@ rules:
       - patterns:
           - pattern: '"redirect:" + $URL'
           - focus-metavariable: $URL
+    pattern-sanitizers:
+      # A number or UUID cannot carry a URL; it can only select one (WebGoat
+      # OpenRedirectSecureController maps an Integer id to fixed paths).
+      - pattern: (Integer $X)
+      - pattern: (int $X)
+      - pattern: (Long $X)
+      - pattern: (long $X)
+      - pattern: (UUID $X)
 
   - id: tnt-ja-ssti-001
     mode: taint
@@ -1160,6 +1169,7 @@ rules:
         - "CWE-1336: Improper Neutralization of Special Elements Used in a Template Engine"
       confidence: HIGH
       category: ssti
+      source_kind: http_input
       fix: "Load templates from fixed resources and pass user input only through the template context, never as the template text."
     pattern-sources:
       # rowan-registry:begin source=web_request_java

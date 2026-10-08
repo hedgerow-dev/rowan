@@ -287,6 +287,7 @@ rules:
         - "CWE-601: URL Redirection to Untrusted Site ('Open Redirect')"
       confidence: HIGH
       category: general
+      source_kind: http_input
       fix: "Redirect only to internal paths or an allowlist of hosts; never to a raw user-supplied URL."
     pattern-sources:
       - pattern: req.query
@@ -320,6 +321,7 @@ rules:
         - "CWE-502: Deserialization of Untrusted Data"
       confidence: HIGH
       category: deserialization
+      source_kind: http_input
       fix: "Parse untrusted data with JSON.parse (or js-yaml's default safe schema); never deserialize it with a library that revives functions."
     pattern-sources:
       - pattern: req.query
@@ -361,6 +363,7 @@ rules:
         - "CWE-1336: Improper Neutralization of Special Elements Used in a Template Engine"
       confidence: HIGH
       category: ssti
+      source_kind: http_input
       fix: "Load templates from fixed files and pass user input only as render data, never as the template string."
     pattern-sources:
       - pattern: req.query
