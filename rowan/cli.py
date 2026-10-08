@@ -89,6 +89,10 @@ def _is_local_target(hostname: str) -> bool:
 
     def local(address: str) -> bool:
         ip = ipaddress.ip_address(address.split("%", 1)[0])
+        # Judge an IPv4-mapped IPv6 address by its IPv4 part: some Python
+        # 3.10/3.11 releases call all of ::ffff:0:0/96 private (CVE-2024-4032).
+        if ip.version == 6 and ip.ipv4_mapped is not None:
+            ip = ip.ipv4_mapped
         return ip.is_loopback or ip.is_private or ip.is_link_local
 
     if hostname.lower() == "localhost":

@@ -267,6 +267,9 @@ def test_hunt_accepts_hostname_resolving_to_private_address(monkeypatch):
         ("http://8.8.8.8", None),
         ("https://app.example/service/root", "93.184.216.34"),
         ("https://does-not-resolve.invalid", None),
+        # IPv4-mapped IPv6: older Python 3.10/3.11 patch releases call the whole
+        # ::ffff:0:0/96 range private (CVE-2024-4032).
+        ("http://[::ffff:8.8.8.8]", None),
     ],
 )
 def test_hunt_refuses_remote_targets_without_opt_in(monkeypatch, base_url, resolved):
