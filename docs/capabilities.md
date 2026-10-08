@@ -1,7 +1,7 @@
 # Capabilities
 
 What Rowan finds, how it decides, how it compares to other open-source
-tools, and where it falls short. Status: **alpha (v0.3.6)**.
+tools, and where it falls short. Status: **alpha (v0.3.7)**.
 
 ## In one paragraph
 

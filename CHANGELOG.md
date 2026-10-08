@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.3.7 (alpha)
+
+Safety release for `rowan hunt`.
+
+- Prompts sent to an LLM endpoint that is not on this machine have likely
+  secrets replaced with `[REDACTED-SECRET]`: private keys, cloud and API
+  tokens, JWTs, URL passwords, and high-entropy literals in secret-named
+  variables. Local endpoints (Ollama, a local server) receive source unchanged.
+- `--exploit` only probes a `--base-url` on loopback or a private network.
+  Pass `--allow-remote-target` to probe anything else you are authorized to
+  test.
+- New `--audit-log PATH` appends one JSON line per LLM call and live probe:
+  endpoint, sizes, hashes and outcome, never content.
+
+Redaction is pattern-based, so a secret in an unusual format can still reach a
+cloud model. `--allow-remote-target` is your confirmation, not a check.
+Link-local addresses, including cloud metadata endpoints, count as local.
+
 ## v0.3.6 (alpha)
 
 - New taint rules outside Python: open redirect for JavaScript, Go, Java and
