@@ -77,7 +77,7 @@ rules:
         - "**/unit_tests/**"
     metadata:
       cwe: [1336]
-      category: template_injection
+      category: ssti
       fix: "Reject parsed Formatter fields containing attribute access or indexing before returning them as accepted template variables."
     patterns:
       - pattern: |
@@ -112,7 +112,7 @@ rules:
         - "**/unit_tests/**"
     metadata:
       cwe: [1336]
-      category: template_injection
+      category: ssti
       fix: "Inspect format_spec from Formatter.parse and reject nested replacement fields in untrusted templates."
     patterns:
       - pattern: |

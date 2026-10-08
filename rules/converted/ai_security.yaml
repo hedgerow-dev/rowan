@@ -240,11 +240,13 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: code_execution
+    category: deserialization
     cwe:
     - 94
     original_engine: neuroscan
     source_rule: AI031
+    residual:
+    - sanitizer
 - id: ns-aiml-114
   languages:
   - python
@@ -263,12 +265,14 @@ rules:
   - pattern-not-regex: (?:def test_|conftest|unittest)
   - pattern-not-regex: safe_mode\s*=\s*False
   metadata:
-    category: code_execution
+    category: deserialization
     cwe:
     - 94
     - 502
     original_engine: neuroscan
     source_rule: AI031
+    residual:
+    - sanitizer
 - id: ns-aiml-115
   languages:
   - python
@@ -283,12 +287,14 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: code_execution
+    category: deserialization
     cwe:
     - 94
     - 502
     original_engine: neuroscan
     source_rule: AI031
+    residual:
+    - sanitizer
 - id: ns-aiml-044
   languages:
   - python
@@ -299,7 +305,7 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: code_execution
+    category: ai_ml
     cwe:
     - 94
     original_engine: neuroscan
@@ -317,7 +323,7 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: code_execution
+    category: ai_ml
     cwe:
     - 94
     original_engine: neuroscan
@@ -593,7 +599,7 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: model_integrity
+    category: ai_ml
     cwe:
     - 94
     original_engine: neuroscan
@@ -611,11 +617,13 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: model_integrity
+    category: deserialization
     cwe:
     - 502
     original_engine: neuroscan
     source_rule: AI007
+    residual:
+    - sanitizer
 - id: ns-aiml-059
   languages:
   - python
@@ -627,7 +635,7 @@ rules:
   - pattern-not-regex: (?:def test_|conftest|unittest)
   - pattern-not-regex: load_dataset\(
   metadata:
-    category: model_integrity
+    category: supply_chain
     cwe:
     - 829
     original_engine: neuroscan
@@ -645,7 +653,7 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: model_integrity
+    category: supply_chain
     cwe:
     - 94
     - 829
@@ -664,7 +672,7 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: model_integrity
+    category: supply_chain
     cwe:
     - 494
     - 829
@@ -682,11 +690,13 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: model_integrity
+    category: deserialization
     cwe:
     - 502
     original_engine: neuroscan
     source_rule: AI043
+    residual:
+    - sanitizer
 - id: ns-aiml-116
   languages:
   - python
@@ -698,11 +708,13 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: model_integrity
+    category: deserialization
     cwe:
     - 502
     original_engine: neuroscan
     source_rule: AI043
+    residual:
+    - sanitizer
 - id: ns-aiml-117
   languages:
   - python
@@ -716,11 +728,13 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: model_integrity
+    category: deserialization
     cwe:
     - 502
     original_engine: neuroscan
     source_rule: AI043
+    residual:
+    - sanitizer
 - id: ns-aiml-062
   languages:
   - python
@@ -735,7 +749,7 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: model_integrity
+    category: ai_ml
     cwe:
     - 345
     original_engine: neuroscan
@@ -821,11 +835,13 @@ rules:
   - pattern-not-regex: (?m)^\s*//.*
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: mcp_agent
+    category: prompt_injection
     cwe:
     - 77
     original_engine: neuroscan
     source_rule: AI070
+    residual:
+    - sanitizer
 - id: ns-aiml-067
   languages:
   - python
@@ -838,7 +854,7 @@ rules:
   - pattern-not-regex: (?:def test_|conftest|unittest)
   - pattern-not-regex: ray_client_server_port
   metadata:
-    category: mcp_agent
+    category: config
     cwe:
     - 668
     - 200
@@ -857,11 +873,13 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: xml_dos
+    category: deserialization
     cwe:
     - 502
     original_engine: neuroscan
     source_rule: AI012
+    residual:
+    - sanitizer
 - id: ns-aiml-070
   languages:
   - python
@@ -876,11 +894,13 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: xml_dos
+    category: deserialization
     cwe:
     - 611
     original_engine: neuroscan
     source_rule: AI018
+    residual:
+    - sanitizer
 - id: ns-aiml-071
   languages:
   - python
@@ -896,11 +916,13 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: xml_dos
+    category: general
     cwe:
     - 409
     original_engine: neuroscan
     source_rule: AI069
+    residual:
+    - sanitizer
 - id: ns-aiml-072
   languages:
   - python
@@ -918,12 +940,14 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: langchain
+    category: command_injection
     cwe:
     - 78
     - 94
     original_engine: neuroscan
     source_rule: AI003
+    residual:
+    - sanitizer
 - id: ns-aiml-073
   languages:
   - python
@@ -938,11 +962,13 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: langchain
+    category: ssrf
     cwe:
     - 918
     original_engine: neuroscan
     source_rule: AI054
+    residual:
+    - sanitizer
 - id: ns-aiml-074
   languages:
   - python
@@ -957,12 +983,14 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: llamaindex
+    category: injection
     cwe:
     - 22
     - 89
     original_engine: neuroscan
     source_rule: AI066
+    residual:
+    - sanitizer
 - id: ns-aiml-075
   languages:
   - python
@@ -976,7 +1004,7 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: langchain
+    category: ai_ml
     cwe:
     - 502
     original_engine: neuroscan
@@ -1002,11 +1030,13 @@ rules:
   - pattern-not-regex: (?:def test_|conftest|unittest)
   - pattern-not-regex: (?:@fixture|@pytest)
   metadata:
-    category: agent_safety
+    category: command_injection
     cwe:
     - 78
     original_engine: neuroscan
     source_rule: AI068
+    residual:
+    - sanitizer
 - id: ns-aiml-100
   languages:
   - dockerfile
@@ -1994,7 +2024,7 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: mcp_agent
+    category: config
     cwe:
     - 668
     - 200
@@ -2043,7 +2073,7 @@ rules:
   - pattern-not-regex: (?i)BearerAuth
   - pattern-not-regex: (?i)TokenVerifier
   metadata:
-    category: mcp_agent
+    category: auth
     cwe:
     - 306
     original_engine: neuroscan
@@ -2089,7 +2119,7 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: mcp_agent
+    category: auth
     cwe:
     - 862
     original_engine: neuroscan
@@ -2187,7 +2217,7 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: mcp_agent
+    category: config
     cwe:
     - 668
     - 200
@@ -2228,7 +2258,7 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: mcp_agent
+    category: auth
     cwe:
     - 306
     original_engine: neuroscan
@@ -2293,7 +2323,7 @@ rules:
   - pattern-not-regex: (?i)\bjwt\.verify\((?:(?!\ndef )[\s\S]){0,400}?(?:audience\s*[:=]|aud["'\]]*\s*[!=]=|verify_aud)
   - pattern-not-regex: (?i)\bjwtVerify\((?:(?!\ndef )[\s\S]){0,400}?(?:audience\s*[:=]|aud["'\]]*\s*[!=]=|verify_aud)
   metadata:
-    category: mcp_agent
+    category: auth
     cwe:
     - 287
     - 863
@@ -2356,7 +2386,7 @@ rules:
       in|not in.{0,20}redirect)
   - pattern-not-regex: (?i)redirectUris\s*[:=]\s*req\.body(?:(?!\ndef )[\s\S]){0,400}?(?:allowed[_-]?redirect|\.includes\(\s*redirect)
   metadata:
-    category: mcp_agent
+    category: auth
     cwe:
     - 601
     - 863
@@ -2415,7 +2445,7 @@ rules:
   - pattern-not-regex: (?:def test_|conftest|unittest)
   - pattern-not-regex: (?i)headers(?:\.get\(|\[)\s*["']mcp-session-id["']\s*\)?(?:(?!\ndef )[\s\S]){0,400}?(?:authorization|jwt\.decode\(|jwt\.verify\(|jwtVerify\(|bearer)
   metadata:
-    category: mcp_agent
+    category: auth
     cwe:
     - 287
     - 330
@@ -2478,7 +2508,7 @@ rules:
   - pattern-not-regex: (?i)\.(?:get|post)\(\s*["']*[^"']*authorize(?:(?!\ndef )[\s\S]){0,400}?(?:code_?challenge|code_?verifier|\bpkce\b|\bS256\b)
   - pattern-not-regex: (?i)def\s+authorize\s*\((?:(?!\ndef )[\s\S]){0,400}?(?:code_?challenge|code_?verifier|\bpkce\b|\bS256\b)
   metadata:
-    category: mcp_agent
+    category: auth
     cwe:
     - 346
     - 863
@@ -2553,7 +2583,7 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: model_integrity
+    category: supply_chain
     cwe:
     - 494
     - 829
@@ -2626,7 +2656,7 @@ rules:
   - pattern-not-regex: (?i)\bmlflow\.artifacts\.download_artifacts\((?:(?!\ndef )[\s\S]){0,300}?(?:hashlib|hmac|checksum|verify_hash|verify_signature|sha256|cosign|sigstore)
   - pattern-not-regex: (?i)\bdvc\.api\.(?:read|open)\((?:(?!\ndef )[\s\S]){0,300}?(?:hashlib|hmac|checksum|verify_hash|verify_signature|sha256|cosign|sigstore)
   metadata:
-    category: model_integrity
+    category: supply_chain
     cwe:
     - 494
     - 829
@@ -3298,16 +3328,14 @@ rules:
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
-    category: secrets
+    category: ai_ml
     cwe:
-    - 798
+    - 94
+    - 693
     original_engine: neuroscan
     rule_name: Fake exec sandbox built from a restricted __builtins__ dict
-    fix: Move the key to a secret manager or environment variable never committed to the repository (os.environ/os.getenv,
-      a vault, or CI/CD secret store), and rotate the exposed key immediately -- it must be treated as compromised the moment
-      it lands in git history, not just the working tree.
-    residual:
-    - secrets
+    fix: Delete the dynamic execution path, or run the code in a real OS-level sandbox (separate process with seccomp/container
+      isolation, no host filesystem or network) behind authentication; never rely on a restricted __builtins__ mapping.
 - id: ns-aiml-138
   languages:
   - python
@@ -3403,13 +3431,14 @@ rules:
   - pattern-not-regex: (?:def test_|conftest|unittest)
   - pattern-not-regex: (?i)(?:httpx|requests)\.get\([^)]*\.well-known/agent(?:(?!\ndef )[\s\S]){0,400}?(?:verify_signature|\bsignature\b|check_signature|\bpinned?\b|\btrusted\b)
   metadata:
-    category: code_execution
+    category: supply_chain
     cwe:
-    - 94
-    - 693
+    - 345
+    - 494
     original_engine: neuroscan
     rule_name: A2A agent card fetched without pinning or signature verification
-    fix: Delete the dynamic execution path, or run the code in a real OS-level sandbox (separate process with seccomp/container
-      isolation, no host filesystem or network) behind authentication; never rely on a restricted __builtins__ mapping.
+    fix: Verify the agent card's signature (or fetch it only from a pinned, operator-controlled source) before trusting anything
+      it claims about the peer agent's identity or capabilities. Treat a remotely-fetched, unverified agent card the same
+      as an unverified model download -- don't act on it.
     residual:
     - sanitizer

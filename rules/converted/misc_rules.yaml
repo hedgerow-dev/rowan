@@ -494,7 +494,7 @@ rules:
 
     or equivalent auth check.'
   patterns:
-  - pattern-regex: def (delete|update|create|admin)\w*\(.*request
+  - pattern-regex: (?m)^(?:[ \t]*@[^\n]*\n)*[ \t]*def (delete|update|create|admin)\w*\(.*request
   - pattern-not-regex: '@login_required'
   - pattern-not-regex: '@permission_required'
   - pattern-not-regex: '@auth'

@@ -4,8 +4,8 @@
     "ok": 400,
     "warning": 0,
     "error": 0,
-    "secrets_residual": 6,
-    "sanitizer_residual": 220,
+    "secrets_residual": 5,
+    "sanitizer_residual": 235,
     "converter_version": "1.0"
   },
   "rules": [
@@ -383,8 +383,8 @@
       ],
       "status": "ok",
       "warnings": [],
-      "name": "LangChain loads unsafe deserialization",
-      "fix": "Do not deserialize LangChain objects (`loads`/legacy `dumps`) from untrusted sources; use a safe data format (JSON) with a known schema.",
+      "name": "LangChain structured object serialization boundary",
+      "fix": "Do not round-trip untrusted dictionaries through an object serializer. Upgrade affected langchain-core versions, keep untrusted data inert, and use an explicit minimal allowed_objects list when loading objects.",
       "pattern_not": [
         "(?m)^\\s*#",
         "(?:def test_|conftest|unittest)"
@@ -758,13 +758,15 @@
     },
     {
       "id": "ns-aiml-043",
-      "category": "code_execution",
+      "category": "deserialization",
       "cwe": [
         94
       ],
       "original_severity": "ERROR",
       "original_engine": "neuroscan",
-      "residual": [],
+      "residual": [
+        "sanitizer"
+      ],
       "status": "ok",
       "warnings": [],
       "source_rule": "AI031",
@@ -775,14 +777,16 @@
     },
     {
       "id": "ns-aiml-114",
-      "category": "code_execution",
+      "category": "deserialization",
       "cwe": [
         94,
         502
       ],
       "original_severity": "WARNING",
       "original_engine": "neuroscan",
-      "residual": [],
+      "residual": [
+        "sanitizer"
+      ],
       "status": "ok",
       "warnings": [],
       "source_rule": "AI031",
@@ -794,14 +798,16 @@
     },
     {
       "id": "ns-aiml-115",
-      "category": "code_execution",
+      "category": "deserialization",
       "cwe": [
         94,
         502
       ],
       "original_severity": "ERROR",
       "original_engine": "neuroscan",
-      "residual": [],
+      "residual": [
+        "sanitizer"
+      ],
       "status": "ok",
       "warnings": [],
       "source_rule": "AI031",
@@ -812,7 +818,7 @@
     },
     {
       "id": "ns-aiml-044",
-      "category": "code_execution",
+      "category": "ai_ml",
       "cwe": [
         94
       ],
@@ -829,7 +835,7 @@
     },
     {
       "id": "ns-aiml-045",
-      "category": "code_execution",
+      "category": "ai_ml",
       "cwe": [
         94
       ],
@@ -1078,7 +1084,7 @@
     },
     {
       "id": "ns-aiml-057",
-      "category": "model_integrity",
+      "category": "ai_ml",
       "cwe": [
         94
       ],
@@ -1095,13 +1101,15 @@
     },
     {
       "id": "ns-aiml-058",
-      "category": "model_integrity",
+      "category": "deserialization",
       "cwe": [
         502
       ],
       "original_severity": "ERROR",
       "original_engine": "neuroscan",
-      "residual": [],
+      "residual": [
+        "sanitizer"
+      ],
       "status": "ok",
       "warnings": [],
       "source_rule": "AI007",
@@ -1112,7 +1120,7 @@
     },
     {
       "id": "ns-aiml-059",
-      "category": "model_integrity",
+      "category": "supply_chain",
       "cwe": [
         829
       ],
@@ -1130,7 +1138,7 @@
     },
     {
       "id": "ns-aiml-113",
-      "category": "model_integrity",
+      "category": "supply_chain",
       "cwe": [
         94,
         829
@@ -1148,7 +1156,7 @@
     },
     {
       "id": "ns-aiml-060",
-      "category": "model_integrity",
+      "category": "supply_chain",
       "cwe": [
         494,
         829
@@ -1166,13 +1174,15 @@
     },
     {
       "id": "ns-aiml-061",
-      "category": "model_integrity",
+      "category": "deserialization",
       "cwe": [
         502
       ],
       "original_severity": "ERROR",
       "original_engine": "neuroscan",
-      "residual": [],
+      "residual": [
+        "sanitizer"
+      ],
       "status": "ok",
       "warnings": [],
       "source_rule": "AI043",
@@ -1183,13 +1193,15 @@
     },
     {
       "id": "ns-aiml-116",
-      "category": "model_integrity",
+      "category": "deserialization",
       "cwe": [
         502
       ],
       "original_severity": "ERROR",
       "original_engine": "neuroscan",
-      "residual": [],
+      "residual": [
+        "sanitizer"
+      ],
       "status": "ok",
       "warnings": [],
       "source_rule": "AI043",
@@ -1200,13 +1212,15 @@
     },
     {
       "id": "ns-aiml-117",
-      "category": "model_integrity",
+      "category": "deserialization",
       "cwe": [
         502
       ],
       "original_severity": "info",
       "original_engine": "neuroscan",
-      "residual": [],
+      "residual": [
+        "sanitizer"
+      ],
       "status": "ok",
       "warnings": [],
       "source_rule": "AI043",
@@ -1217,7 +1231,7 @@
     },
     {
       "id": "ns-aiml-062",
-      "category": "model_integrity",
+      "category": "ai_ml",
       "cwe": [
         345
       ],
@@ -1296,13 +1310,15 @@
     },
     {
       "id": "ns-aiml-066",
-      "category": "mcp_agent",
+      "category": "prompt_injection",
       "cwe": [
         77
       ],
       "original_severity": "ERROR",
       "original_engine": "neuroscan",
-      "residual": [],
+      "residual": [
+        "sanitizer"
+      ],
       "status": "ok",
       "warnings": [],
       "source_rule": "AI070",
@@ -1314,7 +1330,7 @@
     },
     {
       "id": "ns-aiml-067",
-      "category": "mcp_agent",
+      "category": "config",
       "cwe": [
         668,
         200
@@ -1333,13 +1349,15 @@
     },
     {
       "id": "ns-aiml-069",
-      "category": "xml_dos",
+      "category": "deserialization",
       "cwe": [
         502
       ],
       "original_severity": "ERROR",
       "original_engine": "neuroscan",
-      "residual": [],
+      "residual": [
+        "sanitizer"
+      ],
       "status": "ok",
       "warnings": [],
       "source_rule": "AI012",
@@ -1350,13 +1368,15 @@
     },
     {
       "id": "ns-aiml-070",
-      "category": "xml_dos",
+      "category": "deserialization",
       "cwe": [
         611
       ],
       "original_severity": "ERROR",
       "original_engine": "neuroscan",
-      "residual": [],
+      "residual": [
+        "sanitizer"
+      ],
       "status": "ok",
       "warnings": [],
       "source_rule": "AI018",
@@ -1367,13 +1387,15 @@
     },
     {
       "id": "ns-aiml-071",
-      "category": "xml_dos",
+      "category": "general",
       "cwe": [
         409
       ],
       "original_severity": "ERROR",
       "original_engine": "neuroscan",
-      "residual": [],
+      "residual": [
+        "sanitizer"
+      ],
       "status": "ok",
       "warnings": [],
       "source_rule": "AI069",
@@ -1384,14 +1406,16 @@
     },
     {
       "id": "ns-aiml-072",
-      "category": "langchain",
+      "category": "command_injection",
       "cwe": [
         78,
         94
       ],
       "original_severity": "ERROR",
       "original_engine": "neuroscan",
-      "residual": [],
+      "residual": [
+        "sanitizer"
+      ],
       "status": "ok",
       "warnings": [],
       "source_rule": "AI003",
@@ -1402,13 +1426,15 @@
     },
     {
       "id": "ns-aiml-073",
-      "category": "langchain",
+      "category": "ssrf",
       "cwe": [
         918
       ],
       "original_severity": "ERROR",
       "original_engine": "neuroscan",
-      "residual": [],
+      "residual": [
+        "sanitizer"
+      ],
       "status": "ok",
       "warnings": [],
       "source_rule": "AI054",
@@ -1419,14 +1445,16 @@
     },
     {
       "id": "ns-aiml-074",
-      "category": "llamaindex",
+      "category": "injection",
       "cwe": [
         22,
         89
       ],
       "original_severity": "ERROR",
       "original_engine": "neuroscan",
-      "residual": [],
+      "residual": [
+        "sanitizer"
+      ],
       "status": "ok",
       "warnings": [],
       "source_rule": "AI066",
@@ -1437,7 +1465,7 @@
     },
     {
       "id": "ns-aiml-075",
-      "category": "langchain",
+      "category": "ai_ml",
       "cwe": [
         502
       ],
@@ -1454,13 +1482,15 @@
     },
     {
       "id": "ns-aiml-076",
-      "category": "agent_safety",
+      "category": "command_injection",
       "cwe": [
         78
       ],
       "original_severity": "WARNING",
       "original_engine": "neuroscan",
-      "residual": [],
+      "residual": [
+        "sanitizer"
+      ],
       "status": "ok",
       "warnings": [],
       "source_rule": "AI068",
@@ -2058,7 +2088,7 @@
     },
     {
       "id": "ns-aiml-126",
-      "category": "mcp_agent",
+      "category": "config",
       "cwe": [
         668,
         200
@@ -2077,7 +2107,7 @@
     },
     {
       "id": "ns-aiml-127",
-      "category": "mcp_agent",
+      "category": "auth",
       "cwe": [
         306
       ],
@@ -2110,7 +2140,7 @@
     },
     {
       "id": "ns-aiml-128",
-      "category": "mcp_agent",
+      "category": "auth",
       "cwe": [
         862
       ],
@@ -2160,7 +2190,7 @@
     },
     {
       "id": "A2A-BIND-001",
-      "category": "mcp_agent",
+      "category": "config",
       "cwe": [
         668,
         200
@@ -2190,7 +2220,7 @@
     },
     {
       "id": "A2A-CARD-001",
-      "category": "mcp_agent",
+      "category": "auth",
       "cwe": [
         306
       ],
@@ -2217,7 +2247,7 @@
     },
     {
       "id": "ns-aiml-159",
-      "category": "mcp_agent",
+      "category": "auth",
       "cwe": [
         287,
         863
@@ -2247,7 +2277,7 @@
     },
     {
       "id": "ns-aiml-160",
-      "category": "mcp_agent",
+      "category": "auth",
       "cwe": [
         601,
         863
@@ -2277,7 +2307,7 @@
     },
     {
       "id": "ns-aiml-161",
-      "category": "mcp_agent",
+      "category": "auth",
       "cwe": [
         287,
         330
@@ -2307,7 +2337,7 @@
     },
     {
       "id": "ns-aiml-162",
-      "category": "mcp_agent",
+      "category": "auth",
       "cwe": [
         346,
         863
@@ -2365,7 +2395,7 @@
     },
     {
       "id": "ns-aiml-147",
-      "category": "model_integrity",
+      "category": "supply_chain",
       "cwe": [
         494,
         829
@@ -2403,7 +2433,7 @@
     },
     {
       "id": "ns-aiml-149",
-      "category": "model_integrity",
+      "category": "supply_chain",
       "cwe": [
         494,
         829
@@ -2779,19 +2809,18 @@
     },
     {
       "id": "ns-aiml-137",
-      "category": "secrets",
+      "category": "ai_ml",
       "cwe": [
-        798
+        94,
+        693
       ],
       "original_severity": "ERROR",
       "original_engine": "neuroscan",
-      "residual": [
-        "secrets"
-      ],
+      "residual": [],
       "status": "ok",
       "warnings": [],
       "name": "Fake exec sandbox built from a restricted __builtins__ dict",
-      "fix": "Move the key to a secret manager or environment variable never committed to the repository (os.environ/os.getenv, a vault, or CI/CD secret store), and rotate the exposed key immediately -- it must be treated as compromised the moment it lands in git history, not just the working tree.",
+      "fix": "Delete the dynamic execution path, or run the code in a real OS-level sandbox (separate process with seccomp/container isolation, no host filesystem or network) behind authentication; never rely on a restricted __builtins__ mapping.",
       "pattern_not": [
         "(?m)^\\s*#",
         "(?:def test_|conftest|unittest)"
@@ -2830,10 +2859,10 @@
     },
     {
       "id": "ns-aiml-139",
-      "category": "code_execution",
+      "category": "supply_chain",
       "cwe": [
-        94,
-        693
+        345,
+        494
       ],
       "original_severity": "WARNING",
       "original_engine": "neuroscan",
@@ -2843,7 +2872,7 @@
       "status": "ok",
       "warnings": [],
       "name": "A2A agent card fetched without pinning or signature verification",
-      "fix": "Delete the dynamic execution path, or run the code in a real OS-level sandbox (separate process with seccomp/container isolation, no host filesystem or network) behind authentication; never rely on a restricted __builtins__ mapping.",
+      "fix": "Verify the agent card's signature (or fetch it only from a pinned, operator-controlled source) before trusting anything it claims about the peer agent's identity or capabilities. Treat a remotely-fetched, unverified agent card the same as an unverified model download -- don't act on it.",
       "pattern_not": [
         "(?m)^\\s*#",
         "(?:def test_|conftest|unittest)",

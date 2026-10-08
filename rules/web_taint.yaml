@@ -256,7 +256,7 @@ rules:
     languages: [python]
     metadata:
       cwe: [601]
-      category: open_redirect
+      category: general
       fix: "Validate redirect targets against an allowlist of internal paths; never redirect to a raw user-supplied URL."
     pattern-sources:
       - patterns:
@@ -302,7 +302,7 @@ rules:
     languages: [python]
     metadata:
       cwe: [434]
-      category: file_upload
+      category: path_traversal
       fix: "Validate the actual file content (magic bytes), enforce an extension allowlist, randomize the stored name, and store uploads outside any web-served or executable directory."
     # Semantic pattern, not one idiom: any framework's uploaded-file object or
     # raw request body (source) reaching any filesystem-write call (sink).
@@ -381,7 +381,7 @@ rules:
     languages: [python]
     metadata:
       cwe: [532]
-      category: sensitive_data_exposure
+      category: secrets
       fix: "Do not log secrets. Mask/redact the value (e.g. show only a suffix) or log a one-way hash instead of the raw credential, cookie, or request body."
       confidence: MEDIUM
     pattern-sources:

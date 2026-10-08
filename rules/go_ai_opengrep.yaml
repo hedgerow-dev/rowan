@@ -25,7 +25,7 @@ rules:
       cwe:
         - "CWE-306: Missing Authentication for Critical Function"
       confidence: MEDIUM
-      category: security
+      category: auth
       fix: "Bind to 127.0.0.1 unless remote access is required, and wrap the MCP handler in authentication middleware (bearer token or OAuth) before serving it on a network interface."
     # The address is a string-regex literal rather than `$ADDR` plus
     # `metavariable-regex`: the literal form gets Opengrep's constant
@@ -83,7 +83,7 @@ rules:
       cwe:
         - "CWE-862: Missing Authorization"
       confidence: MEDIUM
-      category: security
+      category: auth
       source_kind: config
       fix: "Gate CreateMessage behind an explicit user approval (prompt, review queue, or policy check) before calling the model, or refuse sampling."
     patterns:

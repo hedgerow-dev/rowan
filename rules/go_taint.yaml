@@ -9,7 +9,7 @@ rules:
       cwe:
         - "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
       confidence: HIGH
-      category: security
+      category: injection
       fix: "Use parameterized queries (database/sql's placeholder args) instead of concatenating input into SQL text."
     pattern-sources:
       # rowan-registry:begin source=web_request_go
@@ -67,7 +67,7 @@ rules:
       cwe:
         - "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
       confidence: MEDIUM
-      category: security
+      category: injection
       source_kind: operator_input
       fix: "Use parameterized queries (database/sql's placeholder args) instead of concatenating input into SQL text."
     pattern-sources:
@@ -113,7 +113,7 @@ rules:
       cwe:
         - "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
       confidence: HIGH
-      category: security
+      category: command_injection
       fix: "Pass arguments to exec.Command() as separate slice elements, never via a shell-interpolated string."
     pattern-sources:
       # rowan-registry:begin source=web_request_go
@@ -154,7 +154,7 @@ rules:
       cwe:
         - "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
       confidence: MEDIUM
-      category: security
+      category: command_injection
       source_kind: operator_input
       fix: "Pass arguments to exec.Command() as separate slice elements, never via a shell-interpolated string."
     pattern-sources:
@@ -186,7 +186,7 @@ rules:
       cwe:
         - "CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"
       confidence: HIGH
-      category: security
+      category: path_traversal
       fix: "Resolve with filepath.Clean() and verify the result is still under the intended base directory (strings.HasPrefix on the cleaned absolute path) before use, or use filepath.Base() to discard directory components entirely."
     pattern-sources:
       # rowan-registry:begin source=web_request_go
@@ -226,7 +226,7 @@ rules:
       cwe:
         - "CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"
       confidence: MEDIUM
-      category: security
+      category: path_traversal
       source_kind: operator_input
       fix: "Resolve with filepath.Clean() and verify the result is still under the intended base directory (strings.HasPrefix on the cleaned absolute path) before use, or use filepath.Base() to discard directory components entirely."
     pattern-sources:
@@ -260,7 +260,7 @@ rules:
       cwe:
         - "CWE-918: Server-Side Request Forgery (SSRF)"
       confidence: HIGH
-      category: security
+      category: ssrf
       fix: "Validate the destination host against an explicit allowlist of permitted domains/IPs before making the request."
     pattern-sources:
       # rowan-registry:begin source=web_request_go
@@ -297,7 +297,7 @@ rules:
       cwe:
         - "CWE-918: Server-Side Request Forgery (SSRF)"
       confidence: MEDIUM
-      category: security
+      category: ssrf
       source_kind: operator_input
       fix: "Validate the destination host against an explicit allowlist of permitted domains/IPs before making the request."
     pattern-sources:
@@ -328,7 +328,7 @@ rules:
       cwe:
         - "CWE-502: Deserialization of Untrusted Data"
       confidence: MEDIUM
-      category: security
+      category: deserialization
       fix: "Avoid gob/unsafe decoders on untrusted data; validate the source and prefer encoding/json with a known target struct."
     # EXT-19: request-only. gob/yaml decoding of an env var is not a
     # deserialization class worth an operator-input sibling.
@@ -362,7 +362,7 @@ rules:
       cwe:
         - "CWE-117: Improper Output Neutralization for Logs"
       confidence: MEDIUM
-      category: security
+      category: injection
       fix: "Strip or encode newline/CR characters before writing user input to a log entry, so a single log line can't be forged."
     pattern-sources:
       # rowan-registry:begin source=web_request_go
@@ -417,7 +417,7 @@ rules:
       cwe:
         - "CWE-113: Improper Neutralization of CRLF Sequences in HTTP Headers ('HTTP Response Splitting')"
       confidence: HIGH
-      category: security
+      category: injection
       fix: "Reject or strip CR/LF characters from values written into HTTP response headers before calling Header().Set/Add."
     pattern-sources:
       # rowan-registry:begin source=web_request_go

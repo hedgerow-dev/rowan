@@ -420,7 +420,10 @@ rules:
     cwe: [862]
     languages: [python]
     patterns:
-      - 'def (delete|update|create|admin)\w*\(.*request'
+      # The match starts at any decorator lines directly above the def, so the
+      # pattern-not entries below can see an auth decorator. Matching the def
+      # line alone flagged handlers that were already protected.
+      - '(?m)^(?:[ \t]*@[^\n]*\n)*[ \t]*def (delete|update|create|admin)\w*\(.*request'
     pattern-not:
       - '@login_required'
       - '@permission_required'

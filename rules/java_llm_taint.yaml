@@ -16,7 +16,7 @@ rules:
       cwe:
         - "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
       confidence: HIGH
-      category: security
+      category: injection
       source_kind: llm_output
       fix: "Never execute model-produced text as SQL. Keep the query text constant and bind any model-derived value as a parameter (PreparedStatement setString/setInt), or route through a typed repository method instead."
     pattern-sources:
@@ -74,7 +74,7 @@ rules:
       cwe:
         - "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
       confidence: HIGH
-      category: security
+      category: command_injection
       source_kind: llm_output
       fix: "Do not run model output as a shell command. If the model must trigger an action, map its output to a fixed, allowlisted set of operations instead of passing text to ProcessBuilder/Runtime.exec()."
     pattern-sources:
@@ -114,7 +114,7 @@ rules:
       cwe:
         - "CWE-918: Server-Side Request Forgery (SSRF)"
       confidence: HIGH
-      category: security
+      category: ssrf
       source_kind: llm_output
       fix: "Validate any model-chosen destination host against an explicit allowlist of permitted domains/IPs before making the request, and block private and link-local ranges."
     pattern-sources:
@@ -152,7 +152,7 @@ rules:
       cwe:
         - "CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"
       confidence: HIGH
-      category: security
+      category: path_traversal
       source_kind: llm_output
       fix: "Resolve any model-chosen name under a fixed base directory with Path.normalize() and reject the result unless it still startsWith the base's real path, or use FilenameUtils.getName() to discard directory components entirely."
     pattern-sources:
@@ -195,7 +195,7 @@ rules:
       cwe:
         - "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
       confidence: HIGH
-      category: security
+      category: xss
       source_kind: llm_output
       fix: "HTML-encode model output with StringEscapeUtils.escapeHtml4()/Encode.forHtml() before writing it into an HTTP response, the same as any other untrusted text."
     pattern-sources:
@@ -242,7 +242,7 @@ rules:
       cwe:
         - "CWE-917: Improper Neutralization of Special Elements used in an Expression Language Statement ('Expression Language Injection')"
       confidence: HIGH
-      category: security
+      category: injection
       source_kind: llm_output
       fix: "Never evaluate a SpEL/OGNL/MVEL expression, a script, or a template built from model output. If dynamic lookups are required, resolve them through an explicit allowlist of permitted expressions/beans instead."
     pattern-sources:
@@ -291,7 +291,7 @@ rules:
       cwe:
         - "CWE-502: Deserialization of Untrusted Data"
       confidence: HIGH
-      category: security
+      category: deserialization
       source_kind: llm_output
       fix: "Never deserialize model output. Avoid Java native deserialization (ObjectInputStream) and XStream.fromXML on it entirely, or parse it as data only (a JSON library into a known target type) rather than as a serialized object graph."
     pattern-sources:
@@ -336,7 +336,7 @@ rules:
       cwe:
         - "CWE-20: Improper Input Validation"
       confidence: MEDIUM
-      category: security
+      category: prompt_injection
       source_kind: http_input
       fix: "Keep the system prompt / prompt template a fixed constant. If request data must appear in the prompt, place it in a clearly delimited user-content section, never in the system instructions or the template text itself."
     pattern-sources:
@@ -428,7 +428,7 @@ rules:
       cwe:
         - "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
       confidence: HIGH
-      category: security
+      category: command_injection
       source_kind: config
       fix: "Never build an MCP stdio command, its arguments, or a remote transport URL from request or environment data. Keep the server command and endpoint fixed configuration, chosen by the operator, not derived from a request."
     pattern-sources:
@@ -525,7 +525,7 @@ rules:
       cwe:
         - "CWE-502: Deserialization of Untrusted Data"
       confidence: HIGH
-      category: security
+      category: deserialization
       source_kind: http_input
       fix: "Construct the Yaml instance with a SafeConstructor (new Yaml(new SafeConstructor())), or migrate to SnakeYAML >= 2.0's default safe behaviour, before loading request-derived YAML."
     pattern-sources:
@@ -626,7 +626,7 @@ rules:
       cwe:
         - "CWE-943: Improper Neutralization of Special Elements in Data Query Logic"
       confidence: MEDIUM
-      category: security
+      category: nosql_injection
       source_kind: http_input
       fix: "Build vector-store filter expressions and Cypher queries with the driver's own parameter binding (Session.run(query, params)) instead of interpolating request data into the expression/query text."
     pattern-sources:

@@ -221,7 +221,7 @@ rules:
     metadata:
       mode: regex
       cwe: [94]
-      category: code_execution
+      category: deserialization
       source_rule: AI031
 
   - id: ns-aiml-114
@@ -239,7 +239,7 @@ rules:
     metadata:
       mode: regex
       cwe: [94, 502]
-      category: code_execution
+      category: deserialization
       source_rule: AI031
 
   - id: ns-aiml-115
@@ -256,7 +256,7 @@ rules:
     metadata:
       mode: regex
       cwe: [94, 502]
-      category: code_execution
+      category: deserialization
       source_rule: AI031
 
   - id: ns-aiml-044
@@ -271,7 +271,7 @@ rules:
     metadata:
       mode: regex
       cwe: [94]
-      category: code_execution
+      category: ai_ml
       source_rule: AI032
 
   - id: ns-aiml-045
@@ -287,7 +287,7 @@ rules:
     metadata:
       mode: regex
       cwe: [94]
-      category: code_execution
+      category: ai_ml
       source_rule: AI041
 
   - id: ns-aiml-046
@@ -527,7 +527,7 @@ rules:
     metadata:
       mode: regex
       cwe: [94]
-      category: model_integrity
+      category: ai_ml
       source_rule: AI006
 
   - id: ns-aiml-058
@@ -544,7 +544,7 @@ rules:
     metadata:
       mode: regex
       cwe: [502]
-      category: model_integrity
+      category: deserialization
       source_rule: AI007
 
   - id: ns-aiml-059
@@ -560,7 +560,7 @@ rules:
     metadata:
       mode: regex
       cwe: [829]
-      category: model_integrity
+      category: supply_chain
       source_rule: AI024
 
   - id: ns-aiml-113
@@ -575,7 +575,7 @@ rules:
     metadata:
       mode: regex
       cwe: [94, 829]
-      category: model_integrity
+      category: supply_chain
       source_rule: AI024
 
   - id: ns-aiml-060
@@ -592,7 +592,7 @@ rules:
     metadata:
       mode: regex
       cwe: [494, 829]
-      category: model_integrity
+      category: supply_chain
       source_rule: AI028
 
   - id: ns-aiml-061
@@ -608,7 +608,7 @@ rules:
     metadata:
       mode: regex
       cwe: [502]
-      category: model_integrity
+      category: deserialization
       source_rule: AI043
 
   - id: ns-aiml-116
@@ -623,7 +623,7 @@ rules:
     metadata:
       mode: regex
       cwe: [502]
-      category: model_integrity
+      category: deserialization
       source_rule: AI043
 
   - id: ns-aiml-117
@@ -638,7 +638,7 @@ rules:
     metadata:
       mode: regex
       cwe: [502]
-      category: model_integrity
+      category: deserialization
       source_rule: AI043
 
   - id: ns-aiml-062
@@ -656,7 +656,7 @@ rules:
     metadata:
       mode: regex
       cwe: [345]
-      category: model_integrity
+      category: ai_ml
       source_rule: AI047
 
   # ==========================================================================
@@ -737,7 +737,7 @@ rules:
     metadata:
       mode: regex
       cwe: [77]
-      category: mcp_agent
+      category: prompt_injection
       source_rule: AI070
 
   - id: ns-aiml-067
@@ -753,7 +753,7 @@ rules:
     metadata:
       mode: regex
       cwe: [668, 200]
-      category: mcp_agent
+      category: config
       source_rule: AI058
 
   - id: ns-aiml-069
@@ -770,7 +770,7 @@ rules:
     metadata:
       mode: regex
       cwe: [502]
-      category: xml_dos
+      category: deserialization
       source_rule: AI012
 
   - id: ns-aiml-070
@@ -788,7 +788,7 @@ rules:
     metadata:
       mode: regex
       cwe: [611]
-      category: xml_dos
+      category: deserialization
       source_rule: AI018
 
   - id: ns-aiml-071
@@ -807,7 +807,7 @@ rules:
     metadata:
       mode: regex
       cwe: [409]
-      category: xml_dos
+      category: general
       source_rule: AI069
 
   # ==========================================================================
@@ -832,7 +832,7 @@ rules:
     metadata:
       mode: regex
       cwe: [78, 94]
-      category: langchain
+      category: command_injection
       source_rule: AI003
 
   - id: ns-aiml-073
@@ -850,7 +850,7 @@ rules:
     metadata:
       mode: regex
       cwe: [918]
-      category: langchain
+      category: ssrf
       source_rule: AI054
 
   - id: ns-aiml-074
@@ -868,7 +868,7 @@ rules:
     metadata:
       mode: regex
       cwe: [22, 89]
-      category: llamaindex
+      category: injection
       source_rule: AI066
 
   # ==========================================================================
@@ -889,7 +889,7 @@ rules:
     metadata:
       mode: regex
       cwe: [502]
-      category: langchain
+      category: ai_ml
       rule_class: surface
       source_rule: AI053
 
@@ -914,7 +914,7 @@ rules:
     metadata:
       mode: regex
       cwe: [78]
-      category: agent_safety
+      category: command_injection
       source_rule: AI068
 
   # ==========================================================================
@@ -1994,7 +1994,7 @@ rules:
     metadata:
       mode: regex
       cwe: [668, 200]
-      category: mcp_agent
+      category: config
       source_rule: ns-aiml-067
 
   - id: ns-aiml-127
@@ -2036,7 +2036,7 @@ rules:
     metadata:
       mode: regex
       cwe: [306]
-      category: mcp_agent
+      category: auth
       source_rule: ns-aiml-067
 
   - id: ns-aiml-128
@@ -2077,7 +2077,7 @@ rules:
     metadata:
       mode: regex
       cwe: [862]
-      category: mcp_agent
+      category: auth
       source_rule: ns-aiml-067
 
   - id: ns-aiml-129
@@ -2167,7 +2167,7 @@ rules:
     metadata:
       mode: regex
       cwe: [668, 200]
-      category: mcp_agent
+      category: config
       source_rule: ns-aiml-126
 
   - id: A2A-CARD-001
@@ -2201,7 +2201,7 @@ rules:
     metadata:
       mode: regex
       cwe: [306]
-      category: mcp_agent
+      category: auth
       source_rule: ns-aiml-127
 
   - id: ns-aiml-159
@@ -2262,7 +2262,7 @@ rules:
     metadata:
       mode: regex
       cwe: [287, 863]
-      category: mcp_agent
+      category: auth
       fix: "Validate the token's `aud` claim identifies THIS resource server before trusting anything else in it: `jwt.decode(token, key, algorithms=[...], audience=RESOURCE_SERVER_ID)` (PyJWT/python-jose raise on mismatch automatically), `jwt.verify(token, key, { audience: RESOURCE_SERVER_ID })` (jsonwebtoken), or `jwtVerify(token, key, { audience: RESOURCE_SERVER_ID })` (jose). Do not accept a token whose audience is absent, wildcarded, or names a different resource."
 
   - id: ns-aiml-160
@@ -2317,7 +2317,7 @@ rules:
     metadata:
       mode: regex
       cwe: [601, 863]
-      category: mcp_agent
+      category: auth
       fix: "Compare redirect URIs with exact string equality against a fixed allowlist, never a prefix/substring/regex match: `if redirect_uri not in ALLOWED_REDIRECT_URIS: reject()`. For DCR, validate every submitted redirect_uris entry's full URI (not just its hostname) against policy before registering the client, and reject registration if none are provided."
 
   - id: ns-aiml-161
@@ -2364,7 +2364,7 @@ rules:
     metadata:
       mode: regex
       cwe: [287, 330]
-      category: mcp_agent
+      category: auth
       fix: "Never treat a session id as proof of identity. Authenticate every request with a real credential (a bearer token validated per ns-aiml-159, or an equivalent), and use the session id only for session routing/correlation after that authentication succeeds. If you generate session ids, use a cryptographically random generator (`uuid.uuid4()`, `secrets.token_urlsafe()`, `crypto.randomUUID()`) -- never a timestamp or a time-based UUID version."
 
   - id: ns-aiml-162
@@ -2427,7 +2427,7 @@ rules:
     metadata:
       mode: regex
       cwe: [346, 863]
-      category: mcp_agent
+      category: auth
       fix: "Never accept a wildcard resource indicator -- require an exact, single resource URI per token request. Take the authorization-server URL from fixed operator configuration, never from a client-supplied request parameter. Require and verify a `code_challenge`/`code_verifier` (PKCE, S256) on every `/authorize` request, public client or not, per the MCP authorization spec."
   - id: ns-aiml-146
     name: PEFT/LoRA adapter loaded without a pinned revision or local path
@@ -2492,7 +2492,7 @@ rules:
     metadata:
       mode: regex
       cwe: [494, 829]
-      category: model_integrity
+      category: supply_chain
 
   - id: ns-aiml-148
     name: Airflow DAG run parameter interpolated into a shell/container command
@@ -2553,7 +2553,7 @@ rules:
     metadata:
       mode: regex
       cwe: [494, 829]
-      category: model_integrity
+      category: supply_chain
 
   - id: ns-aiml-152
     name: LLM cache configured without a tenant-scoped key
@@ -3164,9 +3164,9 @@ rules:
       - '(?:def test_|conftest|unittest)'
     metadata:
       mode: regex
-      cwe: [798]
-      category: secrets
-      fix: "Move the key to a secret manager or environment variable never committed to the repository (os.environ/os.getenv, a vault, or CI/CD secret store), and rotate the exposed key immediately -- it must be treated as compromised the moment it lands in git history, not just the working tree."
+      cwe: [94, 693]
+      category: ai_ml
+      fix: "Delete the dynamic execution path, or run the code in a real OS-level sandbox (separate process with seccomp/container isolation, no host filesystem or network) behind authentication; never rely on a restricted __builtins__ mapping."
 
   - id: ns-aiml-138
     name: Unbounded multi-agent delegation topology
@@ -3255,10 +3255,7 @@ rules:
     metadata:
       mode: regex
       cwe: [345, 494]
-      category: ai_ml
+      category: supply_chain
       fix: "Verify the agent card's signature (or fetch it only from a pinned, operator-controlled source) before trusting anything it claims about the peer agent's identity or capabilities. Treat a remotely-fetched, unverified agent card the same as an unverified model download -- don't act on it."
       references:
         - https://github.com/hedgerow-dev/rowan/issues/188
-      cwe: [94, 693]
-      category: code_execution
-      fix: "Delete the dynamic execution path, or run the code in a real OS-level sandbox (separate process with seccomp/container isolation, no host filesystem or network) behind authentication; never rely on a restricted __builtins__ mapping."

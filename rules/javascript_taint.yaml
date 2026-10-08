@@ -9,7 +9,7 @@ rules:
       cwe:
         - "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
       confidence: HIGH
-      category: security
+      category: injection
       fix: "Use parameterized queries (the driver's placeholder/prepared-statement API) instead of concatenating input into SQL text."
     pattern-sources:
       - pattern: req.query
@@ -53,7 +53,7 @@ rules:
       cwe:
         - "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
       confidence: HIGH
-      category: security
+      category: command_injection
       fix: "Use child_process.execFile()/spawn() with an argument array instead of exec() with a shell-interpolated string."
     pattern-sources:
       - pattern: req.query
@@ -85,7 +85,7 @@ rules:
       cwe:
         - "CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"
       confidence: HIGH
-      category: security
+      category: path_traversal
       fix: "Resolve with path.resolve() and verify the result is still under the intended base directory (startsWith the base's resolved path) before use, or use path.basename() to discard directory components entirely."
     pattern-sources:
       - pattern: req.query
@@ -119,7 +119,7 @@ rules:
       cwe:
         - "CWE-918: Server-Side Request Forgery (SSRF)"
       confidence: HIGH
-      category: security
+      category: ssrf
       fix: "Validate the destination host against an explicit allowlist of permitted domains/IPs before making the request."
     pattern-sources:
       - pattern: req.query
@@ -153,7 +153,7 @@ rules:
       cwe:
         - "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
       confidence: HIGH
-      category: security
+      category: xss
       fix: "Assign user input via textContent (not innerHTML), or sanitize with DOMPurify.sanitize() before inserting into the DOM."
     pattern-sources:
       - pattern: req.query
@@ -187,7 +187,7 @@ rules:
       cwe:
         - "CWE-943: Improper Neutralization of Special Elements in Data Query Logic"
       confidence: HIGH
-      category: security
+      category: nosql_injection
       fix: "Reject non-primitive query values (e.g. an object where a string is expected) so operators like $ne/$gt can't be injected, or use a schema-validating ODM."
     pattern-sources:
       - pattern: req.query
@@ -220,7 +220,7 @@ rules:
       cwe:
         - "CWE-117: Improper Output Neutralization for Logs"
       confidence: MEDIUM
-      category: security
+      category: injection
       fix: "Strip or encode newline/CR characters before writing user input to a log entry, so a single log line can't be forged."
     pattern-sources:
       - pattern: req.query
@@ -253,7 +253,7 @@ rules:
       cwe:
         - "CWE-113: Improper Neutralization of CRLF Sequences in HTTP Headers ('HTTP Response Splitting')"
       confidence: HIGH
-      category: security
+      category: injection
       fix: "Reject or strip CR/LF characters from values written into HTTP response headers before setting them."
     pattern-sources:
       - pattern: req.query
@@ -286,7 +286,7 @@ rules:
       cwe:
         - "CWE-1321: Improperly Controlled Modification of Object Prototype Attributes ('Prototype Pollution')"
       confidence: HIGH
-      category: security
+      category: prototype_pollution
       fix: "Reject keys named `__proto__`/`constructor`/`prototype` before merging user-controlled objects, or use Object.create(null)/a merge library with prototype-pollution protection."
     pattern-sources:
       - pattern: req.query

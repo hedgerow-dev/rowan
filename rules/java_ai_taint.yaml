@@ -11,7 +11,7 @@ rules:
       cwe:
         - "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
       confidence: HIGH
-      category: security
+      category: command_injection
       source_kind: tool_param
       fix: "Do not expose a shell to the model. If a command tool is required, allowlist the executable and pass model-chosen values as separate ProcessBuilder arguments, never through `sh -c` or a shell-interpolated string."
     pattern-sources:
@@ -75,7 +75,7 @@ rules:
       cwe:
         - "CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"
       confidence: HIGH
-      category: security
+      category: path_traversal
       source_kind: tool_param
       fix: "Resolve the model-chosen name under a fixed base directory with Path.normalize() and reject the result unless it still startsWith the base's real path, or use FilenameUtils.getName() to discard directory components entirely."
     pattern-sources:
@@ -162,7 +162,7 @@ rules:
       cwe:
         - "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
       confidence: HIGH
-      category: security
+      category: injection
       source_kind: tool_param
       fix: "Keep the SQL text constant and bind the model-chosen value as a parameter (PreparedStatement setString/setInt, or JdbcTemplate's args parameter), or route the tool through a typed repository method instead of raw SQL."
     pattern-sources:
@@ -243,7 +243,7 @@ rules:
       cwe:
         - "CWE-918: Server-Side Request Forgery (SSRF)"
       confidence: HIGH
-      category: security
+      category: ssrf
       source_kind: tool_param
       fix: "Validate the model-chosen destination host against an explicit allowlist of permitted domains/IPs before making the request, and block private and link-local ranges."
     pattern-sources:

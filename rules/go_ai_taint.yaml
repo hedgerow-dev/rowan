@@ -27,7 +27,7 @@ rules:
       cwe:
         - "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
       confidence: HIGH
-      category: security
+      category: command_injection
       source_kind: tool_param
       fix: "Do not expose a shell to the model. Allowlist the executable and pass model-chosen values as separate exec.Command arguments, never through `sh -c` or a shell-interpolated string."
     pattern-sources:
@@ -75,7 +75,7 @@ rules:
       cwe:
         - "CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"
       confidence: HIGH
-      category: security
+      category: path_traversal
       source_kind: tool_param
       fix: "Resolve the path with filepath.Abs, then filepath.EvalSymlinks, and check the result is under an explicit allowlist of directories before use (the mcp-filesystem-server validatePath idiom), or use filepath.Base() to discard directory components entirely."
     pattern-sources:
@@ -139,7 +139,7 @@ rules:
       cwe:
         - "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
       confidence: HIGH
-      category: security
+      category: injection
       source_kind: tool_param
       fix: "Keep the statement text constant and pass the model-chosen value as a placeholder argument (database/sql's `?` / `$1` args), never by string concatenation or template substitution into the SQL text."
     pattern-sources:
@@ -202,7 +202,7 @@ rules:
       cwe:
         - "CWE-918: Server-Side Request Forgery (SSRF)"
       confidence: HIGH
-      category: security
+      category: ssrf
       source_kind: tool_param
       fix: "Validate the destination host against an explicit allowlist of permitted domains/IPs before making the request."
     pattern-sources:
@@ -254,7 +254,7 @@ rules:
       cwe:
         - "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
       confidence: HIGH
-      category: security
+      category: injection
       source_kind: llm_output
       fix: "Never execute model-written SQL directly. Have the model choose among fixed statements or fill placeholder arguments, and run the result against a read-only, least-privilege connection."
     pattern-sources:
@@ -302,7 +302,7 @@ rules:
       cwe:
         - "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
       confidence: HIGH
-      category: security
+      category: command_injection
       source_kind: llm_output
       fix: "Never run model-written commands. Map model output onto an allowlist of executables and pass values as separate exec.Command arguments, never through `sh -c`."
     pattern-sources:
@@ -339,7 +339,7 @@ rules:
       cwe:
         - "CWE-918: Server-Side Request Forgery (SSRF)"
       confidence: HIGH
-      category: security
+      category: ssrf
       source_kind: llm_output
       fix: "Validate the destination host against an explicit allowlist of permitted domains/IPs before making the request."
     pattern-sources:
@@ -380,7 +380,7 @@ rules:
       cwe:
         - "CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"
       confidence: HIGH
-      category: security
+      category: path_traversal
       source_kind: llm_output
       fix: "Resolve the path with filepath.Abs, then filepath.EvalSymlinks, and check the result is under an explicit allowlist of directories before use, or use filepath.Base() to discard directory components entirely."
     pattern-sources:

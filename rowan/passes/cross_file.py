@@ -4487,12 +4487,13 @@ def _record_sink(sig: _FunctionSig, finding: Finding, line: int) -> None:
 # (same categories, just resolved via metadata instead of a fragile ID
 # prefix), plus every other rule that shares one of those categories but
 # fell outside the hand-enumerated prefixes/ID-range now correctly does too.
-# ai_ml, prompt_injection, xml_dos, config, auth, crypto, secrets, and
-# general are deliberately NOT included here -- broadening cross-file sink
-# status to those categories is a separate, not-yet-made decision.
+# Rule categories are validated against `Category` (tests/test_rule_categories.py),
+# so only enum values belong here. ai_ml, prompt_injection, config, auth,
+# crypto, secrets, and general are deliberately NOT included here --
+# broadening cross-file sink status to those categories is a separate,
+# not-yet-made decision.
 _SINK_CATEGORIES: frozenset[str] = frozenset(
     {
-        "code_execution",
         "command_injection",
         "deserialization",
         "injection",
@@ -4502,12 +4503,7 @@ _SINK_CATEGORIES: frozenset[str] = frozenset(
         "xss",
         "nosql_injection",
         "prototype_pollution",
-        "model_integrity",
         "supply_chain",
-        "langchain",
-        "llamaindex",
-        "mcp_agent",
-        "agent_safety",
     }
 )
 

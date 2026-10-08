@@ -524,7 +524,7 @@ rules:
     languages: [python]
     metadata:
       cwe: [347]
-      category: auth_bypass
+      category: auth
       fix: "Use jwt.decode(token, key, algorithms=[...]) and read claims only from its result."
     pattern-sources:
       - patterns:

@@ -9,7 +9,7 @@ rules:
       cwe:
         - "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
       confidence: HIGH
-      category: security
+      category: injection
       fix: "Use PreparedStatement with bound parameters (setString/setInt) or JdbcTemplate's args parameter instead of interpolating input into SQL text."
     pattern-sources:
       # Javalin (io.javalin.http.Context)
@@ -93,7 +93,7 @@ rules:
       cwe:
         - "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
       confidence: HIGH
-      category: security
+      category: command_injection
       fix: "Pass arguments to ProcessBuilder/Runtime.exec() as separate array elements, never via a shell-interpolated string."
     pattern-sources:
       # Javalin (io.javalin.http.Context)
@@ -168,7 +168,7 @@ rules:
       cwe:
         - "CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"
       confidence: HIGH
-      category: security
+      category: path_traversal
       fix: "Resolve with Path.normalize() and verify the result is still under the intended base directory (startsWith the base's real path) before use, or keep only File(input).name to discard directory components."
     pattern-sources:
       # Javalin (io.javalin.http.Context)
@@ -247,7 +247,7 @@ rules:
       cwe:
         - "CWE-918: Server-Side Request Forgery (SSRF)"
       confidence: HIGH
-      category: security
+      category: ssrf
       fix: "Validate the destination host against an explicit allowlist of permitted domains/IPs before making the request."
     pattern-sources:
       # Javalin (io.javalin.http.Context)

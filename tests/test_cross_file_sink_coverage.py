@@ -83,10 +83,9 @@ def test_manifest_sink_categories_all_wired_for_python(manifest_rule_map, rule_l
     by `_is_sink_rule`.
 
     This is the guard that fails the next time someone adds a rule in a sink
-    category (code_execution, command_injection, deserialization, injection,
-    path_traversal, ssrf, ssti, xss, nosql_injection, prototype_pollution,
-    model_integrity, supply_chain, langchain, llamaindex, mcp_agent,
-    agent_safety) and forgets to wire it up -- there is nothing left to
+    category (command_injection, deserialization, injection, path_traversal,
+    ssrf, ssti, xss, nosql_injection, prototype_pollution, supply_chain)
+    and forgets to wire it up -- there is nothing left to
     "forget" here since classification is derived from the manifest itself,
     but this test also protects against `_SINK_CATEGORIES` silently losing a
     category it used to cover.
@@ -126,13 +125,13 @@ NAMED_REGRESSION_RULES = [
         "family, never matched by the old prefix list at all",
     ),
     (
-        "ns-aiml-114", "code_execution",
+        "ns-aiml-114", "deserialization",
         "keras.models.load_model()/tf.keras.models.load_model() executes "
         "arbitrary code via a Lambda layer (CVE-2024-3660); past the old "
         "list's ns-aiml-077 cutoff",
     ),
     (
-        "ns-aiml-115", "code_execution",
+        "ns-aiml-115", "deserialization",
         "keras.models.load_model(..., safe_mode=False) explicitly disables "
         "the Lambda-layer safety check; past the old list's ns-aiml-077 cutoff",
     ),
@@ -293,7 +292,7 @@ def test_cross_file_pass_detects_previously_missed_keras_sink(tmp_path):
 
     manifest_data = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     rule_map = {rule["id"]: rule for rule in manifest_data["rules"]}
-    assert rule_map["ns-aiml-114"]["category"] == "code_execution"
+    assert rule_map["ns-aiml-114"]["category"] == "deserialization"
 
     config = ScanConfig(target=root)
     ctx = ScanContext(

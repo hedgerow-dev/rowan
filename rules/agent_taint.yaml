@@ -1252,7 +1252,7 @@ rules:
     languages: [python]
     metadata:
       cwe: [829]
-      category: mcp_agent
+      category: prompt_injection
       fix: "Pin tool name/description to a fixed string literal shipped with the code, reviewed at the same time as the code that grants the tool its capabilities. If the description must be templated, build it from a fixed template string with only cosmetic (non-semantic) substitutions, never from a value fetched over the network or read from a runtime-mutable config source."
     pattern-sources:
       - patterns:
@@ -1318,7 +1318,7 @@ rules:
     languages: [python]
     metadata:
       cwe: [441]
-      category: mcp_agent
+      category: auth
       fix: "Authorize the caller/request BEFORE using the server's own upstream credential on their behalf -- verify the MCP client's identity/scope against what this specific tool call is allowed to do, rather than exercising the server's full upstream privilege for any caller who can reach the tool."
     # Decorator receiver name matched literally across the three common
     # FastMCP/mcp-SDK instance names (mcp/server/app) -- same naming
@@ -1407,7 +1407,7 @@ rules:
     languages: [python]
     metadata:
       cwe: [77]
-      category: mcp_agent
+      category: command_injection
       fix: "Do not build a sampling request's messages from raw tool-handler input. Constrain the caller's text to a fixed template with non-semantic substitution, validate/moderate it before sampling, or keep caller-supplied content out of the sampled prompt entirely."
     pattern-sources:
       - patterns:

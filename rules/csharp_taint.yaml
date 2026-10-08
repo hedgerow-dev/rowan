@@ -9,7 +9,7 @@ rules:
       cwe:
         - "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
       confidence: HIGH
-      category: security
+      category: injection
       fix: "Use parameterized queries (SqlCommand.Parameters.AddWithValue / EF Core FromSqlInterpolated) instead of concatenating input into SQL text."
     pattern-sources:
       - pattern: Request.Query[$KEY]
@@ -58,7 +58,7 @@ rules:
       cwe:
         - "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
       confidence: HIGH
-      category: security
+      category: command_injection
       fix: "Avoid building shell commands from user input; if a process must be started, pass arguments via ProcessStartInfo.ArgumentList rather than a single interpolated string."
     pattern-sources:
       - pattern: Request.Query[$KEY]
@@ -105,7 +105,7 @@ rules:
       cwe:
         - "CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"
       confidence: HIGH
-      category: security
+      category: path_traversal
       fix: "Resolve the path with Path.GetFullPath() and verify it is still under the intended base directory (commonpath/StartsWith check) before use, or use Path.GetFileName() to discard directory components entirely."
     pattern-sources:
       - pattern: Request.Query[$KEY]
@@ -150,7 +150,7 @@ rules:
       cwe:
         - "CWE-918: Server-Side Request Forgery (SSRF)"
       confidence: HIGH
-      category: security
+      category: ssrf
       fix: "Validate the destination host against an explicit allowlist of permitted domains/IPs before making the request."
     pattern-sources:
       - pattern: Request.Query[$KEY]
@@ -199,7 +199,7 @@ rules:
       cwe:
         - "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
       confidence: HIGH
-      category: security
+      category: xss
       fix: "HTML-encode output with HttpUtility.HtmlEncode()/WebUtility.HtmlEncode() (or the framework's auto-escaping view engine) instead of writing user input directly into the response."
     pattern-sources:
       - pattern: Request.Query[$KEY]
@@ -244,7 +244,7 @@ rules:
       cwe:
         - "CWE-502: Deserialization of Untrusted Data"
       confidence: HIGH
-      category: security
+      category: deserialization
       fix: "Avoid BinaryFormatter/insecure deserializers on untrusted data; use JsonConvert.DeserializeObject<T>() (or System.Text.Json) with a known target type."
     pattern-sources:
       - pattern: Request.Query[$KEY]
@@ -288,7 +288,7 @@ rules:
       cwe:
         - "CWE-90: Improper Neutralization of Special Elements used in an LDAP Query ('LDAP Injection')"
       confidence: HIGH
-      category: security
+      category: injection
       fix: "Escape LDAP special characters in filters/DNs (System.DirectoryServices' escaping helpers), or use a parameterized query API."
     pattern-sources:
       - pattern: Request.Query[$KEY]
@@ -337,7 +337,7 @@ rules:
       cwe:
         - "CWE-117: Improper Output Neutralization for Logs"
       confidence: MEDIUM
-      category: security
+      category: injection
       fix: "Strip or encode newline/CR characters before writing user input to a log entry, so a single log line can't be forged."
     pattern-sources:
       - pattern: Request.Query[$KEY]

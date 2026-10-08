@@ -408,11 +408,19 @@ rules:
   languages:
   - python
   severity: ERROR
-  message: 'LangChain legacy serialization (load/dumps). CVE-2025-68664: These functions
+  message: 'LangChain structured object serialization is used at this boundary.
 
-    deserialize pickle payloads, allowing RCE from serialized agent configs.
+    Affected langchain-core versions allowed attacker dictionaries containing
 
-    Use langgraph serialization or JSON-only formats.'
+    reserved serialization markers to be revived as trusted framework objects
+
+    after a dumps/load round trip (CVE-2025-68664). This is not pickle and is
+
+    not automatically RCE; impact depends on the revived object''s constructor
+
+    and secrets available to the loader. Keep untrusted data inert, upgrade,
+
+    and restrict object allowlists.'
   patterns:
   - pattern-either:
     - pattern-regex: langchain_core\.load\.(loads?|dump[ds]?)\s*\(
@@ -425,9 +433,9 @@ rules:
     - 502
     original_engine: neuroscan
     original_severity: critical
-    rule_name: LangChain loads unsafe deserialization
-    fix: Do not deserialize LangChain objects (`loads`/legacy `dumps`) from untrusted sources; use a safe data format (JSON)
-      with a known schema.
+    rule_name: LangChain structured object serialization boundary
+    fix: Do not round-trip untrusted dictionaries through an object serializer. Upgrade affected langchain-core versions,
+      keep untrusted data inert, and use an explicit minimal allowed_objects list when loading objects.
     residual:
     - sanitizer
 - id: NS-AIML-024

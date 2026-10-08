@@ -24,7 +24,7 @@ rules:
       cwe:
         - "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
       confidence: MEDIUM
-      category: security
+      category: command_injection
       source_kind: config
       fix: "Load the MCP server command from a fixed, operator-reviewed allowlist rather than a value read at runtime from a database row or external config file."
     patterns:

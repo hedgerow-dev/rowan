@@ -9,7 +9,7 @@ rules:
       cwe:
         - "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
       confidence: HIGH
-      category: security
+      category: injection
       fix: "Use PreparedStatement with bound parameters (setString/setInt) instead of concatenating input into SQL text."
     pattern-sources:
       # rowan-registry:begin source=web_request_java
@@ -111,7 +111,7 @@ rules:
       cwe:
         - "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
       confidence: MEDIUM
-      category: security
+      category: injection
       source_kind: operator_input
       fix: "Use PreparedStatement with bound parameters (setString/setInt) instead of concatenating input into SQL text."
     pattern-sources:
@@ -159,7 +159,7 @@ rules:
       cwe:
         - "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
       confidence: HIGH
-      category: security
+      category: command_injection
       fix: "Pass arguments to ProcessBuilder/Runtime.exec() as separate array elements, never via a shell-interpolated string."
     pattern-sources:
       # rowan-registry:begin source=web_request_java
@@ -247,7 +247,7 @@ rules:
       cwe:
         - "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
       confidence: MEDIUM
-      category: security
+      category: command_injection
       source_kind: operator_input
       fix: "Pass arguments to ProcessBuilder/Runtime.exec() as separate array elements, never via a shell-interpolated string."
     pattern-sources:
@@ -286,7 +286,7 @@ rules:
       cwe:
         - "CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"
       confidence: HIGH
-      category: security
+      category: path_traversal
       fix: "Resolve with Path.normalize() and verify the result is still under the intended base directory (startsWith the base's real path) before use, or use FilenameUtils.getName() to discard directory components entirely."
     pattern-sources:
       # rowan-registry:begin source=web_request_java
@@ -377,7 +377,7 @@ rules:
       cwe:
         - "CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"
       confidence: MEDIUM
-      category: security
+      category: path_traversal
       source_kind: operator_input
       fix: "Resolve with Path.normalize() and verify the result is still under the intended base directory (startsWith the base's real path) before use, or use FilenameUtils.getName() to discard directory components entirely."
     pattern-sources:
@@ -419,7 +419,7 @@ rules:
       cwe:
         - "CWE-918: Server-Side Request Forgery (SSRF)"
       confidence: HIGH
-      category: security
+      category: ssrf
       fix: "Validate the destination host against an explicit allowlist of permitted domains/IPs before making the request."
     pattern-sources:
       # rowan-registry:begin source=web_request_java
@@ -505,7 +505,7 @@ rules:
       cwe:
         - "CWE-918: Server-Side Request Forgery (SSRF)"
       confidence: MEDIUM
-      category: security
+      category: ssrf
       source_kind: operator_input
       fix: "Validate the destination host against an explicit allowlist of permitted domains/IPs before making the request."
     pattern-sources:
@@ -542,7 +542,7 @@ rules:
       cwe:
         - "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
       confidence: HIGH
-      category: security
+      category: xss
       fix: "HTML-encode output with StringEscapeUtils.escapeHtml4()/Encode.forHtml() (or the framework's auto-escaping template engine) instead of writing user input directly into the response."
     # EXT-19: no operator-input sibling. An env var echoed into a response
     # is not a reflected-XSS class worth a rule.
@@ -631,7 +631,7 @@ rules:
       cwe:
         - "CWE-502: Deserialization of Untrusted Data"
       confidence: HIGH
-      category: security
+      category: deserialization
       fix: "Avoid Java native deserialization (ObjectInputStream) on untrusted data; use a JSON library with a known target type, or an allowlisting ObjectInputFilter."
     pattern-sources:
       - pattern: (HttpServletRequest $REQ).getParameter(...)
@@ -735,7 +735,7 @@ rules:
       cwe:
         - "CWE-611: Improper Restriction of XML External Entity Reference"
       confidence: HIGH
-      category: security
+      category: injection
       fix: "Disable DTDs and external entities on the factory before parsing: setFeature(\"http://apache.org/xml/features/disallow-doctype-decl\", true) on DocumentBuilderFactory/SAXParserFactory, setProperty(XMLInputFactory.SUPPORT_DTD, false) on XMLInputFactory, or setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, \"\") on the factory."
     pattern-sources:
       - pattern: (HttpServletRequest $REQ).getParameter(...)
@@ -841,7 +841,7 @@ rules:
       cwe:
         - "CWE-90: Improper Neutralization of Special Elements used in an LDAP Query ('LDAP Injection')"
       confidence: HIGH
-      category: security
+      category: injection
       fix: "Escape LDAP special characters in filters/DNs (e.g. OWASP ESAPI's encodeForLDAP), or use a parameterized query API."
     pattern-sources:
       - pattern: (HttpServletRequest $REQ).getParameter(...)
@@ -909,7 +909,7 @@ rules:
       cwe:
         - "CWE-917: Improper Neutralization of Special Elements used in an Expression Language Statement ('Expression Language Injection')"
       confidence: HIGH
-      category: security
+      category: injection
       fix: "Never evaluate an expression-language string built from user input; if dynamic lookups are required, resolve them through an explicit allowlist of permitted expressions/beans."
     pattern-sources:
       - pattern: (HttpServletRequest $REQ).getParameter(...)
@@ -977,7 +977,7 @@ rules:
       cwe:
         - "CWE-117: Improper Output Neutralization for Logs"
       confidence: MEDIUM
-      category: security
+      category: injection
       fix: "Strip or encode newline/CR characters before writing user input to a log entry, so a single log line can't be forged."
     # EXT-19: no operator-input sibling. An env var in a log line is not a
     # log-forging class worth a rule.
