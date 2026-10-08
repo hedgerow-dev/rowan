@@ -134,30 +134,6 @@ rules:
       Math.random() is not cryptographically secure. Use
       crypto.randomBytes() or crypto.getRandomValues().
 
-  - id: JS-SSRF-001
-    name: User-controlled HTTP request
-    severity: high
-    category: ssrf
-    cwe: [918]
-    languages: [javascript, typescript]
-    patterns:
-      - 'fetch\s*\('
-      - 'axios\.(get|post|put|delete|patch)\s*\('
-      - 'axios\s*\('
-      - 'got\.(get|post)\s*\('
-      - 'needle\.(get|post)\s*\('
-      - 'superagent\.(get|post)\s*\('
-      - 'request\.(get|post)\s*\('
-      - 'http\.(get|request)\s*\('
-      - 'https\.(get|request)\s*\('
-    pattern-not:
-      - 'fetch\s*\(\s*[''"]\/'
-      - 'axios\.(get|post)\s*\(\s*[''"]\/'
-      - '(?m)^\s*//.*'
-    message: |
-      HTTP request detected. If URL comes from user input, SSRF is possible.
-      Validate URLs against an allowlist and block private IP ranges.
-
   - id: JS-PATH-001
     name: User-controlled file path
     severity: high

@@ -192,22 +192,6 @@ rules:
       Confirmed flows are reported by the taint engine (TNT-SSRF-*).
       Validate URLs against an allowlist and block private IP ranges.
 
-  - id: NS-SSRF-002
-    name: User-controlled HTTP in Node.js
-    severity: high
-    category: ssrf
-    cwe: [918]
-    languages: [javascript, typescript]
-    patterns:
-      - 'fetch\s*\([^)]*request[^)]*\)'
-      - 'axios\.(get|post|put|delete)\s*\('
-    pattern-not:
-      - '(?m)^\s*#'
-      - '(?m)^\s*//.*'
-      - '(?:def test_|conftest|unittest)'
-    message: |
-      HTTP request detected. If URL comes from user input, SSRF is possible.
-
   - id: NS-SSRF-003
     name: Subprocess URL fetch
     severity: medium

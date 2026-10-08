@@ -172,36 +172,6 @@ rules:
     - 330
     original_engine: neuroscan
     rule_name: Math.random() for security
-- id: JS-SSRF-001
-  languages:
-  - javascript
-  - typescript
-  severity: ERROR
-  message: 'HTTP request detected. If URL comes from user input, SSRF is possible.
-
-    Validate URLs against an allowlist and block private IP ranges.'
-  patterns:
-  - pattern-either:
-    - pattern-regex: fetch\s*\(
-    - pattern-regex: axios\.(get|post|put|delete|patch)\s*\(
-    - pattern-regex: axios\s*\(
-    - pattern-regex: got\.(get|post)\s*\(
-    - pattern-regex: needle\.(get|post)\s*\(
-    - pattern-regex: superagent\.(get|post)\s*\(
-    - pattern-regex: request\.(get|post)\s*\(
-    - pattern-regex: http\.(get|request)\s*\(
-    - pattern-regex: https\.(get|request)\s*\(
-  - pattern-not-regex: fetch\s*\(\s*['"]\/
-  - pattern-not-regex: axios\.(get|post)\s*\(\s*['"]\/
-  - pattern-not-regex: (?m)^\s*//.*
-  metadata:
-    category: ssrf
-    cwe:
-    - 918
-    original_engine: neuroscan
-    rule_name: User-controlled HTTP request
-    residual:
-    - sanitizer
 - id: JS-PATH-001
   languages:
   - javascript

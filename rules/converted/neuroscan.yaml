@@ -224,27 +224,6 @@ rules:
     rule_name: User-controlled HTTP request
     residual:
     - sanitizer
-- id: NS-SSRF-002
-  languages:
-  - javascript
-  - typescript
-  severity: ERROR
-  message: HTTP request detected. If URL comes from user input, SSRF is possible.
-  patterns:
-  - pattern-either:
-    - pattern-regex: fetch\s*\([^)]*request[^)]*\)
-    - pattern-regex: axios\.(get|post|put|delete)\s*\(
-  - pattern-not-regex: (?m)^\s*#
-  - pattern-not-regex: (?m)^\s*//.*
-  - pattern-not-regex: (?:def test_|conftest|unittest)
-  metadata:
-    category: ssrf
-    cwe:
-    - 918
-    original_engine: neuroscan
-    rule_name: User-controlled HTTP in Node.js
-    residual:
-    - sanitizer
 - id: NS-SSRF-003
   languages:
   - python

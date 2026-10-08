@@ -44,43 +44,6 @@ def _scan(tmp_path, filename, rule_file, source, rule_id, language):
     return [f for f in findings if f.rule_id == rule_id]
 
 
-class TestStoredWriteSinkPrecision:
-    def test_plain_set_add_is_not_an_orm_write(self, tmp_path):
-        source = (
-            "import json\n"
-            "def collect(raw):\n"
-            "    value = json.loads(raw)\n"
-            "    seen = set()\n"
-            "    seen.add(value)\n"
-        )
-        findings = _scan(
-            tmp_path,
-            "collector.py",
-            "python_taint.yaml",
-            source,
-            "TNT-STORED-001",
-            "python",
-        )
-        assert findings == []
-
-    def test_named_database_session_add_remains_a_sink(self, tmp_path):
-        source = (
-            "import json\n"
-            "def persist(raw, session):\n"
-            "    value = json.loads(raw)\n"
-            "    session.add(value)\n"
-        )
-        findings = _scan(
-            tmp_path,
-            "storage.py",
-            "python_taint.yaml",
-            source,
-            "TNT-STORED-001",
-            "python",
-        )
-        assert findings
-
-
 class TestGoDeserializationSinkPrecision:
     """tnt-go-deser-001 (rules/go_taint.yaml)."""
 

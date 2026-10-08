@@ -40,6 +40,11 @@ rules:
     - pattern-regex: \bneedle\.get\(
     - pattern-regex: superagent\.get\(
     - pattern-regex: \brequest\(
+    - pattern-regex: \bneedle\.post\(
+    - pattern-regex: superagent\.post\(
+    - pattern-regex: \bhttp\.request\(
+    - pattern-regex: \bhttps\.get\(
+    - pattern-regex: \brequest\.(?:get|post)\(
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?m)^\s*//.*
   - pattern-not-regex: (?:def test_|conftest|unittest)

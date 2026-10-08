@@ -1,6 +1,6 @@
 # Rule Catalog
 
-Rowan ships 590 source-code rules across 48 YAML files. Model files are
+Rowan ships 588 source-code rules across 48 YAML files. Model files are
 scanned by [Hayward](https://github.com/hedgerow-dev/hayward), Hedgerow's
 model-file scanner, which Rowan installs as a dependency.
 
@@ -8,7 +8,7 @@ model-file scanner, which Rowan installs as a dependency.
 
 | Engine | Speed | Precision | Rules |
 |--------|-------|-----------|-------|
-| NeuroScan (regex) | Fast (<1ms/file) | Surface-level | 400 |
+| NeuroScan (regex) | Fast (<1ms/file) | Surface-level | 398 |
 | Taint/structural (Opengrep) | Slower | Evidence varies by rule | 190 |
 | Hayward (model files) | Fast | Format-aware, structural | [Hayward rules](https://github.com/hedgerow-dev/hayward/blob/main/docs/rules.md) |
 
@@ -21,7 +21,7 @@ model-file scanner, which Rowan installs as a dependency.
 | `ml_taint.yaml` | 21 | Python | Chat template SSTI, HF pipeline, OmegaConf, vector store, agent tool, LangChain, torch.hub, vector-store filter injection, unbounded generation params, SSRF |
 | `llm_output_taint.yaml` | 6 | Python | Insecure LLM output handling: text-to-SQL, shell/eval injection, SSRF, path traversal, HTML/markdown XSS |
 | `web_taint.yaml` | 7 | Python | SQLi, XSS (incl. Django mark_safe/format_html escaping bypasses), path traversal, open redirect, file upload, sensitive data exposure in logs |
-| `python_taint.yaml` | 8 | Python | Log injection, header injection, LDAP, arg injection, stored XSS, network pickle |
+| `python_taint.yaml` | 8 | Python | Log injection, header injection, LDAP, arg injection, network pickle |
 | `python_taint_extended.yaml` | 9 | Python | SQLi, CMDi, SSRF, SSTI, model loading, path traversal, code injection, prompt injection, NoSQLi |
 | `python_web_surface_taint.yaml` | 1 | Python | Reflection / dynamic dispatch on a request-derived name (getattr/globals/import_module); taint-mode companion to the presence-only rule in `python_web_surface.yaml` |
 | `supply_chain_taint.yaml` | 5 | Python | HF hub download chain, HTTP download, base64 decode, file write propagation, SSRF, deserialization, code injection, path traversal |
@@ -54,14 +54,14 @@ rulepack's pattern-only checks; its taint-mode siblings live in
 
 | File | Count | Focus |
 |------|-------|-------|
-| `neuroscan.yaml` | 31 | Core rules: deserialization, injection, SSRF, SSTI, XSS, supply chain |
+| `neuroscan.yaml` | 30 | Core rules: deserialization, injection, SSRF, SSTI, XSS, supply chain |
 | `ai_ml_neuroscan.yaml` | 27 | Chat template SSTI, Gradio, MCP, OmegaConf, vector store, LangChain, numpy/ONNX native-code loading |
 | `ai_security.yaml` | 101 | Extended AI/ML: deserialization, code exec, supply chain, prompt injection, agent tools, markdown exfiltration (named renderer libraries only[^scope]), reflection dispatch (LLM-chosen names only[^scope]), memory-write scoping, RAG isolation, unbounded consumption, model extraction/privacy (LLM logprob exposure only[^scope]), MCP attack classes (FastMCP `.run()` servers only[^scope]), MCP OAuth 2.1 authorization (audience validation, redirect URI, session-as-auth, PKCE), agent sandbox/code-interpreter escape configuration, unbounded multi-agent delegation topology, A2A agent-card trust, multimodal media-fetch SSRF on the inference path, fake-sandbox exec/eval given a hand-rolled `__builtins__` dict |
 | `security_surface.yaml` | 44 | SSRF, path traversal, CMDi, SSTI, SQLi, NoSQLi, XSS, deserialization, JWT |
 | `framework_rules.yaml` | 23 | Express.js, Spring, ASP.NET, Gin/Echo, Flask/Django |
 | `misc_rules.yaml` | 33 | Bug bounty patterns, auth, logging, Gradio, Streamlit, container isolation, identity disclosure |
 | `cloud_rules.yaml` | 7 | S3, IAM, encryption, database, logging, security groups |
-| `javascript.yaml` | 11 | JS-specific: eval, child_process, XSS, deserialization, SSRF |
+| `javascript.yaml` | 10 | JS-specific: eval, child_process, XSS, deserialization |
 | `java.yaml` | 10 | Java-specific: Runtime.exec, ProcessBuilder, SQL, deserialization |
 | `java_ai_surface.yaml` | 5 | Java AI/MCP surface: public HTTP bind, literal provider keys, mutable tool descriptions, remote DJL model URLs, non-literal model paths |
 | `go.yaml` | 11 | Go-specific: exec, template, SQL, SSRF, crypto |
@@ -77,7 +77,7 @@ rulepack's pattern-only checks; its taint-mode siblings live in
 | `ingest_surface.yaml` | 5 | Ingest-time RCE: fsspec ReferenceFileSystem unsandboxed Jinja rendering, HDF5/zarr/kerchunk artifact-internal path following |
 | `inference_plane.yaml` | 5 | Inference-plane parameter and cache-key leaks: KV/routing control params on the public request schema, unkeyed or truncated cache-key derivation |
 
-**Total: 400 NeuroScan rules**
+**Total: 398 NeuroScan rules**
 
 ## Model-file rules
 
@@ -150,7 +150,7 @@ message, not in the rule id) and the structural trust-boundary findings
 `AGENT-TOOL-001` (agent-tool sink detection), `TASK-QUEUE-001` (Celery/RQ
 task handlers), `GRPC-001` (gRPC servicer methods), `GRAPHQL-001` (GraphQL
 resolvers), and `WEBHOOK-001` (webhook/callback handlers) are not YAML rules
-and aren't counted in the 590 total above: they're emitted directly by
+and aren't counted in the 588 total above: they're emitted directly by
 `CrossFilePass`'s AST analysis rather than loaded from `rules/*.yaml`. See
 `ARCHITECTURE.md`'s "Pass 4: CrossFilePass" section for how they're
 generated.

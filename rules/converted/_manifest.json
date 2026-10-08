@@ -1,11 +1,11 @@
 {
   "meta": {
-    "total_rules": 400,
-    "ok": 400,
+    "total_rules": 398,
+    "ok": 398,
     "warning": 0,
     "error": 0,
     "secrets_residual": 5,
-    "sanitizer_residual": 235,
+    "sanitizer_residual": 233,
     "converter_version": "1.0"
   },
   "rules": [
@@ -4886,26 +4886,6 @@
       ]
     },
     {
-      "id": "JS-SSRF-001",
-      "category": "ssrf",
-      "cwe": [
-        918
-      ],
-      "original_severity": "high",
-      "original_engine": "neuroscan",
-      "residual": [
-        "sanitizer"
-      ],
-      "status": "ok",
-      "warnings": [],
-      "name": "User-controlled HTTP request",
-      "pattern_not": [
-        "fetch\\s*\\(\\s*['\"]\\/",
-        "axios\\.(get|post)\\s*\\(\\s*['\"]\\/",
-        "(?m)^\\s*//.*"
-      ]
-    },
-    {
       "id": "JS-PATH-001",
       "category": "path_traversal",
       "cwe": [
@@ -5822,26 +5802,6 @@
       "name": "User-controlled HTTP request",
       "pattern_not": [
         "(?m)^\\s*#",
-        "(?:def test_|conftest|unittest)"
-      ]
-    },
-    {
-      "id": "NS-SSRF-002",
-      "category": "ssrf",
-      "cwe": [
-        918
-      ],
-      "original_severity": "high",
-      "original_engine": "neuroscan",
-      "residual": [
-        "sanitizer"
-      ],
-      "status": "ok",
-      "warnings": [],
-      "name": "User-controlled HTTP in Node.js",
-      "pattern_not": [
-        "(?m)^\\s*#",
-        "(?m)^\\s*//.*",
         "(?:def test_|conftest|unittest)"
       ]
     },

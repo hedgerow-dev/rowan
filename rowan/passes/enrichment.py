@@ -382,7 +382,7 @@ _UUID_PATTERN_RE = re.compile(
     r"|_uuid\b|table_name|collection_name|volume_name|index_name"
 )
 
-_SSRF_RULES = frozenset({"NS-SSRF-001", "NS-SSRF-002", "NS-SSRF-007", "NS-SSRF-102", "NS-SSRF-103"})
+_SSRF_RULES = frozenset({"NS-SSRF-001", "NS-SSRF-007", "NS-SSRF-102", "NS-SSRF-103"})
 
 _SQLI_RULES = frozenset({"NS-SQLI-001", "NS-SQLI-002"})
 

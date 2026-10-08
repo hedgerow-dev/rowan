@@ -43,6 +43,13 @@ rules:
       - \bneedle\.get\(
       - superagent\.get\(
       - \brequest\(
+      # Shapes from the removed duplicates JS-SSRF-001 / NS-SSRF-002, kept so
+      # cross-file sink coverage does not shrink.
+      - \bneedle\.post\(
+      - superagent\.post\(
+      - \bhttp\.request\(
+      - \bhttps\.get\(
+      - \brequest\.(?:get|post)\(
     pattern-not:
       - '(?m)^\s*#'
       - '(?m)^\s*//.*'
