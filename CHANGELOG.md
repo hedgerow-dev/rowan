@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.3.5 (alpha)
+
+- Fix 117 rules that declared categories the scanner did not recognize. Some
+  code-execution rules (unsafe `yaml.load`, `weights_only=False`, Keras
+  `model_from_json`) were hidden from the default view as a result.
+- Merge findings from different rules on the same sink into one, keeping the
+  strongest evidence. Absorbed rules are listed in the new `duplicate_rule_ids`
+  JSON field.
+- `ns-auth-002` now sees an auth decorator above a handler. Remove
+  `TNT-STORED-001`, `JS-SSRF-001` and `NS-SSRF-002`, which produced no true
+  positives on RealVuln.
+- RealVuln default view: precision 0.384 to 0.516, F2 26.5 to 28.1
+  ([results](benchmark/results/realvuln-2026-10-08/README.md)).
+- Hunt: attack-surface inventory, source-grounded verification evidence,
+  configurable budgets, and resumable runs with `--checkpoint` / `--resume`.
+- Baselines give identical lines distinct fingerprints and reject unknown
+  versions. Opengrep runs with an allowlisted environment. JSON reports add
+  `scan_manifest` and `schema_version`. New `--fail-on-degraded` flag.
+
+A 0.3.4 baseline that covered several identical lines with one entry reports
+the extra copies once. `ns-auth-002` findings on decorated handlers now point
+at the first decorator line. Rowan was tuned with RealVuln in view.
+
 ## v0.3.4 (alpha)
 
 - Calibrate log-forging findings using bounded values and resolved numeric
