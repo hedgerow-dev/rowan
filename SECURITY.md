@@ -41,16 +41,22 @@ What Rowan does:
 - Passes Opengrep only an allowlisted environment, so API keys in your shell are not inherited.
 - Skips symlinks during discovery and escapes user-derived text in HTML reports.
 - Restricts the MCP server to allowed root directories and disables project config there.
-- Asks for consent before sending source to a cloud LLM, and requires `--exploit` plus an
-  explicit `--base-url` for live probes.
+- Asks for consent before sending source to a cloud LLM, and redacts likely secrets (known
+  credential formats, URL passwords, high-entropy literals in secret-named variables) from every
+  prompt sent to a non-loopback endpoint.
+- Requires `--exploit` plus an explicit `--base-url` for live probes, and refuses a target outside
+  loopback and private networks unless you pass `--allow-remote-target`.
+- With `--audit-log PATH`, appends one line per LLM call and probe: endpoint, sizes, hashes and
+  outcome, never the content.
 
 What Rowan does not do:
 
 - It is not a sandbox. There are no CPU, memory or process limits, and a crafted file can make a
   parser slow or large.
-- It does not redact secrets from snippets sent to an LLM, and `--yes` skips the consent prompt.
-- It does not check that you are authorised to probe the `--base-url` target.
-- It keeps no audit log of LLM calls or probes.
+- Secret redaction is pattern-based: a secret in an unusual format can still reach a cloud model.
+  `--yes` skips the consent prompt.
+- It cannot know whether you are authorised to test a target. `--allow-remote-target` is your
+  confirmation, not a check.
 - Prompt-injection defence for LLM stages is prompt wording, not isolation.
 
 If you scan code you do not trust, run Rowan in a container or VM with no network and no secrets

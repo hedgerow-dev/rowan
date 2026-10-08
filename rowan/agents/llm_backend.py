@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -10,9 +11,12 @@ import threading
 import time
 from dataclasses import dataclass, field
 from typing import Any
+from urllib.parse import urlsplit
 
 import httpx
 from jsonschema import Draft202012Validator
+
+from rowan.agents import audit
 
 logger = logging.getLogger(__name__)
 
@@ -287,11 +291,13 @@ class LLMBackend:
 
         # Scanned source can hold real credentials. Redact before the body and
         # the debug log are built, unless the endpoint is on this machine.
+        redacted = 0
         if not _is_loopback_url(self._base_url):
             prompt, n_prompt = redact_secrets(prompt)
             system, n_system = redact_secrets(system)
+            redacted = n_prompt + n_system
             with self._calls_lock:
-                self.redactions += n_prompt + n_system
+                self.redactions += redacted
 
         messages: list[dict[str, str]] = []
         if system:
@@ -320,13 +326,30 @@ class LLMBackend:
 
         start = time.perf_counter()
         data = self._post_with_retry(url, body, headers)
+
+        def audit_call(outcome: str, response_text: str = "") -> None:
+            sent = f"{system}\n{prompt}"
+            audit.record(
+                "llm_call",
+                backend=self._backend,
+                model=self._model,
+                endpoint=urlsplit(url).hostname or "",
+                prompt_sha256=hashlib.sha256(sent.encode()).hexdigest(),
+                prompt_bytes=len(sent.encode()),
+                response_bytes=len(response_text.encode()),
+                redactions=redacted,
+                outcome=outcome,
+            )
+
         if isinstance(data, str):
+            audit_call("error")
             return LLMResponse(text=f"LLM error: {data}", model=self._model)
 
         duration_ms = (time.perf_counter() - start) * 1000
         choices = data.get("choices") if isinstance(data, dict) else None
         if not choices:
             logger.warning("LLM response has no choices: %s", str(data)[:200])
+            audit_call("error")
             return LLMResponse(text="LLM error: no choices in response", model=self._model)
         choice = choices[0]
         text = choice.get("message", {}).get("content", "")
@@ -361,6 +384,7 @@ class LLMBackend:
             for key, value in usage.items():
                 if isinstance(value, int):
                     self.usage[key] = self.usage.get(key, 0) + value
+        audit_call("ok", text or "")
         return LLMResponse(
             text=text.strip() if text else "",
             model=self._model,

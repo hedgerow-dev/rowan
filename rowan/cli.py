@@ -656,6 +656,12 @@ def install_engine(prefix: Path | None, version: str | None, allow_unverified: b
     help="Deployed base URL of the scanned app (e.g. http://localhost:5000) used with --exploit to build real request targets from extracted route paths; without it, --exploit has nothing live to probe",
 )
 @click.option(
+    "--audit-log",
+    "audit_log",
+    type=click.Path(path_type=Path, dir_okay=False),
+    help="Append one JSON line per LLM call and live probe to this file (endpoint, sizes, hashes, outcome; never content)",
+)
+@click.option(
     "--allow-remote-target",
     is_flag=True,
     help="Allow --exploit probes against a --base-url outside loopback and private networks (only for systems you are authorized to test)",
@@ -705,6 +711,7 @@ def hunt(
     discover: bool,
     base_url: str | None,
     allow_remote_target: bool,
+    audit_log: Path | None,
     yes: bool,
     output: Path | None,
     max_llm_calls: int | None,
@@ -870,10 +877,16 @@ def hunt(
     console.print(f"[bold]Stages:[/bold] {' -> '.join(stages)}")
     console.print()
 
+    from rowan.agents.audit import close_audit_log, open_audit_log
+
+    audit_handler = open_audit_log(audit_log) if audit_log else None
     try:
         workflow.run()
     except ValueError as exc:
         raise click.UsageError(str(exc)) from exc
+    finally:
+        if audit_handler is not None:
+            close_audit_log(audit_handler)
 
     if output_format == "json":
         from rowan.reporters import hunt_to_json
