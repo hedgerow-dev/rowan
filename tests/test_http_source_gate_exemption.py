@@ -12,7 +12,6 @@ Seen on NodeGoat (route file without an express import), WebGoat.NET
 from __future__ import annotations
 
 import tempfile
-from pathlib import Path
 
 from rowan.config import ScanConfig
 from rowan.core.findings import Category, Finding, ScanResult, Severity, TaintFlow, TaintNode
