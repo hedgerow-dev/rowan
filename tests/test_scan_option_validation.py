@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import click
 import pytest
 from click.testing import CliRunner
 
@@ -218,16 +219,29 @@ def test_hunt_rejects_unsafe_or_malformed_exploit_base_url(tmp_path, monkeypatch
     assert reason in result.output
 
 
+def _resolve_to(monkeypatch, address):
+    """Stub DNS so no test performs a real lookup."""
+    import socket
+
+    def fake(host, *args, **kwargs):
+        if address is None:
+            raise socket.gaierror("not found")
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (address, 0))]
+
+    monkeypatch.setattr(socket, "getaddrinfo", fake)
+
+
 @pytest.mark.parametrize(
     "base_url",
     [
         "http://localhost:5000",
-        "https://app.example",
-        "https://app.example/service/root",
+        "http://127.0.0.1:8000/app",
         "http://[::1]:8080",
+        "http://10.0.0.5",
+        "http://192.168.1.10:3000",
     ],
 )
-def test_hunt_accepts_usable_http_base_urls(base_url):
+def test_hunt_accepts_local_and_private_targets_by_default(base_url):
     assert (
         cli._validate_hunt_options(
             discover=False,
@@ -237,6 +251,38 @@ def test_hunt_accepts_usable_http_base_urls(base_url):
         )
         == base_url
     )
+
+
+def test_hunt_accepts_hostname_resolving_to_private_address(monkeypatch):
+    _resolve_to(monkeypatch, "172.18.0.4")
+    url = "http://webapp:8080"
+    assert cli._validate_hunt_options(
+        discover=False, no_verify=False, exploit=True, base_url=url
+    ) == url
+
+
+@pytest.mark.parametrize(
+    ("base_url", "resolved"),
+    [
+        ("http://8.8.8.8", None),
+        ("https://app.example/service/root", "93.184.216.34"),
+        ("https://does-not-resolve.invalid", None),
+    ],
+)
+def test_hunt_refuses_remote_targets_without_opt_in(monkeypatch, base_url, resolved):
+    _resolve_to(monkeypatch, resolved)
+    with pytest.raises(click.UsageError, match="--allow-remote-target"):
+        cli._validate_hunt_options(
+            discover=False, no_verify=False, exploit=True, base_url=base_url
+        )
+
+
+def test_hunt_accepts_remote_target_with_opt_in(monkeypatch):
+    _resolve_to(monkeypatch, "93.184.216.34")
+    url = "https://app.example/service/root"
+    assert cli._validate_hunt_options(
+        discover=False, no_verify=False, exploit=True, base_url=url, allow_remote_target=True
+    ) == url
 
 
 @pytest.mark.parametrize("option", ["--taint-timeout", "--taint-workers", "--taint-jobs"])

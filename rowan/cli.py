@@ -82,8 +82,35 @@ def _emit_scan_plan(plan: ScanPlan, *, as_json: bool) -> None:
     console.print(passes)
 
 
+def _is_local_target(hostname: str) -> bool:
+    """True when every address `hostname` names is loopback, private or link-local."""
+    import ipaddress
+    import socket
+
+    def local(address: str) -> bool:
+        ip = ipaddress.ip_address(address.split("%", 1)[0])
+        return ip.is_loopback or ip.is_private or ip.is_link_local
+
+    if hostname.lower() == "localhost":
+        return True
+    try:
+        return local(hostname)
+    except ValueError:
+        pass
+    try:
+        infos = socket.getaddrinfo(hostname, None)
+    except (socket.gaierror, UnicodeError):
+        return False
+    return bool(infos) and all(local(info[4][0]) for info in infos)
+
+
 def _validate_hunt_options(
-    *, discover: bool, no_verify: bool, exploit: bool, base_url: str | None
+    *,
+    discover: bool,
+    no_verify: bool,
+    exploit: bool,
+    base_url: str | None,
+    allow_remote_target: bool = False,
 ) -> str | None:
     """Validate Hunt stage dependencies before any external setup or work."""
     if discover and no_verify:
@@ -119,6 +146,15 @@ def _validate_hunt_options(
         raise click.UsageError("Invalid --base-url: query strings are not allowed")
     if parsed.fragment or "#" in base_url:
         raise click.UsageError("Invalid --base-url: fragments are not allowed")
+    # Live probes send real requests. Without an explicit opt-in they only go
+    # to this machine or a private network, so a typo or a copied URL cannot
+    # point them at someone else's system.
+    if not allow_remote_target and not _is_local_target(hostname):
+        raise click.UsageError(
+            f"--base-url host {hostname!r} is not a loopback or private address. "
+            "Probes against remote systems need --allow-remote-target, and you must "
+            "be authorized to test the target."
+        )
     return base_url
 
 
@@ -620,6 +656,11 @@ def install_engine(prefix: Path | None, version: str | None, allow_unverified: b
     help="Deployed base URL of the scanned app (e.g. http://localhost:5000) used with --exploit to build real request targets from extracted route paths; without it, --exploit has nothing live to probe",
 )
 @click.option(
+    "--allow-remote-target",
+    is_flag=True,
+    help="Allow --exploit probes against a --base-url outside loopback and private networks (only for systems you are authorized to test)",
+)
+@click.option(
     "--yes",
     "-y",
     is_flag=True,
@@ -663,6 +704,7 @@ def hunt(
     exploit: bool,
     discover: bool,
     base_url: str | None,
+    allow_remote_target: bool,
     yes: bool,
     output: Path | None,
     max_llm_calls: int | None,
@@ -703,6 +745,7 @@ def hunt(
         no_verify=no_verify,
         exploit=exploit,
         base_url=base_url,
+        allow_remote_target=allow_remote_target,
     )
 
     if verbose:
