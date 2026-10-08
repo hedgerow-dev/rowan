@@ -105,20 +105,21 @@ have larger allowlists for some formats.
 
 ## Measured results
 
-**[RealVuln](../benchmark/results/realvuln-2026-10-02/README.md)** (66 vulnerable
+**[RealVuln](../benchmark/results/realvuln-2026-10-08/README.md)** (66 vulnerable
 Python apps, independent benchmark, scored with its own scorer):
 
 | Scanner | Repos | Precision | Recall | F2 |
 |---|---|---|---|---|
-| **Rowan v0.3.0** | 63 | 0.261 | 0.353 | **33.0** |
+| **Rowan `main` (`f40f11b`)** | 63 | 0.336 | 0.353 | **35.0** |
 | SonarQube | 63 | 0.146 | 0.147 | 14.7 |
 | Semgrep CE | 63 | 0.141 | 0.067 | 7.5 |
 
-On the 23 repositories with Snyk results, Rowan scores F2 30.9 against Snyk's
-20.2, with lower precision (0.296 against 0.411). Rowan's default view, which
-hides low-confidence leads, scores precision 0.384 and F2 26.5. Most LLM-based reviewers
+On the 23 repositories with Snyk results, Rowan scores F2 31.7 against Snyk's
+20.2, with lower precision (0.336 against 0.411). Rowan's default view, which
+hides low-confidence leads, scores precision 0.516 and F2 28.1. Most LLM-based reviewers
 score higher than Rowan. Rowan was developed with this benchmark in view, so
-read the [caveats](../benchmark/results/realvuln-2026-10-02/README.md#read-these-numbers-carefully).
+read the [caveats](../benchmark/results/realvuln-2026-10-08/README.md#read-these-numbers-carefully).
+The [v0.3.0 run](../benchmark/results/realvuln-2026-10-02/README.md) scored precision 0.261 and F2 33.0.
 
 **[Model files on quickset](../benchmark/results/quickset-2026-10-02/README.md)**
 (26 malicious test files, 225 benign including 213 real Hugging Face models):

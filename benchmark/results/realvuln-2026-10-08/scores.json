@@ -1,0 +1,110 @@
+{
+ "ground_truth_repos": 66,
+ "rowan_default_view": {
+  "tp": 464,
+  "fp": 436,
+  "fn": 1376,
+  "precision": 0.516,
+  "recall": 0.252,
+  "f2": 28.1
+ },
+ "results_per_scanner": {
+  "rowan-f40f11b": 63,
+  "snyk": 25,
+  "sonarqube": 66,
+  "semgrep": 66
+ },
+ "pairwise_on_shared_repos": {
+  "snyk": {
+   "shared_repos": 23,
+   "rowan-f40f11b": {
+    "tp": 200,
+    "fp": 395,
+    "fn": 441,
+    "precision": 0.336,
+    "recall": 0.312,
+    "f2": 31.7
+   },
+   "snyk": {
+    "tp": 115,
+    "fp": 165,
+    "fn": 526,
+    "precision": 0.411,
+    "recall": 0.179,
+    "f2": 20.2
+   }
+  },
+  "sonarqube": {
+   "shared_repos": 63,
+   "rowan-f40f11b": {
+    "tp": 650,
+    "fp": 1282,
+    "fn": 1190,
+    "precision": 0.336,
+    "recall": 0.353,
+    "f2": 35.0
+   },
+   "sonarqube": {
+    "tp": 270,
+    "fp": 1584,
+    "fn": 1570,
+    "precision": 0.146,
+    "recall": 0.147,
+    "f2": 14.7
+   }
+  },
+  "semgrep": {
+   "shared_repos": 63,
+   "rowan-f40f11b": {
+    "tp": 650,
+    "fp": 1282,
+    "fn": 1190,
+    "precision": 0.336,
+    "recall": 0.353,
+    "f2": 35.0
+   },
+   "semgrep": {
+    "tp": 124,
+    "fp": 755,
+    "fn": 1716,
+    "precision": 0.141,
+    "recall": 0.067,
+    "f2": 7.5
+   }
+  }
+ },
+ "all_repos_missing_as_fn": {
+  "rowan-f40f11b": {
+   "tp": 650,
+   "fp": 1282,
+   "fn": 1253,
+   "precision": 0.336,
+   "recall": 0.342,
+   "f2": 34.1
+  },
+  "snyk": {
+   "tp": 121,
+   "fp": 280,
+   "fn": 1782,
+   "precision": 0.302,
+   "recall": 0.064,
+   "f2": 7.6
+  },
+  "sonarqube": {
+   "tp": 274,
+   "fp": 1587,
+   "fn": 1629,
+   "precision": 0.147,
+   "recall": 0.144,
+   "f2": 14.5
+  },
+  "semgrep": {
+   "tp": 134,
+   "fp": 905,
+   "fn": 1769,
+   "precision": 0.129,
+   "recall": 0.07,
+   "f2": 7.7
+  }
+ }
+}
