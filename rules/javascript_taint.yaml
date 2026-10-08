@@ -348,6 +348,52 @@ rules:
               - pattern: "$Y.loadAll($DOC, ..., {..., schema: $Y.DEFAULT_FULL_SCHEMA, ...})"
           - focus-metavariable: $DOC
 
+  - id: tnt-js-ssti-001
+    mode: taint
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >-
+      User input is used as template source, enabling server-side template
+      injection. Template engines run expressions in the template, so this is
+      usually remote code execution.
+    metadata:
+      cwe:
+        - "CWE-1336: Improper Neutralization of Special Elements Used in a Template Engine"
+      confidence: HIGH
+      category: ssti
+      fix: "Load templates from fixed files and pass user input only as render data, never as the template string."
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.body
+      - pattern: req.params
+      - pattern: req.headers
+      - pattern: request.query
+      - pattern: request.body
+      - pattern: request.params
+      - pattern: ctx.query
+      - pattern: ctx.request.body
+      - pattern: ctx.params
+    pattern-sinks:
+      # Only the template-source argument; render data is the safe path.
+      - patterns:
+          - pattern-either:
+              - pattern: ejs.render($TPL, ...)
+              - pattern: ejs.compile($TPL, ...)
+              - pattern: pug.render($TPL, ...)
+              - pattern: pug.compile($TPL, ...)
+              - pattern: nunjucks.renderString($TPL, ...)
+              - pattern: $ENV.renderString($TPL, ...)
+              - pattern: _.template($TPL, ...)
+              - pattern: lodash.template($TPL, ...)
+              - pattern: doT.template($TPL, ...)
+          - focus-metavariable: $TPL
+      - patterns:
+          - pattern: $HB.compile($TPL, ...)
+          - metavariable-regex:
+              metavariable: $HB
+              regex: ^(Handlebars|handlebars|hbs|HBS)$
+          - focus-metavariable: $TPL
+
   - id: tnt-js-proto-001
     mode: taint
     languages: [javascript, typescript]

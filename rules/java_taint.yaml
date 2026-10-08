@@ -1146,3 +1146,93 @@ rules:
       - patterns:
           - pattern: '"redirect:" + $URL'
           - focus-metavariable: $URL
+
+  - id: tnt-ja-ssti-001
+    mode: taint
+    languages: [java]
+    severity: ERROR
+    message: >-
+      User input is used as template source, enabling server-side template
+      injection. Velocity, FreeMarker and Pebble run expressions in the
+      template, so this is usually remote code execution.
+    metadata:
+      cwe:
+        - "CWE-1336: Improper Neutralization of Special Elements Used in a Template Engine"
+      confidence: HIGH
+      category: ssti
+      fix: "Load templates from fixed resources and pass user input only through the template context, never as the template text."
+    pattern-sources:
+      # rowan-registry:begin source=web_request_java
+      - patterns:
+          - pattern-either:
+              - pattern: (HttpServletRequest $REQ).getParameter(...)
+              - pattern: request.getParameter(...)
+              - patterns:
+                  - pattern: $PARAM
+                  - pattern-inside: |
+                      $RET $METHOD(..., @RequestParam $TYPE $PARAM, ...) {
+                        ...
+                      }
+              - patterns:
+                  - pattern: $PARAM
+                  - pattern-inside: |
+                      $RET $METHOD(..., @RequestParam(...) $TYPE $PARAM, ...) {
+                        ...
+                      }
+              - patterns:
+                  - pattern: $PARAM
+                  - pattern-inside: |
+                      $RET $METHOD(..., @PathVariable $TYPE $PARAM, ...) {
+                        ...
+                      }
+              - patterns:
+                  - pattern: $PARAM
+                  - pattern-inside: |
+                      $RET $METHOD(..., @PathVariable(...) $TYPE $PARAM, ...) {
+                        ...
+                      }
+              - patterns:
+                  - pattern: $PARAM
+                  - pattern-inside: |
+                      $RET $METHOD(..., @RequestBody $TYPE $PARAM, ...) {
+                        ...
+                      }
+              - patterns:
+                  - pattern: $PARAM
+                  - pattern-inside: |
+                      $RET $METHOD(..., @RequestBody(...) $TYPE $PARAM, ...) {
+                        ...
+                      }
+              - patterns:
+                  - pattern: $PARAM
+                  - pattern-inside: |
+                      $RET $METHOD(..., @QueryParam $TYPE $PARAM, ...) {
+                        ...
+                      }
+              - patterns:
+                  - pattern: $PARAM
+                  - pattern-inside: |
+                      $RET $METHOD(..., @QueryParam(...) $TYPE $PARAM, ...) {
+                        ...
+                      }
+              - patterns:
+                  - pattern: $PARAM
+                  - pattern-inside: |
+                      @$MAPPING(...)
+                      $RET $METHOD(..., String $PARAM, ...) {
+                        ...
+                      }
+                  - metavariable-regex:
+                      metavariable: $MAPPING
+                      regex: ^(GetMapping|PostMapping|PutMapping|DeleteMapping|RequestMapping|PatchMapping)$
+      # rowan-registry:end source=web_request_java
+    pattern-sinks:
+      # Only the template text; values put into the context are the safe path.
+      - patterns:
+          - pattern-either:
+              - pattern: Velocity.evaluate($CTX, $OUT, $TAG, $TPL)
+              - pattern: (VelocityEngine $V).evaluate($CTX, $OUT, $TAG, $TPL)
+              - pattern: new Template($NAME, new StringReader($TPL), ...)
+              - pattern: new Template($NAME, (String $TPL), ...)
+              - pattern: (PebbleEngine $P).getLiteralTemplate($TPL)
+          - focus-metavariable: $TPL
