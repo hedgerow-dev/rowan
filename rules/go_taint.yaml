@@ -492,3 +492,60 @@ rules:
       - patterns:
           - pattern: $C.Redirect($CODE, $URL)
           - focus-metavariable: $URL
+
+  - id: tnt-go-xss-001
+    mode: taint
+    languages: [go]
+    severity: ERROR
+    message: >-
+      User input is written into an HTTP response without HTML escaping,
+      enabling cross-site scripting.
+    metadata:
+      cwe:
+        - "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
+      confidence: HIGH
+      category: xss
+      fix: "Render through html/template without template.HTML/JS/HTMLAttr/URL wrappers, or escape with html.EscapeString before writing to the response."
+    pattern-sources:
+      # rowan-registry:begin source=web_request_go
+      - patterns:
+          - pattern-either:
+              - pattern: $R.URL.Query()
+              - pattern: $R.FormValue(...)
+              - pattern: $R.Body
+              - pattern: $C.Param(...)
+              - pattern: "($C : *gin.Context).Query(...)"
+              - pattern: $C.ShouldBindJSON(...)
+      # rowan-registry:end source=web_request_go
+      - pattern: $C.Query(...)
+    pattern-sinks:
+      # Raw writes to the response. Typed, so writing to stdout or a file is
+      # not a sink. A literal non-HTML Content-Type set earlier (JSON, an
+      # attachment) is not rendered as a page; a type set from a variable is
+      # unknown and stays flagged.
+      - patterns:
+          - pattern-either:
+              - pattern: "fmt.Fprintf(($W : http.ResponseWriter), ...)"
+              - pattern: "fmt.Fprint(($W : http.ResponseWriter), ...)"
+              - pattern: "fmt.Fprintln(($W : http.ResponseWriter), ...)"
+              - pattern: "io.WriteString(($W : http.ResponseWriter), ...)"
+              - pattern: "($W : http.ResponseWriter).Write(...)"
+          - pattern-not-inside: |
+              $W.Header().Set("Content-Type", "=~/^(?!text\/html)/")
+              ...
+      - pattern: $C.Writer.WriteString(...)
+      # html/template trusts these types and skips escaping.
+      - pattern: template.HTML(...)
+      - pattern: template.JS(...)
+      - pattern: template.HTMLAttr(...)
+      - pattern: template.URL(...)
+      # echo's c.HTML(code, html) writes raw HTML; gin's c.HTML takes three
+      # arguments and renders a template, so it does not match.
+      - patterns:
+          - pattern: $C.HTML($CODE, $BODY)
+          - focus-metavariable: $BODY
+    pattern-sanitizers:
+      - pattern: html.EscapeString(...)
+      - pattern: template.HTMLEscapeString(...)
+      - pattern: template.JSEscapeString(...)
+      - pattern: $POLICY.Sanitize(...)
