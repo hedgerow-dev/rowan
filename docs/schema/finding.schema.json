@@ -173,6 +173,11 @@
       "maximum": 1.0,
       "description": "EPSS exploit prediction score for the CVE, if available."
     },
+    "duplicate_rule_ids": {
+      "type": ["array", "null"],
+      "items": {"type": "string"},
+      "description": "When several rules reported the same sink, the rule ids merged into this finding, including its own rule_id. Null when nothing was merged."
+    },
     "root_cause_id": {
       "type": "string",
       "description": "Identifier of the root-cause cluster this finding belongs to."

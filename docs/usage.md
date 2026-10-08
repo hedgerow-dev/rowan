@@ -496,6 +496,12 @@ both *lower* severity for reasons unrelated to the finding's truth:
 
 Nothing is deleted by either rule. Use `-s info` to see everything.
 
+**One sink, one finding.** When several rules report the same line with the
+same category and a shared CWE, they are merged into the finding with the
+strongest evidence (then the highest severity). The JSON field
+`duplicate_rule_ids` lists every rule merged into it, so a more specific rule
+that matched the same call is still visible there.
+
 ## Scan manifest
 
 The JSON report's `scan_manifest` records what produced the result: the Rowan

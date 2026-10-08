@@ -80,6 +80,10 @@ class Finding:
         order = {Severity.CRITICAL: 0, Severity.HIGH: 1, Severity.MEDIUM: 2, Severity.LOW: 3, Severity.INFO: 4}
         return order.get(self.severity, 5)
 
+    def reported_rule_ids(self) -> set[str]:
+        """This finding's rule plus any rules merged into it as duplicates."""
+        return {self.rule_id, *self.metadata.get("duplicate_rule_ids", ())}
+
     def match_key(self) -> tuple[str, str, int, str]:
         """Key for deduplication: (file, rule, start_line, category)."""
         return (self.file_path, self.rule_id, self.start_line, self.category.value)

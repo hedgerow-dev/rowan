@@ -20,11 +20,11 @@ import json
 import re
 import sys
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 import yaml
 
+from rowan.core.findings import Category, Finding, Severity
 from rowan.taint.opengrep_adapter import OpengrepAdapter
 
 REPO = Path(__file__).parent.parent
@@ -81,7 +81,10 @@ def _load_benchmark_module():
 
 
 def _finding(rule_id: str, file_path: Path, line: int):
-    return SimpleNamespace(rule_id=rule_id, file_path=str(file_path), start_line=line)
+    return Finding(
+        rule_id=rule_id, message=rule_id, severity=Severity.HIGH,
+        category=Category.GENERAL, file_path=str(file_path), start_line=line,
+    )
 
 
 def _validate_ground_truth(app_dir: Path, gt: dict, rule_id_re: re.Pattern = RULE_ID_RE) -> list[str]:

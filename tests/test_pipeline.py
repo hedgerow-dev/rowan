@@ -813,7 +813,7 @@ def test_ns_path_003_literal_path_not_flagged(tmp_path):
     res = ScanPipeline(
         ScanConfig(target=tmp_path, no_sca=True, no_cross_file=True, report_view="full")
     ).run()
-    hits = {f.start_line for f in res.findings if f.rule_id == "NS-PATH-003"}
+    hits = {f.start_line for f in res.findings if "NS-PATH-003" in f.reported_rule_ids()}
     assert 4 not in hits, "literal FileResponse path must not be flagged"
     assert 6 not in hits, "literal send_file path must not be flagged"
     assert 8 in hits, "user-controlled send_file path must still be flagged"

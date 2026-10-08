@@ -266,6 +266,19 @@ _SEVERITY_RANK = {
     Severity.INFO: 4,
 }
 
+# Strength of a finding's evidence (see _cap_unverified_severity), strongest
+# first. Used to pick which of several findings on one sink survives a merge.
+_EVIDENCE_TIER_RANK: dict[str, int] = {
+    "taint-flow": 0,
+    "engine": 0,
+    "taint-flow-unresolved": 1,
+    "self-evident": 2,
+    "authorization-gap": 2,
+    "pattern-only": 3,
+    "source-context": 3,
+    "presence": 4,
+}
+
 # Groups of rule ids that detect the SAME underlying condition via
 # overlapping/near-identical regex patterns, confirmed by manual review of
 # each pair's languages/category/severity/message in the manifest (not
@@ -644,6 +657,9 @@ class EnrichmentPass:
         # another was filtered, defeating the merge).
         context.result.findings = self._merge_duplicate_rule_groups(
             context.result.findings, context
+        )
+        context.result.findings = self._merge_same_sink_findings(
+            context.result.findings, self._load_thresholds(context.config.thresholds_path)
         )
         context.result.findings = self._apply_thresholds(context.result.findings, context)
 
@@ -1282,6 +1298,52 @@ class EnrichmentPass:
                     cluster = [f]
             merged.append(self._merge_duplicate_cluster(cluster, thresholds))
         return merged
+
+    @staticmethod
+    def _merge_same_sink_findings(findings: list[Finding], thresholds: dict) -> list[Finding]:
+        """Collapse different rules reporting the same sink: same file, same
+        line, same category and at least one shared CWE.
+
+        Unlike _DUPLICATE_RULE_GROUPS this needs no hand-kept list: a taint
+        rule and a pattern rule for the same call, or two taint rules whose
+        sinks overlap, land on one line with one category. The shared-CWE
+        requirement keeps genuinely different issues on one line apart (a
+        cookie missing both HttpOnly and Secure is two findings).
+
+        The survivor has the strongest evidence, then the highest severity,
+        so a proven flow is never replaced by a pattern match. A rule
+        disabled in thresholds.yaml is never the survivor, for the reason
+        given on _merge_duplicate_cluster.
+        """
+        buckets: dict[tuple[str, int, Category], list[Finding]] = defaultdict(list)
+        for f in findings:
+            buckets[(f.file_path, f.start_line, f.category)].append(f)
+
+        def rank(f: Finding) -> tuple:
+            disabled = (thresholds.get(f.rule_id) or {}).get("enabled") is False
+            tier = _EVIDENCE_TIER_RANK.get(f.metadata.get("evidence_tier"), len(_EVIDENCE_TIER_RANK))
+            return (disabled, tier, _SEVERITY_RANK[f.severity], f.rule_id)
+
+        merged_away: set[int] = set()
+        for bucket in buckets.values():
+            survivors: list[Finding] = []
+            for f in sorted(bucket, key=rank):
+                into = next(
+                    (
+                        s for s in survivors
+                        if s.rule_id != f.rule_id and set(s.cwe_ids) & set(f.cwe_ids)
+                    ),
+                    None,
+                )
+                if into is None:
+                    survivors.append(f)
+                    continue
+                merged_away.add(id(f))
+                into.metadata["duplicate_rule_ids"] = sorted(
+                    {*into.metadata.get("duplicate_rule_ids", [into.rule_id]),
+                     *f.metadata.get("duplicate_rule_ids", [f.rule_id])}
+                )
+        return [f for f in findings if id(f) not in merged_away]
 
     @staticmethod
     def _merge_duplicate_cluster(cluster: list[Finding], thresholds: dict) -> Finding:

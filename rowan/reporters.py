@@ -236,6 +236,7 @@ def to_json(result: ScanResult, source_root: str = "") -> str:
             "confidence": round(f.confidence, 2),
             "cwe": f.cwe_ids,
             "engine": f.engine,
+            "duplicate_rule_ids": (f.metadata or {}).get("duplicate_rule_ids"),
             "evidence_tier": (f.metadata or {}).get("evidence_tier"),
             "authorization_requirement": (f.metadata or {}).get("authorization_requirement"),
             "object_use": (f.metadata or {}).get("object_use"),

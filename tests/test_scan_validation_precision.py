@@ -36,7 +36,7 @@ def _hits(result, rule_id: str, filename: str | None = None):
     return [
         finding
         for finding in result.findings
-        if finding.rule_id == rule_id
+        if rule_id in finding.reported_rule_ids()
         and (filename is None or Path(finding.file_path).name == filename)
     ]
 

@@ -201,7 +201,7 @@ def _score_vuln_cases(findings: list, manifest: dict) -> list[VulnCaseResult]:
         file_name = Path(case["file"]).name
         case_findings = findings_by_file.get(file_name, [])
         if "expected_rule_id" in case:
-            matched = [f for f in case_findings if f.rule_id == case["expected_rule_id"]]
+            matched = [f for f in case_findings if case["expected_rule_id"] in f.reported_rule_ids()]
             expected_desc = f"rule_id={case['expected_rule_id']}"
             match_mode = "rule_id" if matched else "none"
         elif "expected_category" in case:
@@ -583,7 +583,7 @@ def _authz_index(findings: list) -> list[tuple[str, int, list[str]]]:
     recall hit for that model."""
     out = []
     for f in findings:
-        if f.rule_id != "AUTHZ-BOLA-001":
+        if "AUTHZ-BOLA-001" not in f.reported_rule_ids():
             continue
         meta = f.metadata or {}
         models = list(meta.get("missing_models") or []) + list(meta.get("partial_models") or [])
@@ -946,12 +946,12 @@ def _score_distinct_findings(
             )
             authz_match = (
                 bool(vuln.get("authz_model"))
-                and finding.rule_id == "AUTHZ-BOLA-001"
+                and "AUTHZ-BOLA-001" in finding.reported_rule_ids()
                 and vuln["authz_model"] in finding_authz_models
             )
             ai_match = (
                 bool(vuln.get("ai_native_rule"))
-                and finding.rule_id.lower() == str(vuln["ai_native_rule"]).lower()
+                and str(vuln["ai_native_rule"]).lower() in {r.lower() for r in finding.reported_rule_ids()}
             )
             if not (class_match or authz_match or ai_match):
                 continue
@@ -1517,7 +1517,7 @@ def _score_authz_bola(
 def _ai_native_index(findings: list) -> list[tuple[str, int, str]]:
     """(file, line, rule_id) for every finding, the raw material for exact
     rule_id lookups below."""
-    return [(f.file_path, f.start_line, f.rule_id) for f in findings]
+    return [(f.file_path, f.start_line, r) for f in findings for r in sorted(f.reported_rule_ids())]
 
 
 def _ai_native_hit(
@@ -1962,7 +1962,7 @@ def run_js_authz_cases() -> dict | None:
             legacy_neuroscan=True,
             no_cross_file=True,
         )
-        if f.rule_id == "AUTHZ-BOLA-001"
+        if "AUTHZ-BOLA-001" in f.reported_rule_ids()
     ]
     files = {Path(f.file_path).name for f in findings}
     rows: list[tuple[str, str, bool]] = []
@@ -2106,7 +2106,7 @@ def run_second_order_cases() -> dict | None:
         hit_lines = sorted(
             f.start_line
             for f in findings
-            if f.rule_id in _SECOND_ORDER_RULE_IDS
+            if f.reported_rule_ids() & _SECOND_ORDER_RULE_IDS
             and Path(f.file_path).resolve().relative_to(case_dir.resolve()).as_posix()
             == reader_file
         )
@@ -2183,11 +2183,11 @@ def run_cross_file_cases() -> dict | None:
         findings, degraded = _scan_dir_retrying(case_dir)
         if degraded:
             return {"degraded": degraded, "rows": [], "skipped": skipped}
-        cf = [f for f in findings if f.rule_id in _CROSS_FILE_RULE_IDS]
+        cf = [f for f in findings if f.reported_rule_ids() & _CROSS_FILE_RULE_IDS]
         caller_lines = sorted(
             f.start_line
             for f in cf
-            if f.rule_id == case.get("rule_id", "CF-SINK-001")
+            if case.get("rule_id", "CF-SINK-001") in f.reported_rule_ids()
             and Path(f.file_path).resolve().relative_to(case_dir.resolve()).as_posix()
             == case["caller_file"]
         )
@@ -2259,7 +2259,9 @@ def _run_framework_pair_cases(
         return {"degraded": degraded, "rows": [], "ok": False}
     by_file: dict[str, set[str]] = {}
     for finding in findings:
-        by_file.setdefault(Path(finding.file_path).name, set()).add(finding.rule_id.lower())
+        by_file.setdefault(Path(finding.file_path).name, set()).update(
+            r.lower() for r in finding.reported_rule_ids()
+        )
 
     rows = []
     for case in cases:
@@ -2418,7 +2420,10 @@ def run_ai_cases(corpus_dir: Path = AI_CASES_DIR) -> dict | None:
         for case in lang_cases:
             expected = case["expected_rule_id"]
             case_findings = by_file.get(Path(case["file"]).name, [])
-            matched = [f for f in case_findings if f.rule_id.lower() == expected.lower()]
+            matched = [
+                f for f in case_findings
+                if expected.lower() in {r.lower() for r in f.reported_rule_ids()}
+            ]
             results.append(
                 VulnCaseResult(
                     file=case["file"],
@@ -2595,7 +2600,7 @@ def run_ai_apps() -> dict | None:
             apps[app_key] = {"degraded": degraded, "display_name": display_name}
             continue
 
-        index = [(f.file_path, f.start_line, f.rule_id) for f in findings]
+        index = [(f.file_path, f.start_line, r) for f in findings for r in sorted(f.reported_rule_ids())]
 
         rows = []
         for v in gt.get("vulnerabilities", []):

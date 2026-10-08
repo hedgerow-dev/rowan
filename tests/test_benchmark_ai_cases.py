@@ -14,10 +14,10 @@ import json
 import shutil
 import sys
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
+from rowan.core.findings import Category, Finding, Severity
 from rowan.taint.opengrep_adapter import OpengrepAdapter
 
 CORPUS = Path(__file__).parent.parent / "benchmark" / "ground_truth" / "ai_cases"
@@ -33,7 +33,10 @@ def _load_benchmark_module():
 
 
 def _finding(rule_id: str, file_path: Path):
-    return SimpleNamespace(rule_id=rule_id, file_path=str(file_path))
+    return Finding(
+        rule_id=rule_id, message=rule_id, severity=Severity.HIGH,
+        category=Category.GENERAL, file_path=str(file_path), start_line=1,
+    )
 
 
 def _write_corpus(root: Path, cases: list[dict]) -> Path:
