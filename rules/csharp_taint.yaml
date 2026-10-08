@@ -412,3 +412,57 @@ rules:
       - pattern: RedirectPermanent(...)
       - pattern: Response.Redirect(...)
       - pattern: new RedirectResult(...)
+
+  - id: tnt-cs-xxe-001
+    mode: taint
+    languages: [csharp]
+    severity: ERROR
+    message: >-
+      User input is parsed as XML by a parser with external entities or DTD
+      processing turned on, enabling XML external entity (XXE) injection.
+    metadata:
+      cwe:
+        - "CWE-611: Improper Restriction of XML External Entity Reference"
+      confidence: HIGH
+      category: injection
+      fix: "Leave XmlResolver null and DtdProcessing at Prohibit/Ignore (the defaults since .NET 4.5.2); never set XmlUrlResolver or DtdProcessing.Parse for untrusted XML."
+    # .NET parses safely by default, so only an explicit opt-in is flagged.
+    pattern-sources:
+      - pattern: Request.Query[$KEY]
+      - pattern: Request.Form[$KEY]
+      - pattern: Request.Body
+      - patterns:
+          - pattern: $PARAM
+          - pattern-inside: |
+              $RET $METHOD(..., [FromBody] $TYPE $PARAM, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $PARAM
+          - pattern-inside: |
+              $RET $METHOD(..., [FromQuery] $TYPE $PARAM, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $PARAM
+          - pattern-inside: |
+              $RET $METHOD(..., [FromForm] $TYPE $PARAM, ...) {
+                ...
+              }
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $DOC.LoadXml(...)
+              - pattern: $DOC.Load(...)
+          - pattern-inside: |
+              $DOC.XmlResolver = new XmlUrlResolver();
+              ...
+      - patterns:
+          - pattern: XmlReader.Create(..., $S)
+          - pattern-either:
+              - pattern-inside: |
+                  $S.DtdProcessing = DtdProcessing.Parse;
+                  ...
+              - pattern-inside: |
+                  $S.XmlResolver = new XmlUrlResolver();
+                  ...
