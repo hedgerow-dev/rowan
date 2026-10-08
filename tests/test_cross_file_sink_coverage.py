@@ -149,6 +149,11 @@ NAMED_REGRESSION_RULES = [
         "Streamlit user input passed straight to a shell command",
     ),
     (
+        "ns-aiml-159", "auth",
+        "JWT decoded without audience validation; an `auth` rule kept as a "
+        "cross-file sink via _EXTRA_SINK_RULE_IDS (Langfail V44)",
+    ),
+    (
         "NS-GIT-001", "command_injection",
         "unsafe git operations -- user-controlled URL passed to git clone",
     ),

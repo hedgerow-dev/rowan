@@ -1,6 +1,6 @@
 # Rule Catalog
 
-Rowan ships 588 source-code rules across 48 YAML files. Model files are
+Rowan ships 589 source-code rules across 48 YAML files. Model files are
 scanned by [Hayward](https://github.com/hedgerow-dev/hayward), Hedgerow's
 model-file scanner, which Rowan installs as a dependency.
 
@@ -9,7 +9,7 @@ model-file scanner, which Rowan installs as a dependency.
 | Engine | Speed | Precision | Rules |
 |--------|-------|-----------|-------|
 | NeuroScan (regex) | Fast (<1ms/file) | Surface-level | 398 |
-| Taint/structural (Opengrep) | Slower | Evidence varies by rule | 190 |
+| Taint/structural (Opengrep) | Slower | Evidence varies by rule | 191 |
 | Hayward (model files) | Fast | Format-aware, structural | [Hayward rules](https://github.com/hedgerow-dev/hayward/blob/main/docs/rules.md) |
 
 ## Selected taint rule files
@@ -21,7 +21,7 @@ model-file scanner, which Rowan installs as a dependency.
 | `ml_taint.yaml` | 21 | Python | Chat template SSTI, HF pipeline, OmegaConf, vector store, agent tool, LangChain, torch.hub, vector-store filter injection, unbounded generation params, SSRF |
 | `llm_output_taint.yaml` | 6 | Python | Insecure LLM output handling: text-to-SQL, shell/eval injection, SSRF, path traversal, HTML/markdown XSS |
 | `web_taint.yaml` | 7 | Python | SQLi, XSS (incl. Django mark_safe/format_html escaping bypasses), path traversal, open redirect, file upload, sensitive data exposure in logs |
-| `python_taint.yaml` | 8 | Python | Log injection, header injection, LDAP, arg injection, network pickle |
+| `python_taint.yaml` | 9 | Python | Log injection, header injection, LDAP, arg injection, network pickle; ORM-write sink marker for cross-file stored flows (never reported itself) |
 | `python_taint_extended.yaml` | 9 | Python | SQLi, CMDi, SSRF, SSTI, model loading, path traversal, code injection, prompt injection, NoSQLi |
 | `python_web_surface_taint.yaml` | 1 | Python | Reflection / dynamic dispatch on a request-derived name (getattr/globals/import_module); taint-mode companion to the presence-only rule in `python_web_surface.yaml` |
 | `supply_chain_taint.yaml` | 5 | Python | HF hub download chain, HTTP download, base64 decode, file write propagation, SSRF, deserialization, code injection, path traversal |
@@ -40,7 +40,7 @@ model-file scanner, which Rowan installs as a dependency.
 | `langchain_hardening_opengrep.yaml` | 4 | Python | LangChain hardening, search mode: unsafe vector-store deserialization, Jinja few-shot injection, vector-filter injection, dangerous Cypher construction |
 | `go_ai_opengrep.yaml` | 1 | Go | Search mode, inventory: SSE / streamable-HTTP MCP server bound on all interfaces (`0.0.0.0:port` or `:port`) with no auth middleware in view |
 
-**Total: 190 taint/Opengrep rules**
+**Total: 191 taint/Opengrep rules**
 
 `guardrail_opengrep.yaml`, `langchain_hardening_opengrep.yaml`,
 `go_ai_opengrep.yaml` and `java_llm_opengrep.yaml` are the Opengrep files
@@ -150,7 +150,7 @@ message, not in the rule id) and the structural trust-boundary findings
 `AGENT-TOOL-001` (agent-tool sink detection), `TASK-QUEUE-001` (Celery/RQ
 task handlers), `GRPC-001` (gRPC servicer methods), `GRAPHQL-001` (GraphQL
 resolvers), and `WEBHOOK-001` (webhook/callback handlers) are not YAML rules
-and aren't counted in the 588 total above: they're emitted directly by
+and aren't counted in the 589 total above: they're emitted directly by
 `CrossFilePass`'s AST analysis rather than loaded from `rules/*.yaml`. See
 `ARCHITECTURE.md`'s "Pass 4: CrossFilePass" section for how they're
 generated.

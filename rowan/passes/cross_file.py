@@ -4579,6 +4579,13 @@ _SINK_RULE_PREFIXES: tuple[str, ...] = (
 )
 
 
+#: Rules that are cross-file sinks although their category is not in
+#: _SINK_CATEGORIES. ns-aiml-159 (JWT decoded without audience validation) is
+#: an `auth` rule, but a caller handing it a request token is the flow that
+#: matters (Langfail V44: service_exchange -> verify_service_token).
+_EXTRA_SINK_RULE_IDS: frozenset[str] = frozenset({"ns-aiml-159"})
+
+
 def _is_sink_rule(rule_id: str, rule_map: dict[str, dict] | None = None) -> bool:
     """Check if a rule ID indicates a sink (source→sink flow relevant), vs a
     config/secrets/crypto misc warning.
@@ -4592,6 +4599,8 @@ def _is_sink_rule(rule_id: str, rule_map: dict[str, dict] | None = None) -> bool
     above `_SINK_RULE_PREFIXES` for why that list is still kept as a
     fallback rather than deleted.
     """
+    if rule_id in _EXTRA_SINK_RULE_IDS:
+        return True
     if rule_map:
         info = rule_map.get(rule_id)
         if info and info.get("category"):

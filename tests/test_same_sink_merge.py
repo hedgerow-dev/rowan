@@ -65,11 +65,35 @@ def test_same_rule_twice_is_left_to_same_rule_deduplication():
     assert len(_merge([_finding("NS-SSTI-001"), _finding("NS-SSTI-001")])) == 2
 
 
-def test_disabled_rule_is_never_the_survivor():
+def test_finding_below_min_confidence_does_not_absorb_others():
+    # _apply_thresholds drops it next, which used to take the absorbed
+    # finding with it (Langfail V58: ns-aiml-168 vanished inside NS-AIML-010).
+    doomed = _finding("NS-AIML-010", category=Category.AI_ML, cwe=(78,), tier="self-evident")
+    doomed.confidence = 0.3
+    kept = _finding("ns-aiml-168", category=Category.AI_ML, cwe=(94, 78), tier="self-evident")
+    kept.confidence = 0.3
+
+    result = _merge([doomed, kept], {"NS-AIML-010": {"min_confidence": 0.5}})
+
+    assert {f.rule_id for f in result} == {"NS-AIML-010", "ns-aiml-168"}
+    assert "duplicate_rule_ids" not in kept.metadata
+
+
+def test_disabled_rule_takes_no_part_in_the_merge():
     # _apply_thresholds runs next and deletes disabled rules outright.
     disabled = _finding("TNT-SSTI-002", tier="taint-flow", flow=True)
     enabled = _finding("NS-SSTI-001")
 
     result = _merge([disabled, enabled], {"TNT-SSTI-002": {"enabled": False}})
 
-    assert [f.rule_id for f in result] == ["NS-SSTI-001"]
+    assert {f.rule_id for f in result} == {"TNT-SSTI-002", "NS-SSTI-001"}
+    assert "duplicate_rule_ids" not in enabled.metadata
+
+
+def test_sink_marker_findings_are_never_reported():
+    # TNT-STORED-001 exists so CrossFilePass sees ORM writes as sinks; on its
+    # own it is not a vulnerability (RealVuln: 40 HIGH findings, none real).
+    marker = _finding("TNT-STORED-001", category=Category.INJECTION, cwe=(79, 89), tier="taint-flow", flow=True)
+    other = _finding("TNT-SSTI-001", tier="taint-flow", flow=True)
+
+    assert EnrichmentPass._drop_sink_markers([marker, other]) == [other]
