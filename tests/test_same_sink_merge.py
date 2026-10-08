@@ -89,11 +89,3 @@ def test_disabled_rule_takes_no_part_in_the_merge():
     assert {f.rule_id for f in result} == {"TNT-SSTI-002", "NS-SSTI-001"}
     assert "duplicate_rule_ids" not in enabled.metadata
 
-
-def test_sink_marker_findings_are_never_reported():
-    # TNT-STORED-001 exists so CrossFilePass sees ORM writes as sinks; on its
-    # own it is not a vulnerability (RealVuln: 40 HIGH findings, none real).
-    marker = _finding("TNT-STORED-001", category=Category.INJECTION, cwe=(79, 89), tier="taint-flow", flow=True)
-    other = _finding("TNT-SSTI-001", tier="taint-flow", flow=True)
-
-    assert EnrichmentPass._drop_sink_markers([marker, other]) == [other]

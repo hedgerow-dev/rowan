@@ -266,10 +266,6 @@ _SEVERITY_RANK = {
     Severity.INFO: 4,
 }
 
-# Rules whose findings are cross-file sink markers only (see
-# _drop_sink_markers). TNT-STORED-001 marks ORM writes of request input.
-_SINK_MARKER_RULES: frozenset[str] = frozenset({"TNT-STORED-001"})
-
 # Strength of a finding's evidence (see _cap_unverified_severity), strongest
 # first. Used to pick which of several findings on one sink survives a merge.
 _EVIDENCE_TIER_RANK: dict[str, int] = {
@@ -607,7 +603,6 @@ class EnrichmentPass:
         # before everything else so no downstream step (profile filter,
         # dedup, suppressors) ever sees a finding that should never have
         # existed.
-        context.result.findings = self._drop_sink_markers(context.result.findings)
         context.result.findings = self._apply_pattern_not_fallback(context.result.findings, context)
         context.result.findings = self._apply_profile_filter(context.result.findings, context)
         # Establish the engine-based confidence baseline BEFORE the
@@ -1303,16 +1298,6 @@ class EnrichmentPass:
                     cluster = [f]
             merged.append(self._merge_duplicate_cluster(cluster, thresholds))
         return merged
-
-    @staticmethod
-    def _drop_sink_markers(findings: list[Finding]) -> list[Finding]:
-        """Remove findings from rules that exist only as CrossFilePass sinks.
-
-        CrossFilePass has already run, so the stored-then-read flows these
-        markers enable are reported as CF-* findings; the marker itself is
-        not a vulnerability.
-        """
-        return [f for f in findings if f.rule_id not in _SINK_MARKER_RULES]
 
     @staticmethod
     def _merge_same_sink_findings(findings: list[Finding], thresholds: dict) -> list[Finding]:
