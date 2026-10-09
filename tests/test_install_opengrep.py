@@ -356,3 +356,59 @@ class TestPinnedVersionNeedsNoCosign:
                   "opengrep_manylinux_aarch64", "opengrep_manylinux_x86"}
         assert set(PINNED_SHA256) == assets
         assert all(len(h) == 64 and int(h, 16) >= 0 for h in PINNED_SHA256.values())
+
+
+class TestReleaseApiToken:
+    """CI shares GitHub's unauthenticated rate limit (60 requests an hour),
+    so the release-info call sends GITHUB_TOKEN / GH_TOKEN when set. Only
+    that call: asset downloads redirect to other hosts."""
+
+    def _captured_request(self, monkeypatch):
+        import io
+        import json as _json
+
+        import rowan.install_opengrep as io_mod
+
+        seen = {}
+
+        class FakeOpener:
+            def open(self, req, timeout):
+                seen["req"] = req
+                return io.BytesIO(_json.dumps({"tag_name": "v1"}).encode())
+
+        monkeypatch.setattr(io_mod.urllib.request, "build_opener", lambda *handlers: FakeOpener())
+        io_mod._fetch_release_info("v1")
+        return seen["req"]
+
+    def test_github_token_is_sent(self, monkeypatch):
+        monkeypatch.delenv("GH_TOKEN", raising=False)
+        monkeypatch.setenv("GITHUB_TOKEN", "test-token-not-real")
+        req = self._captured_request(monkeypatch)
+        assert req.get_header("Authorization") == "Bearer test-token-not-real"
+
+    def test_gh_token_is_the_fallback(self, monkeypatch):
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        monkeypatch.setenv("GH_TOKEN", "test-token-not-real")
+        req = self._captured_request(monkeypatch)
+        assert req.get_header("Authorization") == "Bearer test-token-not-real"
+
+    def test_no_token_no_header(self, monkeypatch):
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+        monkeypatch.delenv("GH_TOKEN", raising=False)
+        req = self._captured_request(monkeypatch)
+        assert req.get_header("Authorization") is None
+
+    def test_token_is_dropped_on_redirect_to_another_host(self):
+        import urllib.request
+
+        from rowan.install_opengrep import _DropAuthOnHostChange
+
+        req = urllib.request.Request(
+            "https://api.github.com/repos/x/y/releases/latest",
+            headers={"Authorization": "Bearer test-token-not-real"},
+        )
+        handler = _DropAuthOnHostChange()
+        same = handler.redirect_request(req, None, 301, "Moved", {}, "https://api.github.com/repositories/1/releases/latest")
+        other = handler.redirect_request(req, None, 302, "Found", {}, "https://example.com/elsewhere")
+        assert same.get_header("Authorization") == "Bearer test-token-not-real"
+        assert other.get_header("Authorization") is None

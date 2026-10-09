@@ -104,9 +104,28 @@ def _fetch_release_info(version: str | None = None) -> dict:
     trust, especially in CI.
     """
     url = f"{GITHUB_API}/tags/{version}" if version else f"{GITHUB_API}/latest"
-    req = urllib.request.Request(url, headers={"User-Agent": "rowan-installer"})  # noqa: S310
-    with urllib.request.urlopen(req, timeout=30) as r:  # noqa: S310
+    headers = {"User-Agent": "rowan-installer"}
+    # Unauthenticated API calls share a 60-per-hour limit per IP, which CI
+    # runners exhaust. A token raises it; it is only sent to the API, and is
+    # dropped if a redirect leaves the host.
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    req = urllib.request.Request(url, headers=headers)  # noqa: S310
+    opener = urllib.request.build_opener(_DropAuthOnHostChange())
+    with opener.open(req, timeout=30) as r:
         return json.loads(r.read())
+
+
+class _DropAuthOnHostChange(urllib.request.HTTPRedirectHandler):
+    """urllib keeps the Authorization header across redirects; never let it
+    follow one to a different host."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        new = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if new is not None and urlparse(newurl).hostname != urlparse(req.full_url).hostname:
+            new.remove_header("Authorization")
+        return new
 
 
 def _asset_url(release: dict, name: str) -> str | None:
