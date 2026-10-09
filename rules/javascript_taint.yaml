@@ -26,6 +26,42 @@ rules:
     # Only the SQL text argument is the sink; a tainted value in the
     # placeholder-values argument (`pool.query("... $1", [req.query.id])`)
     # is parameterized, not injected (RT-01).
+      # rowan-registry:begin source=web_request_js_destructured
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  ({..., $SRC, ...}: $T, ...) => {
+                                    ...
+                                  }
+                              - pattern-inside: |
+                                  function $F({..., $SRC, ...}: $T, ...) {
+                                    ...
+                                  }
+                          - metavariable-regex:
+                              metavariable: $T
+                              regex: ^(express\.)?Request$|^(FastifyRequest|NextRequest|IncomingMessage|KoaRequest)\b
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  ({..., $SRC, ...}, $RES, ...) => {
+                                    ...
+                                  }
+                              - pattern-inside: |
+                                  function $F({..., $SRC, ...}, $RES, ...) {
+                                    ...
+                                  }
+                          - metavariable-regex:
+                              metavariable: $RES
+                              regex: ^(res|resp|response|reply)$
+                  - pattern: $SRC
+                  - metavariable-regex:
+                      metavariable: $SRC
+                      regex: ^(query|body|params|headers|cookies)$
+      # rowan-registry:end source=web_request_js_destructured
     pattern-sinks:
       - patterns:
           - pattern-either:
@@ -67,6 +103,42 @@ rules:
       - pattern: ctx.request.body
       - pattern: ctx.params
       - pattern: ctx.headers
+      # rowan-registry:begin source=web_request_js_destructured
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  ({..., $SRC, ...}: $T, ...) => {
+                                    ...
+                                  }
+                              - pattern-inside: |
+                                  function $F({..., $SRC, ...}: $T, ...) {
+                                    ...
+                                  }
+                          - metavariable-regex:
+                              metavariable: $T
+                              regex: ^(express\.)?Request$|^(FastifyRequest|NextRequest|IncomingMessage|KoaRequest)\b
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  ({..., $SRC, ...}, $RES, ...) => {
+                                    ...
+                                  }
+                              - pattern-inside: |
+                                  function $F({..., $SRC, ...}, $RES, ...) {
+                                    ...
+                                  }
+                          - metavariable-regex:
+                              metavariable: $RES
+                              regex: ^(res|resp|response|reply)$
+                  - pattern: $SRC
+                  - metavariable-regex:
+                      metavariable: $SRC
+                      regex: ^(query|body|params|headers|cookies)$
+      # rowan-registry:end source=web_request_js_destructured
     pattern-sinks:
       - pattern: exec(...)
       - pattern: execSync(...)
@@ -99,6 +171,42 @@ rules:
       - pattern: ctx.request.body
       - pattern: ctx.params
       - pattern: ctx.headers
+      # rowan-registry:begin source=web_request_js_destructured
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  ({..., $SRC, ...}: $T, ...) => {
+                                    ...
+                                  }
+                              - pattern-inside: |
+                                  function $F({..., $SRC, ...}: $T, ...) {
+                                    ...
+                                  }
+                          - metavariable-regex:
+                              metavariable: $T
+                              regex: ^(express\.)?Request$|^(FastifyRequest|NextRequest|IncomingMessage|KoaRequest)\b
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  ({..., $SRC, ...}, $RES, ...) => {
+                                    ...
+                                  }
+                              - pattern-inside: |
+                                  function $F({..., $SRC, ...}, $RES, ...) {
+                                    ...
+                                  }
+                          - metavariable-regex:
+                              metavariable: $RES
+                              regex: ^(res|resp|response|reply)$
+                  - pattern: $SRC
+                  - metavariable-regex:
+                      metavariable: $SRC
+                      regex: ^(query|body|params|headers|cookies)$
+      # rowan-registry:end source=web_request_js_destructured
     pattern-sinks:
       - pattern: fs.readFile(...)
       - pattern: fs.readFileSync(...)
@@ -133,6 +241,42 @@ rules:
       - pattern: ctx.request.body
       - pattern: ctx.params
       - pattern: ctx.headers
+      # rowan-registry:begin source=web_request_js_destructured
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  ({..., $SRC, ...}: $T, ...) => {
+                                    ...
+                                  }
+                              - pattern-inside: |
+                                  function $F({..., $SRC, ...}: $T, ...) {
+                                    ...
+                                  }
+                          - metavariable-regex:
+                              metavariable: $T
+                              regex: ^(express\.)?Request$|^(FastifyRequest|NextRequest|IncomingMessage|KoaRequest)\b
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  ({..., $SRC, ...}, $RES, ...) => {
+                                    ...
+                                  }
+                              - pattern-inside: |
+                                  function $F({..., $SRC, ...}, $RES, ...) {
+                                    ...
+                                  }
+                          - metavariable-regex:
+                              metavariable: $RES
+                              regex: ^(res|resp|response|reply)$
+                  - pattern: $SRC
+                  - metavariable-regex:
+                      metavariable: $SRC
+                      regex: ^(query|body|params|headers|cookies)$
+      # rowan-registry:end source=web_request_js_destructured
     pattern-sinks:
       - pattern: fetch(...)
       - pattern: axios.get(...)
@@ -167,6 +311,42 @@ rules:
       - pattern: ctx.request.body
       - pattern: ctx.params
       - pattern: ctx.headers
+      # rowan-registry:begin source=web_request_js_destructured
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  ({..., $SRC, ...}: $T, ...) => {
+                                    ...
+                                  }
+                              - pattern-inside: |
+                                  function $F({..., $SRC, ...}: $T, ...) {
+                                    ...
+                                  }
+                          - metavariable-regex:
+                              metavariable: $T
+                              regex: ^(express\.)?Request$|^(FastifyRequest|NextRequest|IncomingMessage|KoaRequest)\b
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  ({..., $SRC, ...}, $RES, ...) => {
+                                    ...
+                                  }
+                              - pattern-inside: |
+                                  function $F({..., $SRC, ...}, $RES, ...) {
+                                    ...
+                                  }
+                          - metavariable-regex:
+                              metavariable: $RES
+                              regex: ^(res|resp|response|reply)$
+                  - pattern: $SRC
+                  - metavariable-regex:
+                      metavariable: $SRC
+                      regex: ^(query|body|params|headers|cookies)$
+      # rowan-registry:end source=web_request_js_destructured
     pattern-sinks:
       - pattern: res.send(...)
       - pattern: $EL.innerHTML = $VAL
@@ -201,6 +381,42 @@ rules:
       - pattern: ctx.request.body
       - pattern: ctx.params
       - pattern: ctx.headers
+      # rowan-registry:begin source=web_request_js_destructured
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  ({..., $SRC, ...}: $T, ...) => {
+                                    ...
+                                  }
+                              - pattern-inside: |
+                                  function $F({..., $SRC, ...}: $T, ...) {
+                                    ...
+                                  }
+                          - metavariable-regex:
+                              metavariable: $T
+                              regex: ^(express\.)?Request$|^(FastifyRequest|NextRequest|IncomingMessage|KoaRequest)\b
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  ({..., $SRC, ...}, $RES, ...) => {
+                                    ...
+                                  }
+                              - pattern-inside: |
+                                  function $F({..., $SRC, ...}, $RES, ...) {
+                                    ...
+                                  }
+                          - metavariable-regex:
+                              metavariable: $RES
+                              regex: ^(res|resp|response|reply)$
+                  - pattern: $SRC
+                  - metavariable-regex:
+                      metavariable: $SRC
+                      regex: ^(query|body|params|headers|cookies)$
+      # rowan-registry:end source=web_request_js_destructured
     pattern-sinks:
       - pattern: $COLLECTION.find(...)
       - pattern: $COLLECTION.findOne(...)
@@ -234,6 +450,42 @@ rules:
       - pattern: ctx.request.body
       - pattern: ctx.params
       - pattern: ctx.headers
+      # rowan-registry:begin source=web_request_js_destructured
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  ({..., $SRC, ...}: $T, ...) => {
+                                    ...
+                                  }
+                              - pattern-inside: |
+                                  function $F({..., $SRC, ...}: $T, ...) {
+                                    ...
+                                  }
+                          - metavariable-regex:
+                              metavariable: $T
+                              regex: ^(express\.)?Request$|^(FastifyRequest|NextRequest|IncomingMessage|KoaRequest)\b
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  ({..., $SRC, ...}, $RES, ...) => {
+                                    ...
+                                  }
+                              - pattern-inside: |
+                                  function $F({..., $SRC, ...}, $RES, ...) {
+                                    ...
+                                  }
+                          - metavariable-regex:
+                              metavariable: $RES
+                              regex: ^(res|resp|response|reply)$
+                  - pattern: $SRC
+                  - metavariable-regex:
+                      metavariable: $SRC
+                      regex: ^(query|body|params|headers|cookies)$
+      # rowan-registry:end source=web_request_js_destructured
     pattern-sinks:
       - pattern: console.log(...)
       - pattern: console.info(...)
@@ -267,6 +519,42 @@ rules:
       - pattern: ctx.request.body
       - pattern: ctx.params
       - pattern: ctx.headers
+      # rowan-registry:begin source=web_request_js_destructured
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  ({..., $SRC, ...}: $T, ...) => {
+                                    ...
+                                  }
+                              - pattern-inside: |
+                                  function $F({..., $SRC, ...}: $T, ...) {
+                                    ...
+                                  }
+                          - metavariable-regex:
+                              metavariable: $T
+                              regex: ^(express\.)?Request$|^(FastifyRequest|NextRequest|IncomingMessage|KoaRequest)\b
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  ({..., $SRC, ...}, $RES, ...) => {
+                                    ...
+                                  }
+                              - pattern-inside: |
+                                  function $F({..., $SRC, ...}, $RES, ...) {
+                                    ...
+                                  }
+                          - metavariable-regex:
+                              metavariable: $RES
+                              regex: ^(res|resp|response|reply)$
+                  - pattern: $SRC
+                  - metavariable-regex:
+                      metavariable: $SRC
+                      regex: ^(query|body|params|headers|cookies)$
+      # rowan-registry:end source=web_request_js_destructured
     pattern-sinks:
       - pattern: res.setHeader(...)
       - pattern: res.set(...)
@@ -302,6 +590,42 @@ rules:
       - pattern: ctx.request.body
       - pattern: ctx.params
       - pattern: ctx.headers
+      # rowan-registry:begin source=web_request_js_destructured
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  ({..., $SRC, ...}: $T, ...) => {
+                                    ...
+                                  }
+                              - pattern-inside: |
+                                  function $F({..., $SRC, ...}: $T, ...) {
+                                    ...
+                                  }
+                          - metavariable-regex:
+                              metavariable: $T
+                              regex: ^(express\.)?Request$|^(FastifyRequest|NextRequest|IncomingMessage|KoaRequest)\b
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  ({..., $SRC, ...}, $RES, ...) => {
+                                    ...
+                                  }
+                              - pattern-inside: |
+                                  function $F({..., $SRC, ...}, $RES, ...) {
+                                    ...
+                                  }
+                          - metavariable-regex:
+                              metavariable: $RES
+                              regex: ^(res|resp|response|reply)$
+                  - pattern: $SRC
+                  - metavariable-regex:
+                      metavariable: $SRC
+                      regex: ^(query|body|params|headers|cookies)$
+      # rowan-registry:end source=web_request_js_destructured
     pattern-sinks:
       - pattern: res.redirect(...)
       - pattern: res.location(...)
@@ -337,6 +661,42 @@ rules:
       - pattern: ctx.params
       - pattern: ctx.headers
       - pattern: ctx.cookies.get(...)
+      # rowan-registry:begin source=web_request_js_destructured
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  ({..., $SRC, ...}: $T, ...) => {
+                                    ...
+                                  }
+                              - pattern-inside: |
+                                  function $F({..., $SRC, ...}: $T, ...) {
+                                    ...
+                                  }
+                          - metavariable-regex:
+                              metavariable: $T
+                              regex: ^(express\.)?Request$|^(FastifyRequest|NextRequest|IncomingMessage|KoaRequest)\b
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  ({..., $SRC, ...}, $RES, ...) => {
+                                    ...
+                                  }
+                              - pattern-inside: |
+                                  function $F({..., $SRC, ...}, $RES, ...) {
+                                    ...
+                                  }
+                          - metavariable-regex:
+                              metavariable: $RES
+                              regex: ^(res|resp|response|reply)$
+                  - pattern: $SRC
+                  - metavariable-regex:
+                      metavariable: $SRC
+                      regex: ^(query|body|params|headers|cookies)$
+      # rowan-registry:end source=web_request_js_destructured
     pattern-sinks:
       # Unsafe in every version: these revive functions from the payload.
       - pattern: $S.unserialize(...)
@@ -376,6 +736,42 @@ rules:
       - pattern: ctx.query
       - pattern: ctx.request.body
       - pattern: ctx.params
+      # rowan-registry:begin source=web_request_js_destructured
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  ({..., $SRC, ...}: $T, ...) => {
+                                    ...
+                                  }
+                              - pattern-inside: |
+                                  function $F({..., $SRC, ...}: $T, ...) {
+                                    ...
+                                  }
+                          - metavariable-regex:
+                              metavariable: $T
+                              regex: ^(express\.)?Request$|^(FastifyRequest|NextRequest|IncomingMessage|KoaRequest)\b
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  ({..., $SRC, ...}, $RES, ...) => {
+                                    ...
+                                  }
+                              - pattern-inside: |
+                                  function $F({..., $SRC, ...}, $RES, ...) {
+                                    ...
+                                  }
+                          - metavariable-regex:
+                              metavariable: $RES
+                              regex: ^(res|resp|response|reply)$
+                  - pattern: $SRC
+                  - metavariable-regex:
+                      metavariable: $SRC
+                      regex: ^(query|body|params|headers|cookies)$
+      # rowan-registry:end source=web_request_js_destructured
     pattern-sinks:
       # Only the template-source argument; render data is the safe path.
       - patterns:
@@ -421,6 +817,42 @@ rules:
       - pattern: ctx.request.body
       - pattern: ctx.params
       - pattern: ctx.headers
+      # rowan-registry:begin source=web_request_js_destructured
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  ({..., $SRC, ...}: $T, ...) => {
+                                    ...
+                                  }
+                              - pattern-inside: |
+                                  function $F({..., $SRC, ...}: $T, ...) {
+                                    ...
+                                  }
+                          - metavariable-regex:
+                              metavariable: $T
+                              regex: ^(express\.)?Request$|^(FastifyRequest|NextRequest|IncomingMessage|KoaRequest)\b
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  ({..., $SRC, ...}, $RES, ...) => {
+                                    ...
+                                  }
+                              - pattern-inside: |
+                                  function $F({..., $SRC, ...}, $RES, ...) {
+                                    ...
+                                  }
+                          - metavariable-regex:
+                              metavariable: $RES
+                              regex: ^(res|resp|response|reply)$
+                  - pattern: $SRC
+                  - metavariable-regex:
+                      metavariable: $SRC
+                      regex: ^(query|body|params|headers|cookies)$
+      # rowan-registry:end source=web_request_js_destructured
     pattern-sinks:
       - pattern: Object.assign(...)
       - pattern: "_.merge(...)"

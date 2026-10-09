@@ -552,6 +552,53 @@ _MCP_TOOL_ARG_GO_SOURCES: list[Entry] = [
     },
 ]
 
+#: A request field destructured in an Express/Koa/Fastify handler's
+#: parameters, e.g. `({ query }: Request, res) => ... query.to` (Juice Shop),
+#: which never mentions `req.query`. The destructured name must be a request
+#: field, and the handler must look like one: the parameter is typed as a
+#: request, or a second parameter is named like a response. Added alongside
+#: each JS rule's own explicit sources.
+_REQUEST_FIELD = r"^(query|body|params|headers|cookies)$"
+_WEB_REQUEST_JS_DESTRUCTURED_SOURCES: list[Entry] = [
+    {
+        "patterns": [
+            {
+                "pattern-either": [
+                    {
+                        "patterns": [
+                            {
+                                "pattern-either": [
+                                    {"pattern-inside": "({..., $SRC, ...}: $T, ...) => {\n  ...\n}"},
+                                    {"pattern-inside": "function $F({..., $SRC, ...}: $T, ...) {\n  ...\n}"},
+                                ]
+                            },
+                            {
+                                "metavariable-regex": {
+                                    "metavariable": "$T",
+                                    "regex": r"^(express\.)?Request$|^(FastifyRequest|NextRequest|IncomingMessage|KoaRequest)\b",
+                                }
+                            },
+                        ]
+                    },
+                    {
+                        "patterns": [
+                            {
+                                "pattern-either": [
+                                    {"pattern-inside": "({..., $SRC, ...}, $RES, ...) => {\n  ...\n}"},
+                                    {"pattern-inside": "function $F({..., $SRC, ...}, $RES, ...) {\n  ...\n}"},
+                                ]
+                            },
+                            {"metavariable-regex": {"metavariable": "$RES", "regex": r"^(res|resp|response|reply)$"}},
+                        ]
+                    },
+                ]
+            },
+            "$SRC",
+            {"metavariable-regex": {"metavariable": "$SRC", "regex": _REQUEST_FIELD}},
+        ]
+    },
+]
+
 #: name -> ordered list of opengrep source entries.
 SOURCES: dict[str, list[Entry]] = {
     "web_request": _WEB_REQUEST_SOURCES,
@@ -569,6 +616,7 @@ SOURCES: dict[str, list[Entry]] = {
     "llm_tool_param_java": _LLM_TOOL_PARAM_JAVA_SOURCES,
     "llm_output_go": _LLM_OUTPUT_GO_SOURCES,
     "mcp_tool_arg_go": _MCP_TOOL_ARG_GO_SOURCES,
+    "web_request_js_destructured": _WEB_REQUEST_JS_DESTRUCTURED_SOURCES,
 }
 
 #: name -> ordered list of opengrep sink entries.
