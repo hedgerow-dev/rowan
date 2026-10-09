@@ -216,8 +216,10 @@ rules:
       - pattern: res.download(...)
     pattern-sanitizers:
       - pattern: path.basename(...)
-      # A name with no slash cannot leave the directory. Clear it only where
-      # it is used in a path or file call inside the guarded block, so a call
+      # A name with no "/" cannot leave the directory on Linux and macOS (on
+      # Windows "\\" is also a separator, so this guard is incomplete there).
+      # Clear it only where it is used in a path or file call inside the
+      # guarded block, so a call
       # to a helper (which the taint engine follows) keeps its taint. Two
       # entries because `if (...) { ... }` also matches an if with an else,
       # and the else branch must stay tainted.
