@@ -1,11 +1,11 @@
 {
   "meta": {
-    "total_rules": 398,
-    "ok": 398,
+    "total_rules": 394,
+    "ok": 394,
     "warning": 0,
     "error": 0,
     "secrets_residual": 5,
-    "sanitizer_residual": 233,
+    "sanitizer_residual": 231,
     "converter_version": "1.0"
   },
   "rules": [
@@ -4777,25 +4777,6 @@
       ]
     },
     {
-      "id": "JS-XSS-001",
-      "category": "xss",
-      "cwe": [
-        79
-      ],
-      "original_severity": "high",
-      "original_engine": "neuroscan",
-      "residual": [
-        "sanitizer"
-      ],
-      "status": "ok",
-      "warnings": [],
-      "name": "innerHTML DOM XSS",
-      "pattern_not": [
-        "\\.innerHTML\\s*=\\s*['\"]\\s*['\"]",
-        "(?m)^\\s*//.*"
-      ]
-    },
-    {
       "id": "JS-XSS-002",
       "category": "xss",
       "cwe": [
@@ -4916,24 +4897,6 @@
       "status": "ok",
       "warnings": [],
       "name": "JWT weak or hardcoded secret",
-      "pattern_not": [
-        "(?m)^\\s*#",
-        "(?m)^\\s*//.*",
-        "(?:def test_|conftest|unittest)"
-      ]
-    },
-    {
-      "id": "ns-bb-002",
-      "category": "crypto",
-      "cwe": [
-        327
-      ],
-      "original_severity": "ERROR",
-      "original_engine": "neuroscan",
-      "residual": [],
-      "status": "ok",
-      "warnings": [],
-      "name": "JWT algorithm confusion",
       "pattern_not": [
         "(?m)^\\s*#",
         "(?m)^\\s*//.*",
@@ -5927,24 +5890,6 @@
       "status": "ok",
       "warnings": [],
       "name": "trust_remote_code=True",
-      "fix": "Never set trust_remote_code=True on a user-influenced model path; pin to an explicit, vetted allowlist of model repos instead.",
-      "pattern_not": [
-        "(?m)^\\s*#",
-        "(?:def test_|conftest|unittest)"
-      ]
-    },
-    {
-      "id": "NS-AIML-002",
-      "category": "ai_ml",
-      "cwe": [
-        94
-      ],
-      "original_severity": "critical",
-      "original_engine": "neuroscan",
-      "residual": [],
-      "status": "ok",
-      "warnings": [],
-      "name": "AutoModel with trust_remote_code",
       "fix": "Never set trust_remote_code=True on a user-influenced model path; pin to an explicit, vetted allowlist of model repos instead.",
       "pattern_not": [
         "(?m)^\\s*#",
@@ -7130,25 +7075,6 @@
         "uuid4\\(",
         "token_hex\\(",
         "token_urlsafe\\("
-      ]
-    },
-    {
-      "id": "NS-PATH-004",
-      "category": "path_traversal",
-      "cwe": [
-        22
-      ],
-      "original_severity": "ERROR",
-      "original_engine": "neuroscan",
-      "residual": [
-        "sanitizer"
-      ],
-      "status": "ok",
-      "warnings": [],
-      "pattern_not": [
-        "(?m)^\\s*#",
-        "(?m)^\\s*//.*",
-        "(?:def test_|conftest|unittest)"
       ]
     },
     {

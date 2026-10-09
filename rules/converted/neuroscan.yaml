@@ -362,26 +362,6 @@ rules:
     rule_name: trust_remote_code=True
     fix: Never set trust_remote_code=True on a user-influenced model path; pin to an explicit, vetted allowlist of model repos
       instead.
-- id: NS-AIML-002
-  languages:
-  - python
-  severity: ERROR
-  message: 'Loading a model with trust_remote_code=True allows execution of untrusted code.
-
-    Verify model provenance before enabling.'
-  patterns:
-  - pattern-regex: from_pretrained\s*\([^)]*trust_remote_code\s*=\s*True
-  - pattern-not-regex: (?m)^\s*#
-  - pattern-not-regex: (?:def test_|conftest|unittest)
-  metadata:
-    category: ai_ml
-    cwe:
-    - 94
-    original_engine: neuroscan
-    original_severity: critical
-    rule_name: AutoModel with trust_remote_code
-    fix: Never set trust_remote_code=True on a user-influenced model path; pin to an explicit, vetted allowlist of model repos
-      instead.
 - id: NS-AIML-004
   languages:
   - python

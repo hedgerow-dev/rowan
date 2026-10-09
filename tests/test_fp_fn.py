@@ -917,54 +917,13 @@ class TestThresholds:
             f"config, got: {surviving_ids}"
         )
 
-    def test_jwt_algorithm_confusion_duplicate_disabled_by_default(self):
-        """DEF-43: ns-bb-002 ("JWT algorithm confusion", misc_rules.yaml) and
-        NS-AUTH-101 ("JWT verification with algorithm=none or signature
-        verification disabled", security_surface.yaml) both fired on the
-        same `algorithms=[...none...]` idiom on the same line -- one issue,
-        two findings. ns-bb-002's one genuinely-unique pattern
-        (`algorithm.*HS256.*RS256`, algorithm-confusion) was moved onto
-        NS-AUTH-101 so no coverage was lost, and ns-bb-002 -- now a strict
-        subset, and also mis-classified as CWE-327/crypto instead of the
-        correct CWE-347/auth -- is disabled by the builtin thresholds.yaml
-        while NS-AUTH-101 remains live."""
-        from rowan.config import ScanConfig
-        from rowan.core.findings import ScanResult
-        from rowan.passes.base import ScanContext
-        from rowan.passes.enrichment import EnrichmentPass, _thresholds_cache
-
-        _thresholds_cache.clear()
-
-        findings = [
-            Finding(
-                rule_id=rule_id, message="jwt algorithm confusion", severity=Severity.HIGH,
-                category=Category.AUTH, file_path="src/auth.py",
-                start_line=10, engine="neuroscan",
-            )
-            for rule_id in ("ns-bb-002", "NS-AUTH-101")
-        ]
-
-        config = ScanConfig(target=Path("."))
-        context = ScanContext(
-            target_path=Path("."), config=config, result=ScanResult()
-        )
-
-        ep = EnrichmentPass()
-        result = ep._apply_thresholds(findings, context)
-        _thresholds_cache.clear()
-
-        surviving_ids = {f.rule_id for f in result}
-        assert surviving_ids == {"NS-AUTH-101"}, (
-            "Expected ns-bb-002 to be disabled by the default thresholds "
-            f"config, got: {surviving_ids}"
-        )
-
     def test_trust_remote_code_duplicate_cluster_disabled_by_default(self):
-        """DEF-10 (issue #90): NS-AIML-002/ns-aiml-038/ns-aiml-059 duplicated
+        """DEF-10 (issue #90): ns-aiml-038/ns-aiml-059 duplicated
         NS-AIML-001's bare trust_remote_code=True signal, co-firing on the
         same line and inflating finding counts (920 combined findings, 32%
         of all output, across a 5-repo corpus scan). The builtin
-        thresholds.yaml now disables the three duplicates by default while
+        thresholds.yaml disables the duplicates by default (NS-AIML-002,
+        a third copy, was deleted) while
         leaving NS-AIML-001 -- the canonical signal -- live."""
         from rowan.config import ScanConfig
         from rowan.core.findings import ScanResult
@@ -979,7 +938,7 @@ class TestThresholds:
                 category=Category.AI_ML, file_path="src/model.py",
                 start_line=10, engine="neuroscan",
             )
-            for rule_id in ("NS-AIML-001", "NS-AIML-002", "ns-aiml-038", "ns-aiml-059")
+            for rule_id in ("NS-AIML-001", "ns-aiml-038", "ns-aiml-059")
         ]
 
         config = ScanConfig(target=Path("."))
@@ -1117,44 +1076,6 @@ class TestThresholds:
             f"Expected the 0.4-confidence (test-path) finding dropped, "
             f"0.6/0.7 kept, got: {surviving_confidences}"
         )
-
-    def test_js_xss_001_duplicate_disabled_by_default(self):
-        """DEF-26: JS-XSS-001 is a near-total duplicate of NS-XSS-002 on
-        the shared `\\.innerHTML\\s*=` pattern (confirmed 91/93 and 77/78
-        overlap on two real corpus scans). Disabled by the builtin
-        thresholds.yaml; NS-XSS-002 (which absorbed JS-XSS-001's one
-        useful exclusion) remains the sole live rule for this signal."""
-        from rowan.config import ScanConfig
-        from rowan.core.findings import ScanResult
-        from rowan.passes.base import ScanContext
-        from rowan.passes.enrichment import EnrichmentPass, _thresholds_cache
-
-        _thresholds_cache.clear()
-
-        findings = [
-            Finding(
-                rule_id=rule_id, message="xss", severity=Severity.HIGH,
-                category=Category.XSS, file_path="src/app.js",
-                start_line=10, engine="neuroscan",
-            )
-            for rule_id in ("NS-XSS-002", "JS-XSS-001")
-        ]
-
-        config = ScanConfig(target=Path("."))
-        context = ScanContext(
-            target_path=Path("."), config=config, result=ScanResult()
-        )
-
-        ep = EnrichmentPass()
-        result = ep._apply_thresholds(findings, context)
-        _thresholds_cache.clear()
-
-        surviving_ids = {f.rule_id for f in result}
-        assert surviving_ids == {"NS-XSS-002"}, (
-            f"Expected only NS-XSS-002 to survive the default thresholds "
-            f"config, got: {surviving_ids}"
-        )
-
 
 class TestAIMLSecurityFalsePositives:
     """Bare AI/ML framework code that should NOT trigger ns-aiml rules."""

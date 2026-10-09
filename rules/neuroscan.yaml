@@ -317,22 +317,6 @@ rules:
       trust_remote_code=True in HuggingFace models allows arbitrary code execution.
       Only use with models from trusted sources.
 
-  - id: NS-AIML-002
-    name: AutoModel with trust_remote_code
-    severity: critical
-    category: ai_ml
-    cwe: [94]
-    fix: "Never set trust_remote_code=True on a user-influenced model path; pin to an explicit, vetted allowlist of model repos instead."
-    languages: [python]
-    patterns:
-      - 'from_pretrained\s*\([^)]*trust_remote_code\s*=\s*True'
-    pattern-not:
-      - '(?m)^\s*#'
-      - '(?:def test_|conftest|unittest)'
-    message: |
-      Loading a model with trust_remote_code=True allows execution of untrusted code.
-      Verify model provenance before enabling.
-
   - id: NS-AIML-004
     name: LangChain loads deserialization
     severity: critical

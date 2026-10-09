@@ -241,49 +241,16 @@ def test_top_level_category_and_cwe_win(tmp_path):
     assert rule.metadata.cwe_ids == [502]
 
 
-def test_ns_bb_002_does_not_fire_on_generic_tls_verify_false(tmp_path):
-    """ns-bb-002 ("JWT algorithm confusion") used to include a bare
-    verify\\s*[=:]\\s*[Ff]alse pattern with no connection to JWT at all --
-    confirmed on a real repo scan to fire on `requests.get(url,
-    verify=False)`, producing a nonsensical JWT finding on code with no JWT
-    involvement. Generic TLS-verify-disabled is already correctly owned by
-    NS-CRYPTO-101/ns-bb-004; this rule must stay scoped to actual JWT
-    signals (algorithm=none, HS256/RS256 confusion, the JWT-library
-    options.verify=false idiom)."""
-    rules_dir = Path(__file__).parent.parent / "rules"
-    rules = load_neuroscan_rules(rules_dir / "misc_rules.yaml")
-    rule = next(r for r in rules if r.metadata.id == "ns-bb-002")
-
-    tls_file = tmp_path / "web_services.py"
-    tls_file.write_text(
-        "import requests\nr = requests.get('https://example.com', verify=False)\n",
-        encoding="utf-8",
-    )
-    assert rule.check(tls_file) == [], (
-        "ns-bb-002 (JWT algorithm confusion) must not fire on generic "
-        "TLS verify=False with no JWT involvement"
-    )
-
-    jwt_file = tmp_path / "auth.py"
-    jwt_file.write_text(
-        "options = {'verify': false}\njwt.decode(token, key, algorithms=['none'])\n",
-        encoding="utf-8",
-    )
-    assert rule.check(jwt_file), "ns-bb-002 must still catch real JWT algorithm-confusion signals"
-
-
 def test_ns_auth_101_absorbs_ns_bb_002_hs256_rs256_pattern(tmp_path):
     """DEF-43: ns-bb-002 ("JWT algorithm confusion", misc_rules.yaml,
     CWE-327/crypto -- mis-classified, should be CWE-347/auth) and
     NS-AUTH-101 ("JWT verification with algorithm=none or signature
     verification disabled", security_surface.yaml, correct CWE-347/auth)
     both fired on the same `algorithms=[...none...]` idiom on the same
-    line -- one issue reported twice. ns-bb-002 is disabled by
-    rowan/config/thresholds.yaml as the redundant rule (see
-    test_fp_fn.py::TestThresholds::test_jwt_algorithm_confusion_duplicate_disabled_by_default),
-    but it carried one genuinely-unique signal NS-AUTH-101 lacked: the
+    line -- one issue reported twice. ns-bb-002 was deleted as the
+    redundant rule, but it carried one genuinely-unique signal NS-AUTH-101 lacked: the
     `algorithm.*HS256.*RS256` algorithm-confusion pattern. That pattern was
-    moved onto NS-AUTH-101 so disabling ns-bb-002 costs no recall."""
+    moved onto NS-AUTH-101 so deleting ns-bb-002 costs no recall."""
     rules_dir = Path(__file__).parent.parent / "rules"
     rules = load_neuroscan_rules(rules_dir / "security_surface.yaml")
     rule = next(r for r in rules if r.metadata.id == "NS-AUTH-101")
@@ -569,13 +536,13 @@ def test_rb_inject_002_ignores_db_exec_member_call(tmp_path):
 
 def test_ns_xss_002_ignores_innerhtml_empty_string_clear(tmp_path):
     """DEF-26: NS-XSS-002 ("innerHTML / document.write DOM-based XSS
-    sink") duplicated JS-XSS-001 (now disabled -- see thresholds.yaml)
+    sink") duplicated JS-XSS-001 (since deleted)
     on the shared `\\.innerHTML\\s*=` pattern (near-total overlap
     confirmed on two real corpus scans: discourse 91/93, prestashop
     77/78). JS-XSS-001's one useful addition was excluding
     `el.innerHTML = ''` (clearing content, not an XSS sink) -- confirmed
     25 combined real findings across both repos were exactly this.
-    Merged into NS-XSS-002's pattern-not so disabling JS-XSS-001 loses
+    Merged into NS-XSS-002's pattern-not so deleting JS-XSS-001 loses
     no real detection."""
     rules_dir = Path(__file__).parent.parent / "rules"
     rules = load_neuroscan_rules(rules_dir / "security_surface.yaml")

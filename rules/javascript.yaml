@@ -44,21 +44,6 @@ rules:
       Shell command injection via exec()/spawn(). User input in command string
       enables RCE. Use execFile() with separate arguments.
 
-  - id: JS-XSS-001
-    name: innerHTML DOM XSS
-    severity: high
-    category: xss
-    cwe: [79]
-    languages: [javascript, typescript]
-    patterns:
-      - '\.innerHTML\s*='
-    pattern-not:
-      - '\.innerHTML\s*=\s*[''"]\s*[''"]'
-      - '(?m)^\s*//.*'
-    message: |
-      Assignment to innerHTML is a DOM-based XSS sink. Use textContent
-      or DOMPurify to sanitize HTML.
-
   - id: JS-XSS-002
     name: dangerouslySetInnerHTML XSS
     severity: high

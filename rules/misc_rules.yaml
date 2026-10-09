@@ -23,33 +23,6 @@ rules:
       JWT signed with a weak or hardcoded secret. Use a strong random key
       (256+ bits) stored in environment variables.
 
-  - id: ns-bb-002
-    name: JWT algorithm confusion
-    severity: ERROR
-    category: crypto
-    cwe: [327]
-    languages: [python, javascript, typescript]
-    patterns:
-      - 'algorithms\s*=\s*\[.*none'
-      - 'algorithm.*HS256.*RS256'
-      - 'options.*verify.*false'
-    # NOT bare 'verify\s*[=:]\s*[Ff]alse': that has zero connection to JWT --
-    # it matches any TLS-verification-disabled call (requests.get(...,
-    # verify=False), an SSL context, etc.), producing a nonsensical "JWT
-    # algorithm confusion" finding on code with no JWT involvement at all.
-    # Confirmed on a real repo: fired on `requests.get(url, verify=False)`.
-    # Generic TLS-verify-disabled is already correctly owned by NS-CRYPTO-101
-    # and ns-bb-004, so removing it here is a pure precision gain, not a
-    # recall loss. `options.*verify.*false` remains -- that's the
-    # JWT-library-specific `{verify: false}` options-dict idiom.
-    pattern-not:
-      - '(?m)^\s*#'
-      - '(?m)^\s*//.*'
-      - '(?:def test_|conftest|unittest)'
-    message: |
-      JWT algorithm confusion or verification bypass. Always enforce expected
-      algorithm and never accept "none". Use PyJWT with algorithms=["RS256"].
-
   - id: ns-bb-003
     name: Insecure cookie settings
     severity: WARNING

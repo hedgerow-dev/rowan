@@ -42,21 +42,20 @@ rules:
 
   # trust_remote_code=True duplicate cluster (issue #90 / DEF-10).
   # NS-AIML-001 is the bare, canonical trust_remote_code=True signal.
-  # NS-AIML-002 (from_pretrained-specific) and ns-aiml-059 (near-duplicate
-  # of NS-AIML-001) fire on the exact same line as NS-AIML-001 with zero
-  # added recall -- every match either of them makes is a strict subset of
-  # what NS-AIML-001 already catches. ns-aiml-038's bare trust_remote_code
-  # pattern is likewise a duplicate of NS-AIML-001; its vLLM-specific
-  # patterns can't express an AND-relationship with trust_remote_code in
-  # this OR-based regex engine, so the rule's stated purpose ("vLLM WITH
-  # trust_remote_code") is already fully covered by NS-AIML-001 alone.
-  # Disabling all three here (not editing/removing the rules) keeps their
-  # IDs intact for any baseline/ignore-file that references them, and is
-  # instantly reversible. Confirmed via a 5-repo corpus scan (langchain,
+  # ns-aiml-059 (near-duplicate of NS-AIML-001) fires on the exact same
+  # line as NS-AIML-001 with zero added recall. ns-aiml-038's bare
+  # trust_remote_code pattern is likewise a duplicate of NS-AIML-001; its
+  # vLLM-specific patterns can't express an AND-relationship with
+  # trust_remote_code in this OR-based regex engine, so the rule's stated
+  # purpose ("vLLM WITH trust_remote_code") is already fully covered by
+  # NS-AIML-001 alone. Confirmed via a 5-repo corpus scan (langchain,
   # letta, autogen, crewai, vllm): this cluster was 920 combined findings,
   # 32% of ALL findings, all co-firing with NS-AIML-001 on the same line.
-  NS-AIML-002:
-    enabled: false
+  #
+  # The disabled rules in this file are not dead: they still run before
+  # this filter and act as cross-file sink markers
+  # (cross_file._is_sink_rule), so CF-SINK findings can cite or depend on
+  # them. Delete one only after showing cross-file output does not change.
   ns-aiml-038:
     enabled: false
   ns-aiml-059:
@@ -74,15 +73,6 @@ rules:
   # finding; NS-SQLI-001 alone still reports 87 (6 more, from patterns
   # NS-SQLI-002 never had -- %-format and string concatenation).
   NS-SQLI-002:
-    enabled: false
-
-  # NS-PATH-004 (MCP-01) fires on the mere presence of a Node `fs` call,
-  # with no source. On 7 popular MCP servers it was 72 of Rowan's 162
-  # path/command/SSRF/code findings, and none of the 10 sampled was a
-  # real bug (config, cache, log and temp-file paths, or a file tool doing
-  # its job). The JS taint rules (tnt-js-path-001,
-  # TNT-TS-AGENT-PATH-001) report the traced flows it was standing in for.
-  NS-PATH-004:
     enabled: false
 
   # ns-aiml-063 duplicate of NS-PATH-005 (DEF-16). Identical archive-
@@ -129,16 +119,6 @@ rules:
   RB-PATH-001:
     min_confidence: 0.5
 
-  # JS-XSS-001 duplicate of NS-XSS-002 (DEF-26). Near-total overlap
-  # confirmed on two real corpus scans (discourse: 91/93, prestashop:
-  # 77/78) on the shared `\.innerHTML\s*=` pattern. NS-XSS-002 has
-  # broader coverage (document.write/.outerHTML) JS-XSS-001 lacks;
-  # JS-XSS-001's one useful addition -- excluding `el.innerHTML = ''`
-  # empty-string clears -- has been merged into NS-XSS-002's pattern-not,
-  # so disabling JS-XSS-001 here loses no real detection.
-  JS-XSS-001:
-    enabled: false
-
   # NS-DESER-006 duplicate of ns-aiml-030 (DEF-39). Both detect
   # torch.load() without weights_only=True; identical patterns, pattern-not,
   # and sanitizers. ns-aiml-030 has richer metadata (mode: regex,
@@ -169,23 +149,4 @@ rules:
   # rather than edited so any baseline/ignore-file referencing NS-DESER-010
   # still resolves; reversible by deleting this entry.
   NS-DESER-010:
-    enabled: false
-
-  # DEF-43: ns-bb-002 ("JWT algorithm confusion", rules/misc_rules.yaml) and
-  # NS-AUTH-101 ("JWT verification with algorithm=none or signature
-  # verification disabled", rules/security_surface.yaml) both fire on the
-  # same `jwt.decode(tok, options={"verify_signature": False},
-  # algorithms=["none"])` line via their shared `algorithms=[...none...]`
-  # pattern -- confirmed empirically, one issue reported twice. Unlike the
-  # DEF-10-style pure-subset duplicates above, ns-bb-002 was NOT a strict
-  # subset: it carried one signal NS-AUTH-101 lacked (`algorithm.*HS256.*
-  # RS256`, the JWT algorithm-confusion attack itself). That pattern was
-  # moved onto NS-AUTH-101 (rules/security_surface.yaml) rather than lost.
-  # ns-bb-002 also carried the wrong CWE (327, broken crypto algorithm) and
-  # category (crypto) for this vulnerability class -- it's CWE-347/auth,
-  # which NS-AUTH-101 already had correct. With its unique pattern moved,
-  # ns-bb-002 is now a pure subset of NS-AUTH-101, so it's disabled here
-  # (not edited) so any baseline/ignore-file referencing the ID still
-  # resolves; reversible by deleting this entry.
-  ns-bb-002:
     enabled: false

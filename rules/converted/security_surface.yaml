@@ -180,31 +180,6 @@ rules:
     original_engine: neuroscan
     residual:
     - sanitizer
-- id: NS-PATH-004
-  languages:
-  - javascript
-  - typescript
-  severity: ERROR
-  message: File system operations in Node.js with potentially user-controlled path.
-  patterns:
-  - pattern-either:
-    - pattern-regex: fs\.readFile\(
-    - pattern-regex: fs\.readFileSync\(
-    - pattern-regex: fs\.writeFile\(
-    - pattern-regex: fs\.writeFileSync\(
-    - pattern-regex: fs\.createReadStream\(
-    - pattern-regex: res\.sendFile\(
-    - pattern-regex: res\.download\(
-  - pattern-not-regex: (?m)^\s*#
-  - pattern-not-regex: (?m)^\s*//.*
-  - pattern-not-regex: (?:def test_|conftest|unittest)
-  metadata:
-    category: path_traversal
-    cwe:
-    - 22
-    original_engine: neuroscan
-    residual:
-    - sanitizer
 - id: NS-PATH-005
   languages:
   - python

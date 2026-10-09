@@ -179,27 +179,6 @@ rules:
       cwe: [22]
       category: path_traversal
 
-  - id: NS-PATH-004
-    message: >
-      File system operations in Node.js with potentially user-controlled path.
-    severity: ERROR
-    languages: [javascript, typescript]
-    patterns:
-      - fs\.readFile\(
-      - fs\.readFileSync\(
-      - fs\.writeFile\(
-      - fs\.writeFileSync\(
-      - fs\.createReadStream\(
-      - res\.sendFile\(
-      - res\.download\(
-    pattern-not:
-      - '(?m)^\s*#'
-      - '(?m)^\s*//.*'
-      - '(?:def test_|conftest|unittest)'
-    metadata:
-      cwe: [22]
-      category: path_traversal
-
   - id: NS-PATH-005
     message: >
       Unsafe tarfile extractall without path filter: zip slip.
@@ -478,8 +457,8 @@ rules:
       - document\.write\(
       - \.outerHTML\s*=
     pattern-not:
-      # DEF-26: merged from JS-XSS-001 (a near-duplicate, now disabled --
-      # see thresholds.yaml). `el.innerHTML = ''` clears content and is
+      # DEF-26: merged from JS-XSS-001 (a near-duplicate, since deleted).
+      # `el.innerHTML = ''` clears content and is
       # not an XSS sink; confirmed on two real corpus scans (discourse,
       # prestashop), 25 combined findings were exactly this.
       - '\.innerHTML\s*=\s*[''"]\s*[''"]'
@@ -714,8 +693,8 @@ rules:
       - verify_signature.*False
       - jwt\.verify\(\s*\w+\s*,\s*["']
       - jwt\.decode\([^)]*verify\s*=\s*False
-      # Absorbed from ns-bb-002 (rules/misc_rules.yaml), which was disabled
-      # via rowan/config/thresholds.yaml as a duplicate: both rules
+      # Absorbed from ns-bb-002 (rules/misc_rules.yaml, since deleted as
+      # a duplicate): both rules
       # fired on the same `algorithms=[...none...]` idiom on the same line,
       # and ns-bb-002 carried the wrong CWE (327, broken crypto algorithm)
       # for what is actually CWE-347 (improper verification of a

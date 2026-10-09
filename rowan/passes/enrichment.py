@@ -295,7 +295,6 @@ _DUPLICATE_RULE_GROUPS: tuple[frozenset[str], ...] = (
     ),  # yaml.load w/o SafeLoader (DEF-39: NS-DESER-007/ns-aiml-069 confirmed duplicate; ns-bb-008 shares the yaml.unsafe_load( alternative)
     frozenset({"NS-AIML-005", "ns-grd-003"}),  # Gradio file upload w/o restriction
     frozenset({"GO-CONFIG-001", "ns-bb-004"}),  # TLS verification disabled
-    frozenset({"JS-XSS-001", "NS-XSS-002"}),  # innerHTML DOM XSS
     frozenset({"NS-PATH-005", "ns-aiml-063"}),  # tarfile extractall zip-slip
     frozenset({"NS-CACHE-001", "ns-fw-js-002"}),  # CORS wildcard origin
     frozenset({"NS-DESER-010", "ns-aiml-043"}),  # Keras model_from_json code exec
@@ -1281,7 +1280,7 @@ class EnrichmentPass:
         terms of `findings`) solely to read thresholds.yaml for the
         survivor-selection guard documented on `_merge_duplicate_cluster` --
         several of these exact rule_ids (NS-DESER-006, NS-DESER-007,
-        JS-XSS-001, ns-aiml-063, NS-DESER-010) are independently
+        ns-aiml-063, NS-DESER-010) are independently
         `enabled: false` in the built-in config/thresholds.yaml, predating
         this pass, as its own prior fix for the identical duplication
         problem via a different mechanism (DEF-16/DEF-26/DEF-39: disable one

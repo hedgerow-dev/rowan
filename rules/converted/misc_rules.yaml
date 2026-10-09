@@ -24,29 +24,6 @@ rules:
     - 347
     original_engine: neuroscan
     rule_name: JWT weak or hardcoded secret
-- id: ns-bb-002
-  languages:
-  - javascript
-  - python
-  - typescript
-  severity: ERROR
-  message: 'JWT algorithm confusion or verification bypass. Always enforce expected
-
-    algorithm and never accept "none". Use PyJWT with algorithms=["RS256"].'
-  patterns:
-  - pattern-either:
-    - pattern-regex: algorithms\s*=\s*\[.*none
-    - pattern-regex: algorithm.*HS256.*RS256
-    - pattern-regex: options.*verify.*false
-  - pattern-not-regex: (?m)^\s*#
-  - pattern-not-regex: (?m)^\s*//.*
-  - pattern-not-regex: (?:def test_|conftest|unittest)
-  metadata:
-    category: crypto
-    cwe:
-    - 327
-    original_engine: neuroscan
-    rule_name: JWT algorithm confusion
 - id: ns-bb-003
   languages:
   - csharp

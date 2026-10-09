@@ -58,26 +58,6 @@ rules:
     rule_name: child_process command injection
     residual:
     - sanitizer
-- id: JS-XSS-001
-  languages:
-  - javascript
-  - typescript
-  severity: ERROR
-  message: 'Assignment to innerHTML is a DOM-based XSS sink. Use textContent
-
-    or DOMPurify to sanitize HTML.'
-  patterns:
-  - pattern-regex: \.innerHTML\s*=
-  - pattern-not-regex: \.innerHTML\s*=\s*['"]\s*['"]
-  - pattern-not-regex: (?m)^\s*//.*
-  metadata:
-    category: xss
-    cwe:
-    - 79
-    original_engine: neuroscan
-    rule_name: innerHTML DOM XSS
-    residual:
-    - sanitizer
 - id: JS-XSS-002
   languages:
   - javascript
