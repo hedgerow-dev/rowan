@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.3.8 (alpha)
+
+- JavaScript taint rules see request fields destructured in a handler's
+  parameters, as in `({ query }: Request, res) => ...`. Juice Shop's open
+  redirect is now found.
+- JavaScript path traversal no longer flags a name used inside an
+  `if (!name.includes('/'))` block, and the NoSQL rule no longer treats
+  Sequelize `where`/`include` options as MongoDB filters. On Juice Shop this
+  removes 22 findings judged to be false positives.
+- `--exploit` no longer treats link-local addresses, including the cloud
+  metadata service, as local targets.
+- Remove four disabled rules that had no effect on output.
+
+The `includes('/')` guard is incomplete on Windows, where `\` is also a path
+separator.
+
 ## v0.3.7 (alpha)
 
 Safety release for `rowan hunt`.
