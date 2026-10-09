@@ -216,6 +216,32 @@ rules:
       - pattern: res.download(...)
     pattern-sanitizers:
       - pattern: path.basename(...)
+      # A name with no slash cannot leave the directory. Clear it only where
+      # it is used in a path or file call inside the guarded block, so a call
+      # to a helper (which the taint engine follows) keeps its taint. Two
+      # entries because `if (...) { ... }` also matches an if with an else,
+      # and the else branch must stay tainted.
+      - patterns:
+          - pattern-inside: |
+              if (!$X.includes('/')) { ... }
+          - pattern-not-inside: |
+              if (!$X.includes('/')) { ... } else { ... }
+          - pattern-either:
+              - pattern-inside: path.$M(...)
+              - pattern-inside: fs.$M(...)
+              - pattern-inside: res.sendFile(...)
+              - pattern-inside: res.download(...)
+          - pattern: $X
+      - patterns:
+          - pattern-inside: |
+              if (!$X.includes('/')) { ... } else $ELSE
+          - pattern-not-inside: $ELSE
+          - pattern-either:
+              - pattern-inside: path.$M(...)
+              - pattern-inside: fs.$M(...)
+              - pattern-inside: res.sendFile(...)
+              - pattern-inside: res.download(...)
+          - pattern: $X
 
   - id: tnt-js-ssrf-001
     mode: taint
@@ -418,8 +444,14 @@ rules:
                       regex: ^(query|body|params|headers|cookies)$
       # rowan-registry:end source=web_request_js_destructured
     pattern-sinks:
-      - pattern: $COLLECTION.find(...)
-      - pattern: $COLLECTION.findOne(...)
+      # A Sequelize options object (`where` / `include` keys) is SQL with
+      # bound parameters, not a MongoDB filter.
+      - patterns:
+          - pattern-either:
+              - pattern: $COLLECTION.find(...)
+              - pattern: $COLLECTION.findOne(...)
+          - pattern-not: "$C.$F({..., where: $W, ...}, ...)"
+          - pattern-not: "$C.$F({..., include: $I, ...}, ...)"
       - pattern: Model.find(...)
       - pattern: $COLLECTION.updateOne(...)
     pattern-sanitizers:
