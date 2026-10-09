@@ -283,7 +283,7 @@ Hunt JSON schema version 2 separates the full static inventory from verification
 | `--no-sca` | | Skip dependency scan |
 | `--no-verify` | | Skip adversarial verification (the second-opinion LLM pass after triage) |
 | `--exploit` | | Enable live HTTP exploit probes (off by default: sends real requests to targets) |
-| `--base-url URL` | | Absolute HTTP(S) base URL of the scanned app (e.g. `http://localhost:5000`), required with `--exploit` and rejected without it; credentials, query strings, fragments, and whitespace are not accepted. The host must be loopback or a private network address unless `--allow-remote-target` is passed |
+| `--base-url URL` | | Absolute HTTP(S) base URL of the scanned app (e.g. `http://localhost:5000`), required with `--exploit` and rejected without it; credentials, query strings, fragments, and whitespace are not accepted. The host must be loopback or a private network address unless `--allow-remote-target` is passed; link-local addresses (including cloud metadata at `169.254.169.254`) are not treated as local |
 | `--allow-remote-target` | | Allow `--exploit` probes against a `--base-url` outside loopback and private networks. Only for systems you are authorized to test; this is your confirmation, not a check |
 | `--audit-log PATH` | | Append one JSON line per LLM call and live probe to `PATH` (created owner-only): endpoint, model, prompt hash and size, secrets redacted, probe URL and status. Never prompt or response content |
 | `--discover` | | Enable the LLM **discovery** stage: ask the model for defects the rule corpus cannot express (off by default: costs extra LLM calls) |

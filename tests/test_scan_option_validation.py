@@ -270,6 +270,10 @@ def test_hunt_accepts_hostname_resolving_to_private_address(monkeypatch):
         # IPv4-mapped IPv6: older Python 3.10/3.11 patch releases call the whole
         # ::ffff:0:0/96 range private (CVE-2024-4032).
         ("http://[::ffff:8.8.8.8]", None),
+        # Link-local holds the cloud metadata service; probing it is never a
+        # local test of the scanned app.
+        ("http://169.254.169.254/latest/meta-data", None),
+        ("http://[fe80::1]:8080", None),
     ],
 )
 def test_hunt_refuses_remote_targets_without_opt_in(monkeypatch, base_url, resolved):
@@ -278,6 +282,13 @@ def test_hunt_refuses_remote_targets_without_opt_in(monkeypatch, base_url, resol
         cli._validate_hunt_options(
             discover=False, no_verify=False, exploit=True, base_url=base_url
         )
+
+
+def test_hunt_accepts_metadata_address_only_with_opt_in():
+    url = "http://169.254.169.254"
+    assert cli._validate_hunt_options(
+        discover=False, no_verify=False, exploit=True, base_url=url, allow_remote_target=True
+    ) == url
 
 
 def test_hunt_accepts_remote_target_with_opt_in(monkeypatch):

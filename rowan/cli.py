@@ -83,7 +83,12 @@ def _emit_scan_plan(plan: ScanPlan, *, as_json: bool) -> None:
 
 
 def _is_local_target(hostname: str) -> bool:
-    """True when every address `hostname` names is loopback, private or link-local."""
+    """True when every address `hostname` names is loopback or private.
+
+    Link-local is not local here: it holds cloud metadata services
+    (169.254.169.254), which a probe of the scanned app should never reach
+    without an explicit --allow-remote-target.
+    """
     import ipaddress
     import socket
 
@@ -93,7 +98,9 @@ def _is_local_target(hostname: str) -> bool:
         # 3.10/3.11 releases call all of ::ffff:0:0/96 private (CVE-2024-4032).
         if ip.version == 6 and ip.ipv4_mapped is not None:
             ip = ip.ipv4_mapped
-        return ip.is_loopback or ip.is_private or ip.is_link_local
+        if ip.is_link_local:
+            return False
+        return ip.is_loopback or ip.is_private
 
     if hostname.lower() == "localhost":
         return True
@@ -155,7 +162,8 @@ def _validate_hunt_options(
     # point them at someone else's system.
     if not allow_remote_target and not _is_local_target(hostname):
         raise click.UsageError(
-            f"--base-url host {hostname!r} is not a loopback or private address. "
+            f"--base-url host {hostname!r} is not a loopback or private address "
+            "(link-local addresses, including cloud metadata, are excluded). "
             "Probes against remote systems need --allow-remote-target, and you must "
             "be authorized to test the target."
         )

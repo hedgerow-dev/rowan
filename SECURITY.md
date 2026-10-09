@@ -45,7 +45,8 @@ What Rowan does:
   credential formats, URL passwords, high-entropy literals in secret-named variables) from every
   prompt sent to a non-loopback endpoint.
 - Requires `--exploit` plus an explicit `--base-url` for live probes, and refuses a target outside
-  loopback and private networks unless you pass `--allow-remote-target`.
+  loopback and private networks unless you pass `--allow-remote-target`. Link-local addresses,
+  including the cloud metadata service, are not treated as local.
 - With `--audit-log PATH`, appends one line per LLM call and probe: endpoint, sizes, hashes and
   outcome, never the content.
 
