@@ -52,8 +52,10 @@ What Rowan does:
 
 What Rowan does not do:
 
-- It is not a sandbox. There are no CPU, memory or process limits, and a crafted file can make a
-  parser slow or large.
+- It is not a sandbox. Limits are coarse: files over 2 MB are skipped, Opengrep is capped at
+  4 GiB per rule per file (a file that hits the cap is reported as an incomplete scan), and each
+  Opengrep batch has a timeout. There is no OS-level CPU or process isolation, so a crafted file
+  can still make a parser slow.
 - Secret redaction is pattern-based: a secret in an unusual format can still reach a cloud model.
   `--yes` skips the consent prompt.
 - It cannot know whether you are authorised to test a target. `--allow-remote-target` is your
