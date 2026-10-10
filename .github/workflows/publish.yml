@@ -40,6 +40,9 @@ jobs:
           name: dist
           path: dist/
       - name: Install the built wheel and the engine, then scan
+        env:
+          # Authenticated release lookups avoid the shared 60/hour API limit.
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           python -m venv /tmp/rowan-smoke

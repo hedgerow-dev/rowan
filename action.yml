@@ -74,6 +74,8 @@ runs:
       shell: bash
       env:
         OPENGREP_VERSION: ${{ inputs.opengrep-version }}
+        # Authenticated release lookups avoid the shared 60/hour API limit.
+        GITHUB_TOKEN: ${{ github.token }}
       run: |
         rowan install-engine --prefix "$HOME/.local" --version "$OPENGREP_VERSION"
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
