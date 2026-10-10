@@ -128,7 +128,7 @@ rules:
 
   - id: DK-CONFIG-006
     name: Missing HEALTHCHECK
-    severity: low
+    severity: info
     category: config
     cwe: [665]
     languages: [dockerfile]

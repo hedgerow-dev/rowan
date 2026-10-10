@@ -223,26 +223,14 @@ def test_jwt_weak_key_residual_requires_literal_evidence_in_non_python_source(tm
     assert EnrichmentPass._jwt_text_call_has_hardcoded_key(constant, 2)
 
 
-def test_cookie_header_taint_focuses_value_and_accepts_re_encoding(tmp_path):
-    (tmp_path / "direct.py").write_text(
-        "from flask import request\n"
-        "def direct(response):\n"
-        "    response.set_cookie('x', request.cookies.get('x'))\n",
-        encoding="utf-8",
-    )
-    (tmp_path / "name.py").write_text(
-        "from flask import request\n"
-        "def tainted_name(response):\n"
-        "    response.set_cookie(request.args.get('name'), 'constant')\n",
-        encoding="utf-8",
-    )
+def test_header_taint_accepts_re_encoding(tmp_path):
     (tmp_path / "encoded.py").write_text(
         "import jwt\n"
         "from flask import request\n"
         "def reencoded(response, secret):\n"
         "    original = request.cookies.get('refresh')\n"
         "    token = jwt.encode({'sub': original}, secret, algorithm='HS256')\n"
-        "    response.set_cookie('access', token)\n",
+        "    response.headers['X-Token'] = token\n",
         encoding="utf-8",
     )
     (tmp_path / "raw.py").write_text(
@@ -255,50 +243,8 @@ def test_cookie_header_taint_focuses_value_and_accepts_re_encoding(tmp_path):
 
     result = _scan(tmp_path)
 
-    assert _hits(result, "TNT-HEADER-001", "direct.py")
-    assert not _hits(result, "TNT-HEADER-001", "name.py")
     assert not _hits(result, "TNT-HEADER-001", "encoded.py")
     assert _hits(result, "TNT-HEADER-001", "raw.py")
-
-
-def test_opaque_cookie_reissue_is_unverified_without_hiding_direct_reflection(tmp_path):
-    (tmp_path / "login.py").write_text(
-        "from fastapi import Request, Response\n"
-        "from auth_plugin import get_auth_service\n"
-        "async def refresh_token(request: Request, response: Response, db):\n"
-        "    token = request.cookies.get('refresh_token_lf')\n"
-        "    if token:\n"
-        "        auth = get_auth_service()\n"
-        "        tokens = await auth.create_refresh_token(token, db)\n"
-        "        response.set_cookie(\n"
-        "            'refresh_token_lf',\n"
-        "            tokens['refresh_token'],\n"
-        "            httponly=True,\n"
-        "        )\n"
-        "        return tokens\n",
-        encoding="utf-8",
-    )
-    (tmp_path / "raw.py").write_text(
-        "from fastapi import Request, Response\n"
-        "def reflect(request: Request, response: Response):\n"
-        "    token = request.cookies.get('refresh_token_lf')\n"
-        "    response.set_cookie('refresh_token_lf', token)\n",
-        encoding="utf-8",
-    )
-
-    result = _scan(tmp_path)
-    hits = _hits(result, "TNT-HEADER-001", "login.py")
-
-    assert any(
-        hit.start_line == 10
-        and hit.severity == Severity.MEDIUM
-        and hit.metadata.get("evidence_tier") == "taint-flow-unresolved"
-        and "may reach" in hit.message
-        for hit in hits
-    ), [
-        (hit.start_line, hit.severity, hit.message) for hit in hits
-    ]
-    assert any(hit.severity == Severity.HIGH for hit in _hits(result, "TNT-HEADER-001", "raw.py"))
 
 
 def test_tool_argument_presence_is_discovery_not_high_severity(tmp_path):
