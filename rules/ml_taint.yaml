@@ -54,6 +54,47 @@ rules:
               - pattern: st.file_uploader(...)
               - pattern: gr.File(...)
               - pattern: gr.UploadButton(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          def $F(..., $P: $T, ...):
+                            ...
+
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          async def $F(..., $P: $T, ...):
+                            ...
+
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(get|post|put|delete|patch|options|head|api_route|websocket)$
+                  - metavariable-regex:
+                      metavariable: $ROUTE
+                      regex: ^(/.*)?$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(str|bytes|Any|Optional\[str\]|str \| None|None \| str|(list|List|Optional)\[[A-Za-z_.]+\]|[A-Z]\w*)$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(?!(Request|Response|WebSocket|BackgroundTasks|HTTPConnection|SecurityScopes|Session|AsyncSession|UUID|Decimal)$)
+                  - pattern-not-inside: |
+                      def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern: $P
       # rowan-registry:end source=web_request
 
     # SSTI is a tainted TEMPLATE STRING, not tainted render arguments, so the
@@ -120,6 +161,47 @@ rules:
               - pattern: st.file_uploader(...)
               - pattern: gr.File(...)
               - pattern: gr.UploadButton(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          def $F(..., $P: $T, ...):
+                            ...
+
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          async def $F(..., $P: $T, ...):
+                            ...
+
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(get|post|put|delete|patch|options|head|api_route|websocket)$
+                  - metavariable-regex:
+                      metavariable: $ROUTE
+                      regex: ^(/.*)?$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(str|bytes|Any|Optional\[str\]|str \| None|None \| str|(list|List|Optional)\[[A-Za-z_.]+\]|[A-Z]\w*)$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(?!(Request|Response|WebSocket|BackgroundTasks|HTTPConnection|SecurityScopes|Session|AsyncSession|UUID|Decimal)$)
+                  - pattern-not-inside: |
+                      def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern: $P
       # rowan-registry:end source=user_input
     pattern-sinks:
       - patterns:
@@ -175,6 +257,47 @@ rules:
               - pattern: st.file_uploader(...)
               - pattern: gr.File(...)
               - pattern: gr.UploadButton(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          def $F(..., $P: $T, ...):
+                            ...
+
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          async def $F(..., $P: $T, ...):
+                            ...
+
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(get|post|put|delete|patch|options|head|api_route|websocket)$
+                  - metavariable-regex:
+                      metavariable: $ROUTE
+                      regex: ^(/.*)?$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(str|bytes|Any|Optional\[str\]|str \| None|None \| str|(list|List|Optional)\[[A-Za-z_.]+\]|[A-Z]\w*)$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(?!(Request|Response|WebSocket|BackgroundTasks|HTTPConnection|SecurityScopes|Session|AsyncSession|UUID|Decimal)$)
+                  - pattern-not-inside: |
+                      def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern: $P
       # rowan-registry:end source=user_input
     pattern-sinks:
       - patterns:
@@ -234,6 +357,47 @@ rules:
               - pattern: st.file_uploader(...)
               - pattern: gr.File(...)
               - pattern: gr.UploadButton(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          def $F(..., $P: $T, ...):
+                            ...
+
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          async def $F(..., $P: $T, ...):
+                            ...
+
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(get|post|put|delete|patch|options|head|api_route|websocket)$
+                  - metavariable-regex:
+                      metavariable: $ROUTE
+                      regex: ^(/.*)?$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(str|bytes|Any|Optional\[str\]|str \| None|None \| str|(list|List|Optional)\[[A-Za-z_.]+\]|[A-Z]\w*)$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(?!(Request|Response|WebSocket|BackgroundTasks|HTTPConnection|SecurityScopes|Session|AsyncSession|UUID|Decimal)$)
+                  - pattern-not-inside: |
+                      def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern: $P
       # rowan-registry:end source=user_input
     pattern-sinks:
       - patterns:
@@ -245,6 +409,8 @@ rules:
               - pattern: chromadb.Collection(...).query($QUERY, ...)
               - pattern: |
                   weaviate.Client(...).query.get(...).with_near_text({"concepts": [$QUERY]})
+          # The query text only, not the receiver (see TNT-SQLI-002).
+          - focus-metavariable: $QUERY
 
   # ── Vector-store metadata filter injection (issue #138) ─────────
   # Distinct from TNT-ML-004 above: TNT-ML-004 models the query TEXT
@@ -325,6 +491,47 @@ rules:
               - pattern: st.file_uploader(...)
               - pattern: gr.File(...)
               - pattern: gr.UploadButton(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          def $F(..., $P: $T, ...):
+                            ...
+
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          async def $F(..., $P: $T, ...):
+                            ...
+
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(get|post|put|delete|patch|options|head|api_route|websocket)$
+                  - metavariable-regex:
+                      metavariable: $ROUTE
+                      regex: ^(/.*)?$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(str|bytes|Any|Optional\[str\]|str \| None|None \| str|(list|List|Optional)\[[A-Za-z_.]+\]|[A-Z]\w*)$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(?!(Request|Response|WebSocket|BackgroundTasks|HTTPConnection|SecurityScopes|Session|AsyncSession|UUID|Decimal)$)
+                  - pattern-not-inside: |
+                      def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern: $P
       # rowan-registry:end source=user_input
     pattern-sinks:
       - patterns:
@@ -417,6 +624,47 @@ rules:
               - pattern: st.file_uploader(...)
               - pattern: gr.File(...)
               - pattern: gr.UploadButton(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          def $F(..., $P: $T, ...):
+                            ...
+
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          async def $F(..., $P: $T, ...):
+                            ...
+
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(get|post|put|delete|patch|options|head|api_route|websocket)$
+                  - metavariable-regex:
+                      metavariable: $ROUTE
+                      regex: ^(/.*)?$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(str|bytes|Any|Optional\[str\]|str \| None|None \| str|(list|List|Optional)\[[A-Za-z_.]+\]|[A-Z]\w*)$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(?!(Request|Response|WebSocket|BackgroundTasks|HTTPConnection|SecurityScopes|Session|AsyncSession|UUID|Decimal)$)
+                  - pattern-not-inside: |
+                      def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern: $P
       # rowan-registry:end source=user_input
     pattern-sinks:
       - patterns:
@@ -644,6 +892,47 @@ rules:
               - pattern: st.file_uploader(...)
               - pattern: gr.File(...)
               - pattern: gr.UploadButton(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          def $F(..., $P: $T, ...):
+                            ...
+
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          async def $F(..., $P: $T, ...):
+                            ...
+
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(get|post|put|delete|patch|options|head|api_route|websocket)$
+                  - metavariable-regex:
+                      metavariable: $ROUTE
+                      regex: ^(/.*)?$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(str|bytes|Any|Optional\[str\]|str \| None|None \| str|(list|List|Optional)\[[A-Za-z_.]+\]|[A-Z]\w*)$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(?!(Request|Response|WebSocket|BackgroundTasks|HTTPConnection|SecurityScopes|Session|AsyncSession|UUID|Decimal)$)
+                  - pattern-not-inside: |
+                      def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern: $P
       # rowan-registry:end source=user_input
     # The filter arg must be a string-DSL expression, either written inline at
     # the call OR held in a variable assigned such an expression above. A
@@ -786,6 +1075,47 @@ rules:
                       - pattern: st.file_uploader(...)
                       - pattern: gr.File(...)
                       - pattern: gr.UploadButton(...)
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  @$APP.$M("$ROUTE", ...)
+                                  def $F(..., $P: $T, ...):
+                                    ...
+
+                              - pattern-inside: |
+                                  @$APP.$M("$ROUTE", ...)
+                                  async def $F(..., $P: $T, ...):
+                                    ...
+
+                          - metavariable-regex:
+                              metavariable: $M
+                              regex: ^(get|post|put|delete|patch|options|head|api_route|websocket)$
+                          - metavariable-regex:
+                              metavariable: $ROUTE
+                              regex: ^(/.*)?$
+                          - metavariable-regex:
+                              metavariable: $T
+                              regex: ^(str|bytes|Any|Optional\[str\]|str \| None|None \| str|(list|List|Optional)\[[A-Za-z_.]+\]|[A-Z]\w*)$
+                          - metavariable-regex:
+                              metavariable: $T
+                              regex: ^(?!(Request|Response|WebSocket|BackgroundTasks|HTTPConnection|SecurityScopes|Session|AsyncSession|UUID|Decimal)$)
+                          - pattern-not-inside: |
+                              def $F(..., $P = Depends(...), ...):
+                                ...
+
+                          - pattern-not-inside: |
+                              async def $F(..., $P = Depends(...), ...):
+                                ...
+
+                          - pattern-not-inside: |
+                              def $F(..., $P = Security(...), ...):
+                                ...
+
+                          - pattern-not-inside: |
+                              async def $F(..., $P = Security(...), ...):
+                                ...
+
+                          - pattern: $P
               # rowan-registry:end source=user_input
               - pattern: request.files[...]
     pattern-sinks:
@@ -843,6 +1173,47 @@ rules:
               - pattern: st.file_uploader(...)
               - pattern: gr.File(...)
               - pattern: gr.UploadButton(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          def $F(..., $P: $T, ...):
+                            ...
+
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          async def $F(..., $P: $T, ...):
+                            ...
+
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(get|post|put|delete|patch|options|head|api_route|websocket)$
+                  - metavariable-regex:
+                      metavariable: $ROUTE
+                      regex: ^(/.*)?$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(str|bytes|Any|Optional\[str\]|str \| None|None \| str|(list|List|Optional)\[[A-Za-z_.]+\]|[A-Z]\w*)$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(?!(Request|Response|WebSocket|BackgroundTasks|HTTPConnection|SecurityScopes|Session|AsyncSession|UUID|Decimal)$)
+                  - pattern-not-inside: |
+                      def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern: $P
       # rowan-registry:end source=user_input
     pattern-sinks:
       - patterns:
@@ -939,6 +1310,47 @@ rules:
               - pattern: st.file_uploader(...)
               - pattern: gr.File(...)
               - pattern: gr.UploadButton(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          def $F(..., $P: $T, ...):
+                            ...
+
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          async def $F(..., $P: $T, ...):
+                            ...
+
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(get|post|put|delete|patch|options|head|api_route|websocket)$
+                  - metavariable-regex:
+                      metavariable: $ROUTE
+                      regex: ^(/.*)?$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(str|bytes|Any|Optional\[str\]|str \| None|None \| str|(list|List|Optional)\[[A-Za-z_.]+\]|[A-Z]\w*)$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(?!(Request|Response|WebSocket|BackgroundTasks|HTTPConnection|SecurityScopes|Session|AsyncSession|UUID|Decimal)$)
+                  - pattern-not-inside: |
+                      def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern: $P
       # rowan-registry:end source=user_input
     pattern-sinks:
       - patterns:
@@ -1153,6 +1565,47 @@ rules:
               - pattern: st.file_uploader(...)
               - pattern: gr.File(...)
               - pattern: gr.UploadButton(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          def $F(..., $P: $T, ...):
+                            ...
+
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          async def $F(..., $P: $T, ...):
+                            ...
+
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(get|post|put|delete|patch|options|head|api_route|websocket)$
+                  - metavariable-regex:
+                      metavariable: $ROUTE
+                      regex: ^(/.*)?$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(str|bytes|Any|Optional\[str\]|str \| None|None \| str|(list|List|Optional)\[[A-Za-z_.]+\]|[A-Z]\w*)$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(?!(Request|Response|WebSocket|BackgroundTasks|HTTPConnection|SecurityScopes|Session|AsyncSession|UUID|Decimal)$)
+                  - pattern-not-inside: |
+                      def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern: $P
       # rowan-registry:end source=web_request
     pattern-sinks:
       - patterns:
@@ -1328,6 +1781,47 @@ rules:
               - pattern: st.file_uploader(...)
               - pattern: gr.File(...)
               - pattern: gr.UploadButton(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          def $F(..., $P: $T, ...):
+                            ...
+
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          async def $F(..., $P: $T, ...):
+                            ...
+
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(get|post|put|delete|patch|options|head|api_route|websocket)$
+                  - metavariable-regex:
+                      metavariable: $ROUTE
+                      regex: ^(/.*)?$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(str|bytes|Any|Optional\[str\]|str \| None|None \| str|(list|List|Optional)\[[A-Za-z_.]+\]|[A-Z]\w*)$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(?!(Request|Response|WebSocket|BackgroundTasks|HTTPConnection|SecurityScopes|Session|AsyncSession|UUID|Decimal)$)
+                  - pattern-not-inside: |
+                      def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern: $P
       # rowan-registry:end source=user_input
     pattern-sinks:
       - patterns:
@@ -1430,6 +1924,47 @@ rules:
               - pattern: st.file_uploader(...)
               - pattern: gr.File(...)
               - pattern: gr.UploadButton(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          def $F(..., $P: $T, ...):
+                            ...
+
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          async def $F(..., $P: $T, ...):
+                            ...
+
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(get|post|put|delete|patch|options|head|api_route|websocket)$
+                  - metavariable-regex:
+                      metavariable: $ROUTE
+                      regex: ^(/.*)?$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(str|bytes|Any|Optional\[str\]|str \| None|None \| str|(list|List|Optional)\[[A-Za-z_.]+\]|[A-Z]\w*)$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(?!(Request|Response|WebSocket|BackgroundTasks|HTTPConnection|SecurityScopes|Session|AsyncSession|UUID|Decimal)$)
+                  - pattern-not-inside: |
+                      def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern: $P
       # rowan-registry:end source=user_input
     pattern-sinks:
       - patterns:
@@ -1653,6 +2188,47 @@ rules:
                       - pattern: st.file_uploader(...)
                       - pattern: gr.File(...)
                       - pattern: gr.UploadButton(...)
+                      - patterns:
+                          - pattern-either:
+                              - pattern-inside: |
+                                  @$APP.$M("$ROUTE", ...)
+                                  def $F(..., $P: $T, ...):
+                                    ...
+
+                              - pattern-inside: |
+                                  @$APP.$M("$ROUTE", ...)
+                                  async def $F(..., $P: $T, ...):
+                                    ...
+
+                          - metavariable-regex:
+                              metavariable: $M
+                              regex: ^(get|post|put|delete|patch|options|head|api_route|websocket)$
+                          - metavariable-regex:
+                              metavariable: $ROUTE
+                              regex: ^(/.*)?$
+                          - metavariable-regex:
+                              metavariable: $T
+                              regex: ^(str|bytes|Any|Optional\[str\]|str \| None|None \| str|(list|List|Optional)\[[A-Za-z_.]+\]|[A-Z]\w*)$
+                          - metavariable-regex:
+                              metavariable: $T
+                              regex: ^(?!(Request|Response|WebSocket|BackgroundTasks|HTTPConnection|SecurityScopes|Session|AsyncSession|UUID|Decimal)$)
+                          - pattern-not-inside: |
+                              def $F(..., $P = Depends(...), ...):
+                                ...
+
+                          - pattern-not-inside: |
+                              async def $F(..., $P = Depends(...), ...):
+                                ...
+
+                          - pattern-not-inside: |
+                              def $F(..., $P = Security(...), ...):
+                                ...
+
+                          - pattern-not-inside: |
+                              async def $F(..., $P = Security(...), ...):
+                                ...
+
+                          - pattern: $P
               # rowan-registry:end source=web_request
     pattern-sinks:
       - patterns:

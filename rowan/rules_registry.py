@@ -47,10 +47,48 @@ Entry = str | dict[str, object]
 # Opengrep-pattern fragments (for `mode: taint` rule YAML).
 # --------------------------------------------------------------------------- #
 
-#: Canonical HTTP/CLI/UI request-input source list. This exact 33-pattern block
+#: A FastAPI route parameter: `@app.get("/x") def f(name: str, q: str =
+#: Query(), item: Item)`. The handler never reads a request object, so the
+#: parameter itself is the source. Only string-like and class-typed
+#: parameters count: FastAPI converts and validates int/float/bool/UUID/date
+#: before the handler runs. `Depends()`/`Security()` results keep their own
+#: trust contract (as in the authz pass), and framework objects are not input.
+_ROUTE_METHOD = r"^(get|post|put|delete|patch|options|head|api_route|websocket)$"
+_PARAM_TYPE = (
+    r"^(str|bytes|Any|Optional\[str\]|str \| None|None \| str|"
+    r"(list|List|Optional)\[[A-Za-z_.]+\]|[A-Z]\w*)$"
+)
+_NOT_FRAMEWORK_TYPE = (
+    r"^(?!(Request|Response|WebSocket|BackgroundTasks|HTTPConnection|SecurityScopes|"
+    r"Session|AsyncSession|UUID|Decimal)$)"
+)
+_FASTAPI_PARAM_SOURCE: Entry = {
+    "patterns": [
+        {
+            "pattern-either": [
+                {"pattern-inside": '@$APP.$M("$ROUTE", ...)\ndef $F(..., $P: $T, ...):\n  ...\n'},
+                {"pattern-inside": '@$APP.$M("$ROUTE", ...)\nasync def $F(..., $P: $T, ...):\n  ...\n'},
+            ]
+        },
+        {"metavariable-regex": {"metavariable": "$M", "regex": _ROUTE_METHOD}},
+        # A route path ("/items", or "" under a prefixed router), so
+        # `@mock.patch("pkg.run")` in a test is not a route.
+        {"metavariable-regex": {"metavariable": "$ROUTE", "regex": r"^(/.*)?$"}},
+        {"metavariable-regex": {"metavariable": "$T", "regex": _PARAM_TYPE}},
+        {"metavariable-regex": {"metavariable": "$T", "regex": _NOT_FRAMEWORK_TYPE}},
+        {"pattern-not-inside": "def $F(..., $P = Depends(...), ...):\n  ...\n"},
+        {"pattern-not-inside": "async def $F(..., $P = Depends(...), ...):\n  ...\n"},
+        {"pattern-not-inside": "def $F(..., $P = Security(...), ...):\n  ...\n"},
+        {"pattern-not-inside": "async def $F(..., $P = Security(...), ...):\n  ...\n"},
+        "$P",
+    ]
+}
+
+#: Canonical HTTP/CLI/UI request-input source list. This 33-pattern block
 #: was byte-for-byte duplicated across python_taint.yaml, ai_ml_taint.yaml,
-#: ml_taint.yaml and web_taint.yaml; it is now expanded from here.
-_WEB_REQUEST_SOURCES: list[str] = [
+#: ml_taint.yaml and web_taint.yaml; it is now expanded from here, with the
+#: FastAPI route-parameter source added at the end.
+_WEB_REQUEST_SOURCES: list[Entry] = [
     "request.args.get(...)",
     "request.args[...]",
     "request.form.get(...)",
@@ -84,28 +122,32 @@ _WEB_REQUEST_SOURCES: list[str] = [
     "st.file_uploader(...)",
     "gr.File(...)",
     "gr.UploadButton(...)",
+    _FASTAPI_PARAM_SOURCE,
 ]
 
 # Parsed CLI arguments are an additional operator-controlled source. JSON
 # parsing and kwargs lookups propagate existing taint; neither creates it.
-_WEB_REQUEST_ARGPARSE_SOURCES: list[str] = [*_WEB_REQUEST_SOURCES, "args.$PARAM"]
+_WEB_REQUEST_ARGPARSE_SOURCES: list[Entry] = [*_WEB_REQUEST_SOURCES, "args.$PARAM"]
 
 # End-user input: everything in web_request except operator-controlled CLI
 # args and environment. `open(sys.argv[1])` in a CLI tool or
 # `requests.get(os.environ["API_URL"])` is configuration, not an attack
 # surface, so rules that never treated argv/env as a source (SSRF, path
 # traversal, prompt/tool-arg injection) take this fragment instead.
-_USER_INPUT_SOURCES: list[str] = [
+_USER_INPUT_SOURCES: list[Entry] = [
     p for p in _WEB_REQUEST_SOURCES if p not in ("sys.argv", "os.environ[...]", "os.getenv(...)")
 ]
 
 # Some rules need HTTP-only sources rather than operator input (CLI/env)
 # or UI widgets. Ordinary parsing and kwargs access are propagators in both
 # fragments, not independent trust boundaries.
-_HTTP_REQUEST_SOURCES: list[str] = [
+_HTTP_REQUEST_SOURCES: list[Entry] = [
     p
     for p in _WEB_REQUEST_SOURCES
-    if p.startswith(("request.", "await request.", "await websocket."))
+    # Strings only: TNT-ML-026 also runs on JavaScript, where the Python-only
+    # FastAPI pattern would not parse. Python-only rules add that source
+    # through the web_request_fastapi_params fragment.
+    if isinstance(p, str) and p.startswith(("request.", "await request.", "await websocket."))
 ]
 
 # Model-metadata reads: values an attacker controls by publishing a malicious
@@ -617,6 +659,9 @@ SOURCES: dict[str, list[Entry]] = {
     "llm_output_go": _LLM_OUTPUT_GO_SOURCES,
     "mcp_tool_arg_go": _MCP_TOOL_ARG_GO_SOURCES,
     "web_request_js_destructured": _WEB_REQUEST_JS_DESTRUCTURED_SOURCES,
+    # For Python rules whose source list does not include it (open
+    # redirect's narrower list, the http_request rules).
+    "web_request_fastapi_params": [_FASTAPI_PARAM_SOURCE],
 }
 
 #: name -> ordered list of opengrep sink entries.

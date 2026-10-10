@@ -88,7 +88,8 @@ def test_sanitizer_values_snapshot():
 # A block "is" the web_request source if its pattern-either lists both the first
 # and last canonical patterns; the sentinel wraps exactly this shape.
 _FIRST = SOURCES["web_request"][0]
-_LAST = SOURCES["web_request"][-1]
+# The last plain pattern; the FastAPI parameter entry after it is a mapping.
+_LAST = [p for p in SOURCES["web_request"] if isinstance(p, str)][-1]
 # user_input is web_request minus argv/env and ends on the same last pattern;
 # web_request_argparse embeds the whole block. web_request_java / web_request_go
 # are different languages and share no pattern with it.
