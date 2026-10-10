@@ -137,7 +137,7 @@ rules:
   languages:
   - javascript
   - typescript
-  severity: WARNING
+  severity: INFO
   message: 'Math.random() is not cryptographically secure. Use
 
     crypto.randomBytes() or crypto.getRandomValues().'

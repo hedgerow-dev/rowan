@@ -3360,7 +3360,7 @@
       "cwe": [
         665
       ],
-      "original_severity": "low",
+      "original_severity": "info",
       "original_engine": "neuroscan",
       "residual": [],
       "status": "ok",
@@ -4854,7 +4854,7 @@
       "cwe": [
         330
       ],
-      "original_severity": "medium",
+      "original_severity": "info",
       "original_engine": "neuroscan",
       "residual": [],
       "status": "ok",

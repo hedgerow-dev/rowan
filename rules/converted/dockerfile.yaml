@@ -161,7 +161,6 @@ rules:
     cwe:
     - 665
     original_engine: neuroscan
-    original_severity: low
     rule_name: Missing HEALTHCHECK
 - id: DK-CONFIG-007
   languages:
