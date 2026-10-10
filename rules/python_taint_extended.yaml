@@ -56,19 +56,67 @@ rules:
               - pattern: st.file_uploader(...)
               - pattern: gr.File(...)
               - pattern: gr.UploadButton(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          def $F(..., $P: $T, ...):
+                            ...
+
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          async def $F(..., $P: $T, ...):
+                            ...
+
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(get|post|put|delete|patch|options|head|api_route|websocket)$
+                  - metavariable-regex:
+                      metavariable: $ROUTE
+                      regex: ^(/.*)?$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(str|bytes|Any|Optional\[str\]|str \| None|None \| str|(list|List|Optional)\[[A-Za-z_.]+\]|[A-Z]\w*)$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(?!(Request|Response|WebSocket|BackgroundTasks|HTTPConnection|SecurityScopes|Session|AsyncSession|UUID|Decimal)$)
+                  - pattern-not-inside: |
+                      def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern: $P
               - pattern: args.$PARAM
       # rowan-registry:end source=web_request_argparse
 
     pattern-sinks:
+      # Only the query argument is the sink. Matching the whole call also
+      # fired when the handle itself carried taint (a loop that passes user
+      # data to db.add() taints `db`), flagging ORM calls such as
+      # db.query(User).filter(User.email == email), which are parameterized.
       - patterns:
           - pattern-either:
-              - pattern: cursor.execute(...)
-              - pattern: cursor.executemany(...)
-              - pattern: $DB.execute(...)
-              - pattern: $DB.query(...)
-              - pattern: $CONN.execute(...)
-              - pattern: $SESSION.execute(...)
-              - pattern: $DB.raw(...)
+              - pattern: cursor.execute($SQL, ...)
+              - pattern: cursor.executemany($SQL, ...)
+              - pattern: $DB.execute($SQL, ...)
+              - pattern: $DB.query($SQL, ...)
+              - pattern: $CONN.execute($SQL, ...)
+              - pattern: $SESSION.execute($SQL, ...)
+              - pattern: $DB.raw($SQL, ...)
+          - focus-metavariable: $SQL
+      - patterns:
+          - pattern-either:
               - pattern: $DB.extra(...)
               - pattern: $DB.RawSQL(...)
     pattern-sanitizers:
@@ -140,6 +188,47 @@ rules:
               - pattern: st.file_uploader(...)
               - pattern: gr.File(...)
               - pattern: gr.UploadButton(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          def $F(..., $P: $T, ...):
+                            ...
+
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          async def $F(..., $P: $T, ...):
+                            ...
+
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(get|post|put|delete|patch|options|head|api_route|websocket)$
+                  - metavariable-regex:
+                      metavariable: $ROUTE
+                      regex: ^(/.*)?$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(str|bytes|Any|Optional\[str\]|str \| None|None \| str|(list|List|Optional)\[[A-Za-z_.]+\]|[A-Z]\w*)$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(?!(Request|Response|WebSocket|BackgroundTasks|HTTPConnection|SecurityScopes|Session|AsyncSession|UUID|Decimal)$)
+                  - pattern-not-inside: |
+                      def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern: $P
       # rowan-registry:end source=web_request
     # The command argument is the sink, and only a shell STRING is
     # injectable: `subprocess.run(["ls", "-l", name])` passes argv without a
@@ -214,6 +303,47 @@ rules:
               - pattern: st.file_uploader(...)
               - pattern: gr.File(...)
               - pattern: gr.UploadButton(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          def $F(..., $P: $T, ...):
+                            ...
+
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          async def $F(..., $P: $T, ...):
+                            ...
+
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(get|post|put|delete|patch|options|head|api_route|websocket)$
+                  - metavariable-regex:
+                      metavariable: $ROUTE
+                      regex: ^(/.*)?$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(str|bytes|Any|Optional\[str\]|str \| None|None \| str|(list|List|Optional)\[[A-Za-z_.]+\]|[A-Z]\w*)$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(?!(Request|Response|WebSocket|BackgroundTasks|HTTPConnection|SecurityScopes|Session|AsyncSession|UUID|Decimal)$)
+                  - pattern-not-inside: |
+                      def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern: $P
       # rowan-registry:end source=user_input
     pattern-sinks:
       - patterns:
@@ -283,6 +413,47 @@ rules:
               - pattern: st.file_uploader(...)
               - pattern: gr.File(...)
               - pattern: gr.UploadButton(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          def $F(..., $P: $T, ...):
+                            ...
+
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          async def $F(..., $P: $T, ...):
+                            ...
+
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(get|post|put|delete|patch|options|head|api_route|websocket)$
+                  - metavariable-regex:
+                      metavariable: $ROUTE
+                      regex: ^(/.*)?$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(str|bytes|Any|Optional\[str\]|str \| None|None \| str|(list|List|Optional)\[[A-Za-z_.]+\]|[A-Z]\w*)$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(?!(Request|Response|WebSocket|BackgroundTasks|HTTPConnection|SecurityScopes|Session|AsyncSession|UUID|Decimal)$)
+                  - pattern-not-inside: |
+                      def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern: $P
       # rowan-registry:end source=user_input
     pattern-sinks:
       - patterns:
@@ -354,6 +525,47 @@ rules:
               - pattern: st.file_uploader(...)
               - pattern: gr.File(...)
               - pattern: gr.UploadButton(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          def $F(..., $P: $T, ...):
+                            ...
+
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          async def $F(..., $P: $T, ...):
+                            ...
+
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(get|post|put|delete|patch|options|head|api_route|websocket)$
+                  - metavariable-regex:
+                      metavariable: $ROUTE
+                      regex: ^(/.*)?$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(str|bytes|Any|Optional\[str\]|str \| None|None \| str|(list|List|Optional)\[[A-Za-z_.]+\]|[A-Z]\w*)$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(?!(Request|Response|WebSocket|BackgroundTasks|HTTPConnection|SecurityScopes|Session|AsyncSession|UUID|Decimal)$)
+                  - pattern-not-inside: |
+                      def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern: $P
       # rowan-registry:end source=web_request
     pattern-sinks:
       - patterns:
@@ -423,6 +635,47 @@ rules:
               - pattern: st.file_uploader(...)
               - pattern: gr.File(...)
               - pattern: gr.UploadButton(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          def $F(..., $P: $T, ...):
+                            ...
+
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          async def $F(..., $P: $T, ...):
+                            ...
+
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(get|post|put|delete|patch|options|head|api_route|websocket)$
+                  - metavariable-regex:
+                      metavariable: $ROUTE
+                      regex: ^(/.*)?$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(str|bytes|Any|Optional\[str\]|str \| None|None \| str|(list|List|Optional)\[[A-Za-z_.]+\]|[A-Z]\w*)$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(?!(Request|Response|WebSocket|BackgroundTasks|HTTPConnection|SecurityScopes|Session|AsyncSession|UUID|Decimal)$)
+                  - pattern-not-inside: |
+                      def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern: $P
       # rowan-registry:end source=user_input
     pattern-sinks:
       - patterns:
@@ -539,6 +792,47 @@ rules:
               - pattern: st.file_uploader(...)
               - pattern: gr.File(...)
               - pattern: gr.UploadButton(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          def $F(..., $P: $T, ...):
+                            ...
+
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          async def $F(..., $P: $T, ...):
+                            ...
+
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(get|post|put|delete|patch|options|head|api_route|websocket)$
+                  - metavariable-regex:
+                      metavariable: $ROUTE
+                      regex: ^(/.*)?$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(str|bytes|Any|Optional\[str\]|str \| None|None \| str|(list|List|Optional)\[[A-Za-z_.]+\]|[A-Z]\w*)$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(?!(Request|Response|WebSocket|BackgroundTasks|HTTPConnection|SecurityScopes|Session|AsyncSession|UUID|Decimal)$)
+                  - pattern-not-inside: |
+                      def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern: $P
       # rowan-registry:end source=user_input
     # `$AGENT.run(...)` with no receiver constraint matched subprocess.run,
     # asyncio.run and Flask's app.run (RT-03). Same receiver regex as
@@ -633,6 +927,51 @@ rules:
               - pattern: await websocket.recv(...)
               - pattern: await websocket.receive_text(...)
       # rowan-registry:end source=http_request
+      # rowan-registry:begin source=web_request_fastapi_params
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          def $F(..., $P: $T, ...):
+                            ...
+
+                      - pattern-inside: |
+                          @$APP.$M("$ROUTE", ...)
+                          async def $F(..., $P: $T, ...):
+                            ...
+
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(get|post|put|delete|patch|options|head|api_route|websocket)$
+                  - metavariable-regex:
+                      metavariable: $ROUTE
+                      regex: ^(/.*)?$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(str|bytes|Any|Optional\[str\]|str \| None|None \| str|(list|List|Optional)\[[A-Za-z_.]+\]|[A-Z]\w*)$
+                  - metavariable-regex:
+                      metavariable: $T
+                      regex: ^(?!(Request|Response|WebSocket|BackgroundTasks|HTTPConnection|SecurityScopes|Session|AsyncSession|UUID|Decimal)$)
+                  - pattern-not-inside: |
+                      def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Depends(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern-not-inside: |
+                      async def $F(..., $P = Security(...), ...):
+                        ...
+
+                  - pattern: $P
+      # rowan-registry:end source=web_request_fastapi_params
     pattern-sinks:
       - patterns:
           # `.find()` is not Mongo-specific -- str.find() shares the name, and
