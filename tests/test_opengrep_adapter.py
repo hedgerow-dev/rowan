@@ -904,6 +904,37 @@ def test_partial_batch_findings_are_kept(tmp_path, monkeypatch):
     assert outcome.status == "partial"
 
 
+def test_out_of_memory_skip_marks_batch_partial(tmp_path, monkeypatch):
+    """Opengrep exits 0 when --max-memory makes it drop a file; the batch must
+    still report as incomplete, naming the file, so the skip is not silent."""
+    seen = {}
+
+    def fake_run(args, **kwargs):
+        seen["args"] = args
+        out = {
+            "results": [],
+            "errors": [
+                {"type": "Out of memory", "level": "warn", "code": 2, "path": "/src/big.py"},
+                {"type": "Out of memory", "level": "warn", "code": 2, "path": "/src/big.py"},
+            ],
+        }
+        return subprocess.CompletedProcess(args, returncode=0, stdout=json.dumps(out), stderr="")
+
+    monkeypatch.setattr("rowan.taint.opengrep_adapter.subprocess.run", fake_run)
+    adapter = OpengrepAdapter()
+    monkeypatch.setattr(type(adapter), "binary", property(lambda self: "opengrep"))
+    target = tmp_path / "app.py"
+    target.write_text("x = 1\n", encoding="utf-8")
+
+    _, status, detail = adapter._run_batch(
+        batch=[target], rules_dir=tmp_path, languages=None, taint_intrafile=True, extra_configs=[]
+    )
+
+    assert "--max-memory" in seen["args"]
+    assert status == "partial"
+    assert "out of memory, 1 file(s) not scanned: /src/big.py" in detail
+
+
 def test_external_rule_ids_keep_their_own_dots(tmp_path):
     """TE-17: two external rules sharing a tail must not collapse to one id."""
     from rowan.taint.opengrep_adapter import _clean_rule_id, _config_rule_ids

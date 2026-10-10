@@ -35,6 +35,9 @@ from rowan.languages import (
 
 logger = logging.getLogger(__name__)
 _UNSET = object()
+# Opengrep --max-memory, in MiB per rule per file. Generous: real source files
+# stay far below it; it exists to stop a crafted file from exhausting the host.
+_MAX_MEMORY_MIB = 4096
 
 # Successful `--version` probes, shared by every adapter in the process and
 # keyed by the binary's path, mtime and size so a replaced binary is probed
@@ -803,6 +806,12 @@ class OpengrepAdapter:
             "0",
             "--timeout-threshold",
             "0",
+            # Cap memory per rule per file so a crafted file cannot exhaust
+            # the host. Opengrep drops that file's results and exits 0 when
+            # the cap is hit; _memory_skips() below turns that into a
+            # "partial" batch so the skip is reported, not silent.
+            "--max-memory",
+            str(_MAX_MEMORY_MIB),
         ])
 
         if jobs is not None:
@@ -914,7 +923,29 @@ class OpengrepAdapter:
             logger.warning("Opengrep batch exited with code %d: %s", result.returncode, result.stderr[:500])
             return [], "error", detail[:300]
 
-        return self._parse_json_output(result.stdout, external_ids), "ok", ""
+        findings = self._parse_json_output(result.stdout, external_ids)
+        skipped = self._memory_skips(result.stdout)
+        if skipped:
+            detail = f"out of memory, {len(skipped)} file(s) not scanned: {', '.join(skipped[:3])}"
+            logger.warning("Opengrep batch: %s", detail)
+            return findings, "partial", detail[:300]
+        return findings, "ok", ""
+
+    @staticmethod
+    def _memory_skips(stdout: str) -> list[str]:
+        """Paths Opengrep dropped for hitting --max-memory (reported on exit 0)."""
+        try:
+            errors = json.loads(stdout).get("errors") or []
+        except (json.JSONDecodeError, AttributeError):
+            return []
+        paths: list[str] = []
+        for err in errors:
+            # One file can hit the cap on several rules; count it once.
+            if isinstance(err, dict) and err.get("type") == "Out of memory":
+                path = str(err.get("path") or "?")
+                if path not in paths:
+                    paths.append(path)
+        return paths
 
     def _parse_json_output(
         self, json_text: str, external_ids: frozenset[str] = frozenset()
