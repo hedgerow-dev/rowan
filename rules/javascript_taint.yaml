@@ -244,6 +244,31 @@ rules:
               - pattern-inside: res.sendFile(...)
               - pattern-inside: res.download(...)
           - pattern: $X
+      # The same guard as an early exit: `if (x.includes('/')) return ...`
+      # (or throw), then use x. Only statements after the exit are cleared.
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  if ($X.includes('/')) { ... return ...; }
+                  ...
+              - pattern-inside: |
+                  if ($X.includes('/')) { ... return; }
+                  ...
+              - pattern-inside: |
+                  if ($X.includes('/')) { ... throw $E; }
+                  ...
+              - pattern-inside: |
+                  if ($X.includes('/')) return ...;
+                  ...
+              - pattern-inside: |
+                  if ($X.includes('/')) throw $E;
+                  ...
+          - pattern-either:
+              - pattern-inside: path.$M(...)
+              - pattern-inside: fs.$M(...)
+              - pattern-inside: res.sendFile(...)
+              - pattern-inside: res.download(...)
+          - pattern: $X
 
   - id: tnt-js-ssrf-001
     mode: taint

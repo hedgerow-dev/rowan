@@ -131,6 +131,64 @@ app.get('/f', (req, res) => {
     assert _scan(tmp_path, body)
 
 
+# The same guard written as an early exit: reject a name with a slash, then
+# use it. Only code after the exit is cleared.
+@pytest.mark.parametrize(
+    "guard",
+    [
+        "if (file.includes('/')) {\n    return res.status(403).end()\n  }",
+        "if (file.includes('/')) return res.status(403).end()",
+        "if (file.includes('/')) {\n    res.status(403)\n    return\n  }",
+        "if (file.includes('/')) throw new Error('bad name')",
+    ],
+)
+def test_early_exit_slash_guard_clears(tmp_path, guard):
+    body = f"""
+app.get('/f', (req, res) => {{
+  const file = req.query.file
+  {guard}
+  res.sendFile(path.resolve('dir/', file))
+}})
+"""
+    assert not _scan(tmp_path, body)
+
+
+def test_slash_check_without_exit_is_flagged(tmp_path):
+    body = """
+app.get('/f', (req, res) => {
+  const file = req.query.file
+  if (file.includes('/')) {
+    console.log('slash in name')
+  }
+  res.sendFile(path.resolve('dir/', file))
+})
+"""
+    assert _scan(tmp_path, body)
+
+
+def test_early_exit_on_other_variable_does_not_clear(tmp_path):
+    body = """
+app.get('/f', (req, res) => {
+  const file = req.query.file
+  const name = req.query.name
+  if (name.includes('/')) return res.status(403).end()
+  res.sendFile(path.resolve('dir/', file))
+})
+"""
+    assert _scan(tmp_path, body)
+
+
+def test_sink_before_early_exit_is_flagged(tmp_path):
+    body = """
+app.get('/f', (req, res) => {
+  const file = req.query.file
+  fs.readFileSync(path.join('/data', file))
+  if (file.includes('/')) return res.status(403).end()
+})
+"""
+    assert _scan(tmp_path, body)
+
+
 # Sequelize takes an options object (`where`, `include`) and binds values as
 # SQL parameters; string operators from a query string are off by default.
 # That shape is not a MongoDB filter, so the NoSQL rule should skip it.
