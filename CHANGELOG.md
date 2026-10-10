@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.3.9 (alpha)
+
+- Opengrep runs with a 4 GiB memory cap per rule per file. A file that hits
+  the cap is reported as an incomplete taint scan with the file named, never
+  as a clean result. SECURITY.md lists the limits Rowan actually has.
+- JavaScript path traversal also accepts the guard as an early exit:
+  `if (name.includes('/')) return ...` or `throw ...` clears uses of `name`
+  after it.
+- Header injection (`TNT-HEADER-001`) no longer flags `set_cookie`: the
+  cookie encoders in Werkzeug, Django and Starlette quote or reject CR/LF.
+  On RealVuln this removes 18 false positives (precision 0.336 to 0.340,
+  recall unchanged).
+- `JS-CRYPTO-002` (`Math.random()`) and `DK-CONFIG-006` (no Dockerfile
+  HEALTHCHECK) are now INFO, out of the default view.
+- The installer authenticates its Opengrep release lookup with
+  `GITHUB_TOKEN` when one is set, avoiding API rate limits in CI.
+
 ## v0.3.8 (alpha)
 
 - JavaScript taint rules see request fields destructured in a handler's
