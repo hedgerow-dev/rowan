@@ -52,7 +52,11 @@ def _fires(tmp_path, filename, source, rule_file, rule_id):
     if not out.exists():
         return False
     data = json.loads(out.read_text())
-    return any(f.get("rule_id") == rule_id for f in data.get("findings", []))
+    # A rule merged into another rule's finding on the same line still fired.
+    return any(
+        rule_id == f.get("rule_id") or rule_id in (f.get("duplicate_rule_ids") or [])
+        for f in data.get("findings", [])
+    )
 
 
 # --- weak PRNG for a security value: ns-bb-014 --------------------------------

@@ -240,8 +240,8 @@ rules:
           - pattern-either:
               - pattern: os.system($CMD, ...)
               - pattern: os.popen($CMD, ...)
-              - pattern: exec($CMD, ...)
-              - pattern: eval($CMD, ...)
+              # eval()/exec() run Python code, not a shell command: that is
+              # code injection (CWE-95), reported by TNT-INJECT-001.
               - patterns:
                   - pattern: subprocess.$F($CMD, ...)
                   - pattern-not: subprocess.$F([...], ...)

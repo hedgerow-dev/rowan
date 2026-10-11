@@ -268,6 +268,20 @@ _SEVERITY_RANK = {
 
 # Strength of a finding's evidence (see _cap_unverified_severity), strongest
 # first. Used to pick which of several findings on one sink survives a merge.
+#: CWEs that different rules use for one issue on one line, so the same-sink
+#: merge treats them as a match: eval/exec as OS command or code injection,
+#: and debug mode left on.
+_RELATED_CWES: tuple[frozenset[int], ...] = (
+    frozenset({78, 94, 95}),
+    frozenset({215, 489}),
+)
+
+
+def _cwe_families(cwe_ids: list[int]) -> set[int]:
+    """Indexes of the related-CWE families these CWEs fall in."""
+    return {i for i, family in enumerate(_RELATED_CWES) if family & set(cwe_ids)}
+
+
 _EVIDENCE_TIER_RANK: dict[str, int] = {
     "taint-flow": 0,
     "engine": 0,
@@ -1115,7 +1129,9 @@ class EnrichmentPass:
     @staticmethod
     def _merge_same_sink_findings(findings: list[Finding], thresholds: dict) -> list[Finding]:
         """Collapse different rules reporting the same sink: same file, same
-        line, same category and at least one shared CWE.
+        line, same category and at least one shared CWE (or, in any category,
+        CWEs from one _RELATED_CWES family). Also absorbs a pattern finding
+        on a line its taint flow passes through, when they share a CWE.
 
         Unlike _DUPLICATE_RULE_GROUPS this needs no hand-kept list: a taint
         rule and a pattern rule for the same call, or two taint rules whose
@@ -1137,34 +1153,64 @@ class EnrichmentPass:
             min_conf = cfg.get("min_confidence")
             return cfg.get("enabled") is False or (min_conf is not None and f.confidence < min_conf)
 
-        buckets: dict[tuple[str, int, Category], list[Finding]] = defaultdict(list)
-        for f in findings:
-            if not dropped_by_thresholds(f):
-                buckets[(f.file_path, f.start_line, f.category)].append(f)
+        candidates = [f for f in findings if not dropped_by_thresholds(f)]
+        buckets: dict[tuple[str, int], list[Finding]] = defaultdict(list)
+        for f in candidates:
+            buckets[(f.file_path, f.start_line)].append(f)
 
         def rank(f: Finding) -> tuple:
             tier = _EVIDENCE_TIER_RANK.get(f.metadata.get("evidence_tier"), len(_EVIDENCE_TIER_RANK))
-            return (tier, _SEVERITY_RANK[f.severity], f.rule_id)
+            # On equal evidence, keep the finding that can show its trace.
+            return (tier, f.taint_flow is None, _SEVERITY_RANK[f.severity], f.rule_id)
+
+        def same_issue(a: Finding, b: Finding) -> bool:
+            # Same category and a shared CWE; or, in any category, CWEs from
+            # one related family (rules tag one eval() as CWE-78, 94 or 95).
+            if a.category == b.category and set(a.cwe_ids) & set(b.cwe_ids):
+                return True
+            return bool(_cwe_families(a.cwe_ids) & _cwe_families(b.cwe_ids))
 
         merged_away: set[int] = set()
+
+        def absorb(into: Finding, f: Finding) -> None:
+            merged_away.add(id(f))
+            # Keep every CWE the rules gave this issue, not only the
+            # survivor's own label.
+            into.cwe_ids = into.cwe_ids + [c for c in f.cwe_ids if c not in into.cwe_ids]
+            into.metadata["duplicate_rule_ids"] = sorted(
+                {*into.metadata.get("duplicate_rule_ids", [into.rule_id]),
+                 *f.metadata.get("duplicate_rule_ids", [f.rule_id])}
+            )
+
         for bucket in buckets.values():
             survivors: list[Finding] = []
             for f in sorted(bucket, key=rank):
-                into = next(
-                    (
-                        s for s in survivors
-                        if s.rule_id != f.rule_id and set(s.cwe_ids) & set(f.cwe_ids)
-                    ),
-                    None,
-                )
+                into = next((s for s in survivors if s.rule_id != f.rule_id and same_issue(s, f)), None)
                 if into is None:
                     survivors.append(f)
-                    continue
-                merged_away.add(id(f))
-                into.metadata["duplicate_rule_ids"] = sorted(
-                    {*into.metadata.get("duplicate_rule_ids", [into.rule_id]),
-                     *f.metadata.get("duplicate_rule_ids", [f.rule_id])}
-                )
+                else:
+                    absorb(into, f)
+
+        # A pattern finding on a line the taint trace passes through is the
+        # same bug seen one step earlier: `body = Template(...).render(x)`
+        # (pattern rule) then `return HTMLResponse(body)` (taint rule). Only
+        # findings without their own flow are absorbed; a second taint finding
+        # there is a second sink.
+        for taint in candidates:
+            flow = taint.taint_flow
+            if flow is None or id(taint) in merged_away:
+                continue
+            trace = {n.line for n in (flow.source, *flow.intermediate) if n and n.file_path == taint.file_path}
+            trace.discard(taint.start_line)
+            for line in trace:
+                for f in buckets.get((taint.file_path, line), []):
+                    if (
+                        f.taint_flow is None
+                        and id(f) not in merged_away
+                        and f.rule_id != taint.rule_id
+                        and set(f.cwe_ids) & set(taint.cwe_ids)
+                    ):
+                        absorb(taint, f)
         return [f for f in findings if id(f) not in merged_away]
 
     @staticmethod

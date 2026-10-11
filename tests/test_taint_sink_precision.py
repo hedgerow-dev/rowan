@@ -1607,3 +1607,22 @@ class TestSupplyChainRuleNeedsTheHub:
             "    return eval(os.getenv('EXPR'))\n"
         )
         assert self._hits(tmp_path, source) == []
+
+
+class TestPythonCodeVsCommandInjection:
+    """eval()/exec() run Python code (CWE-95), not an OS command (CWE-78).
+
+    TNT-CMDI-001 used to list them as command-injection sinks, so one eval()
+    carried a CWE-78 label beside TNT-INJECT-001's CWE-95. Code injection is
+    reported by TNT-INJECT-001; TNT-CMDI-001 keeps the shell and process sinks.
+    """
+
+    _EVAL = "from flask import request\n\ndef calc():\n    return eval(request.args.get('expr'))\n"
+    _SYSTEM = "import os\nfrom flask import request\n\ndef ping():\n    os.system('ping ' + request.args.get('host'))\n"
+
+    def test_eval_is_code_injection_not_command_injection(self, tmp_path):
+        assert _scan(tmp_path, "a.py", "ai_ml_taint.yaml", self._EVAL, "TNT-INJECT-001", "python")
+        assert not _scan(tmp_path, "a.py", "python_taint_extended.yaml", self._EVAL, "TNT-CMDI-001", "python")
+
+    def test_os_system_is_still_command_injection(self, tmp_path):
+        assert _scan(tmp_path, "b.py", "python_taint_extended.yaml", self._SYSTEM, "TNT-CMDI-001", "python")
