@@ -212,6 +212,9 @@ rules:
               - pattern: HttpResponse($INPUT)
               - pattern: HTMLResponse($INPUT)
               - pattern: $INPUT | safe
+          # The rendered value only: a tainted context variable passed to a
+          # constant render_template_string() template is autoescaped (#72).
+          - focus-metavariable: $INPUT
     pattern-sanitizers:
       - patterns:
           - pattern-either:

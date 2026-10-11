@@ -102,11 +102,26 @@ rules:
     # matched Django's `render(request, ...)` (Opengrep resolves the import to
     # `django.shortcuts.render`) and fired on every view in a Django app.
     pattern-sinks:
+      # The template STRING is the sink: a tainted render() context is data
+      # that Jinja escapes, and stdlib string.Template runs no code (#72).
       - patterns:
           - pattern-either:
-              - pattern: $ENV.from_string($TEMPLATE)
-              - pattern: Template($TEMPLATE)
-              - pattern: jinja2.Template($TEMPLATE)
+              - pattern: render_template_string($TEMPLATE, ...)
+              - pattern: flask.render_template_string($TEMPLATE, ...)
+              - pattern: jinja2.Template($TEMPLATE, ...)
+              - pattern: django.template.Template($TEMPLATE, ...)
+              - pattern: mako.template.Template($TEMPLATE, ...)
+              - pattern: tornado.template.Template($TEMPLATE, ...)
+              - patterns:
+                  - pattern: $ENV.from_string($TEMPLATE, ...)
+                  - metavariable-regex:
+                      metavariable: $ENV
+                      regex: (?i).*(env|jinja|templ).*
+              - patterns:
+                  - pattern-inside: |
+                      from jinja2 import Template
+                      ...
+                  - pattern: Template($TEMPLATE, ...)
           - focus-metavariable: $TEMPLATE
     pattern-sanitizers:
       - patterns:
