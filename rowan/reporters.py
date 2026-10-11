@@ -169,6 +169,9 @@ def to_sarif(result: ScanResult, source_root: str = "") -> dict:
                 properties["dependencyChain"] = chain
         if f.metadata and f.metadata.get("version_indeterminate"):
             properties["versionIndeterminate"] = True
+        if f.metadata and f.metadata.get("occurrence_count"):
+            properties["occurrenceCount"] = f.metadata["occurrence_count"]
+            properties["clusterLines"] = [f.metadata["cluster_start"], f.metadata["cluster_end"]]
 
         result_entry = {
             "ruleId": rid,
@@ -237,6 +240,11 @@ def to_json(result: ScanResult, source_root: str = "") -> str:
             "cwe": f.cwe_ids,
             "engine": f.engine,
             "duplicate_rule_ids": (f.metadata or {}).get("duplicate_rule_ids"),
+            "occurrence_count": (f.metadata or {}).get("occurrence_count"),
+            "cluster_lines": (
+                [f.metadata["cluster_start"], f.metadata["cluster_end"]]
+                if f.metadata and "cluster_start" in f.metadata else None
+            ),
             "evidence_tier": (f.metadata or {}).get("evidence_tier"),
             "authorization_requirement": (f.metadata or {}).get("authorization_requirement"),
             "object_use": (f.metadata or {}).get("object_use"),

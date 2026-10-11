@@ -1018,11 +1018,12 @@ class EnrichmentPass:
                     f.metadata.get("package"),
                     f.metadata.get("version"),
                     # Proven operations keep their sink identity. Multiple source
-                    # paths to one unpickling operation merge; nearby operations
-                    # remain distinct rather than collapsing by file proximity.
+                    # paths to one sink merge; nearby sinks remain distinct
+                    # rather than collapsing by file proximity. Every taint
+                    # rule, not only TNT-DESER-001 (#62).
                     f.metadata.get("operation_id") or (
                         (f.taint_flow.sink.file_path, f.taint_flow.sink.line, f.taint_flow.sink.column)
-                        if f.rule_id == "TNT-DESER-001" and f.taint_flow and f.taint_flow.sink
+                        if f.taint_flow and f.taint_flow.sink
                         else (f.start_line, f.start_column) if f.rule_id == "TNT-DESER-001" else None
                     ),
                 )

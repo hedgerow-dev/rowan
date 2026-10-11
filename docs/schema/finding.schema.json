@@ -178,6 +178,15 @@
       "items": {"type": "string"},
       "description": "When several rules reported the same sink, the rule ids merged into this finding, including its own rule_id. Null when nothing was merged."
     },
+    "occurrence_count": {
+      "type": ["integer", "null"],
+      "description": "How many reports of the same rule close together in the file were folded into this finding. Null when nothing was folded."
+    },
+    "cluster_lines": {
+      "type": ["array", "null"],
+      "items": {"type": "integer"},
+      "description": "First and last line of the folded reports, when occurrence_count is set."
+    },
     "root_cause_id": {
       "type": "string",
       "description": "Identifier of the root-cause cluster this finding belongs to."

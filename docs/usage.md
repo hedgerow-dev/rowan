@@ -504,10 +504,17 @@ both *lower* severity for reasons unrelated to the finding's truth:
 Nothing is deleted by either rule. Use `-s info` to see everything.
 
 **One sink, one finding.** When several rules report the same line with the
-same category and a shared CWE, they are merged into the finding with the
-strongest evidence (then the highest severity). The JSON field
-`duplicate_rule_ids` lists every rule merged into it, so a more specific rule
-that matched the same call is still visible there.
+same category and a shared CWE, or with CWEs that rules use for one issue
+under different categories (code injection 94/95, OS command injection 78,
+debug mode 215/489), they are merged. A pattern finding on a line that a taint
+trace passes through, sharing a CWE, is merged into the taint finding. The
+survivor is a proven flow if there is one, otherwise the most severe report;
+it keeps every CWE and the highest severity and confidence of the merged
+findings. The JSON field `duplicate_rule_ids` lists every rule merged into it.
+
+Repeated reports of one rule close together in a file are folded too, except
+that taint findings stay separate per sink. `occurrence_count` and
+`cluster_lines` show how many reports were folded and their line span.
 
 ## Scan manifest
 

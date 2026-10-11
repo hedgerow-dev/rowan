@@ -252,10 +252,12 @@ rules:
               - pattern: SafeString($INPUT)
               - pattern: SafeText($INPUT)
               # format_html escapes its ARGUMENTS -- only a tainted format
-              # STRING is the vulnerability, so match the first positional
-              # slot rather than the whole call.
+              # STRING is the vulnerability. format_html_join(sep,
+              # format_string, args) takes it second. Without the focus below
+              # the whole call was the sink, so a tainted argument fired too.
               - pattern: format_html($INPUT, ...)
-              - pattern: format_html_join(..., $INPUT, ...)
+              - pattern: format_html_join($SEP, $INPUT, ...)
+          - focus-metavariable: $INPUT
     pattern-sanitizers:
       - patterns:
           - pattern-either:

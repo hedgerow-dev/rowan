@@ -42,3 +42,35 @@ def test_deserialization_dedup_uses_sink_not_file_proximity():
     result = EnrichmentPass()._deduplicate([finding(1, 10), finding(2, 10), finding(3, 11)])
     assert {f.start_line for f in result} == {10, 11}
     assert len(result) == 2
+
+
+def _sqli(source, sink):
+    from rowan.core.findings import Category, Finding, Severity, TaintFlow, TaintNode
+
+    return Finding(
+        rule_id="TNT-SQLI-002", message="sqli", severity=Severity.HIGH,
+        category=Category.INJECTION, file_path="app.py", start_line=sink, confidence=0.9,
+        taint_flow=TaintFlow(source=TaintNode("app.py", source), sink=TaintNode("app.py", sink, 4)),
+    )
+
+
+def test_distinct_taint_sinks_are_not_collapsed_by_proximity():
+    # #62: two execute() calls two lines apart, fed by two request reads,
+    # used to become one finding; the second sink vanished from the report.
+    from rowan.passes.enrichment import EnrichmentPass
+
+    result = EnrichmentPass()._deduplicate([_sqli(9, 11), _sqli(12, 13)])
+    assert sorted(f.start_line for f in result) == [11, 13]
+
+
+def test_sources_reaching_one_sink_still_merge_and_report_the_count():
+    import json
+
+    from rowan.core.findings import ScanResult
+    from rowan.passes.enrichment import EnrichmentPass
+    from rowan.reporters import to_json
+
+    result = EnrichmentPass()._deduplicate([_sqli(9, 11), _sqli(10, 11)])
+    assert len(result) == 1
+    [row] = json.loads(to_json(ScanResult(findings=result)))["findings"]
+    assert row["occurrence_count"] == 2
