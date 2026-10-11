@@ -26,6 +26,8 @@ from rowan.analysis.dominance import (
 from rowan.analysis.guard_clause import check_guard_suppression
 from rowan.analysis.request_sources import HTTP_INPUT_RE, ROUTE_DECORATOR_RE
 from rowan.analysis.source_tracer import classify_origin as ast_classify_origin
+from rowan.analysis.test_paths import ENTRYPOINT_RE as _ENTRYPOINT_RE
+from rowan.analysis.test_paths import is_example_only_path as _is_example_only_path
 from rowan.analysis.test_paths import is_no_attacker_path as _is_no_attacker_path
 from rowan.analysis.test_paths import is_test_path as _is_test_path
 from rowan.core.confidence import (
@@ -608,6 +610,7 @@ class EnrichmentPass:
     def __init__(self, dedup_threshold: int = 3):
         self._dedup_threshold = dedup_threshold
         self._file_head_cache: dict[str, str] = {}
+        self._entrypoint_cache: dict[str, bool] = {}
         self._guard_ast_cache: dict[str, ast.AST | None] = {}
 
     def run(self, context: ScanContext) -> ScanResult:
@@ -1272,7 +1275,9 @@ class EnrichmentPass:
                     candidate_path = str(
                         Path(f.file_path).resolve().relative_to(context.target_path.resolve())
                     )
-            if _is_test_path(candidate_path):
+            if _is_test_path(candidate_path) and not (
+                _is_example_only_path(candidate_path) and self._is_entrypoint(f.file_path)
+            ):
                 f.confidence = min(f.confidence, 0.4)
                 f.metadata["test_context"] = True
                 # Test/example code is retained in audit output but should not
@@ -1322,7 +1327,9 @@ class EnrichmentPass:
                 rel = str(Path(f.file_path).resolve().relative_to(target.resolve()))
             except ValueError:
                 rel = f.file_path
-            if _is_no_attacker_path(rel):
+            # A file in tools/ or cli/ that serves requests itself is not
+            # operator tooling (#65).
+            if _is_no_attacker_path(rel) and not self._is_entrypoint(f.file_path):
                 f.confidence = min(f.confidence, 0.3)
                 f.metadata["no_attacker_context"] = True
                 if f.severity in (Severity.CRITICAL, Severity.HIGH, Severity.MEDIUM):
@@ -2572,6 +2579,15 @@ class EnrichmentPass:
     def _classify_source_confidence(self, snippet: str) -> float | None:
         _, conf = self._classify_source_origin(snippet)
         return conf if conf > 0.0 else None
+
+    def _is_entrypoint(self, file_path: str) -> bool:
+        if file_path not in self._entrypoint_cache:
+            try:
+                text = Path(file_path).read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                text = ""
+            self._entrypoint_cache[file_path] = bool(_ENTRYPOINT_RE.search(text))
+        return self._entrypoint_cache[file_path]
 
     def _read_file_head(self, file_path: str) -> str:
         if file_path in self._file_head_cache:

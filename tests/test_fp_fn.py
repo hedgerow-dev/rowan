@@ -460,6 +460,21 @@ class TestTestPathFiltering:
         assert is_test_path("internal/dbtest/dbtest.go") is True
         assert is_test_path("internal/contest/latest.go") is False
 
+    def test_production_file_names_with_test_words_are_not_tests(self):
+        """#65: the file name was split into tokens like a directory, so a
+        production `demo_server.py` or `mock_server.py` counted as test code
+        and its findings were forced to LOW. Only explicit test-file
+        conventions apply to the file name."""
+        from rowan.analysis.test_paths import is_test_path
+
+        for prod in ("src/agent/demo_server.py", "api/mock_server.py",
+                     "services/spec_loader.py", "models/fake_news_classifier.py"):
+            assert is_test_path(prod) is False, prod
+        for test in ("pkg/conftest.py", "pkg/test_api.py", "pkg/api_test.py",
+                     "spec/models/user_spec.rb", "tests/helpers.py", "src/mocks/client.py",
+                     "src/api.test.ts", "src/user.spec.jsx"):
+            assert is_test_path(test) is True, test
+
     def test_test_path_downgrade(self):
 
         findings = [
@@ -1143,3 +1158,50 @@ class TestAIMLSecurityFalseNegatives:
         findings = _scan_snippet(ai_rules, code)
         compile_tp = [f for f in findings if f.rule_id == "ns-aiml-046"]
         assert len(compile_tp) > 0, "FN: standalone compile() with user input not detected"
+
+
+class TestEntrypointsInExampleAndToolDirs:
+    """#65: a Gradio/Streamlit/FastAPI app under demo/ or examples/, or a
+    route module under tools/, is deployed code; it must not be demoted as
+    test or operator tooling. Non-entrypoint files there still are."""
+
+    def _f(self, path):
+        return Finding(
+            rule_id="NS-CMDI-002", message="m", severity=Severity.HIGH,
+            category=Category.COMMAND_INJECTION, file_path=str(path), start_line=3, engine="neuroscan",
+        )
+
+    def _ctx(self, root):
+        from rowan.config import ScanConfig
+        from rowan.core.findings import ScanResult
+        from rowan.passes.base import ScanContext
+
+        return ScanContext(target_path=root, config=ScanConfig(target=root), result=ScanResult())
+
+    def test_demo_app_is_not_demoted_but_demo_helper_is(self, tmp_path):
+        from rowan.passes.enrichment import EnrichmentPass
+
+        (tmp_path / "demo").mkdir()
+        app = tmp_path / "demo" / "app.py"
+        app.write_text("import gradio as gr\nimport os\nos.system(x)\ndemo.launch()\n", encoding="utf-8")
+        helper = tmp_path / "demo" / "helper.py"
+        helper.write_text("import os\n\nos.system(x)\n", encoding="utf-8")
+
+        app_f, helper_f = self._f(app), self._f(helper)
+        EnrichmentPass()._suppress_test_findings([app_f, helper_f], self._ctx(tmp_path))
+        assert app_f.severity == Severity.HIGH
+        assert helper_f.severity == Severity.LOW
+
+    def test_route_module_under_tools_is_not_capped(self, tmp_path):
+        from rowan.passes.enrichment import EnrichmentPass
+
+        (tmp_path / "tools").mkdir()
+        route = tmp_path / "tools" / "api.py"
+        route.write_text("@app.post('/run')\ndef run(x):\n    os.system(x)\n", encoding="utf-8")
+        script = tmp_path / "tools" / "migrate.py"
+        script.write_text("import os\n\nos.system(x)\n", encoding="utf-8")
+
+        route_f, script_f = self._f(route), self._f(script)
+        EnrichmentPass()._cap_no_attacker_context([route_f, script_f], self._ctx(tmp_path))
+        assert route_f.severity == Severity.HIGH
+        assert script_f.severity == Severity.LOW

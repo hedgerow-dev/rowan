@@ -25,7 +25,10 @@ TEST_PATH_SEGMENTS = frozenset({
     "testsupport",
 })
 
-TEST_FILE_PREFIXES = ("test_", "spec_")
+TEST_FILE_PREFIXES = ("test_",)
+TEST_FILE_NAMES = frozenset({"conftest.py"})
+# JS/TS `name.test.ts`, `name.spec.jsx`.
+TEST_FILE_RE = re.compile(r"\.(?:test|spec)\.[cm]?[jt]sx?$")
 TEST_FILE_SUFFIXES = ("_test.py", "_spec.py", "_test.js", "_spec.js", "_test.rb", "_spec.rb", "_test.go")
 
 PATH_SEGMENT_SPLIT_RE = re.compile(r"[-_.]")
@@ -62,14 +65,47 @@ def is_no_attacker_path(file_path: str) -> bool:
     return any(p.lower() in NO_ATTACKER_PATH_SEGMENTS for p in path.parts)
 
 
-def is_test_path(file_path: str) -> bool:
-    """True if `file_path` is test, example, fixture or mock code."""
-    parts = Path(file_path).parts
-    name = Path(file_path).name.lower()
-    for p in parts:
+# Example and demo directories. Unlike tests, many AI repositories deploy
+# what lives there (a Gradio or Streamlit demo), so consumers exempt a file
+# under them that is itself an entrypoint (#65).
+EXAMPLE_PATH_SEGMENTS = frozenset({"example", "examples", "demo", "demos"})
+
+# A file that serves requests itself: a route decorator with a literal path,
+# a server or UI launch, or an MCP server/tool definition.
+ENTRYPOINT_RE = re.compile(
+    r"@\w+(?:\.\w+)*\.(?:route|get|post|put|patch|delete|websocket|api_route)\(\s*[\'\"]/"
+    r"|\.launch\(|\buvicorn\.run\(|\bapp\.run\(|\bFastMCP\(|@\w+\.tool\("
+    r"|^\s*(?:import|from)\s+streamlit\b",
+    re.MULTILINE,
+)
+
+
+def _test_path(file_path: str, segments: frozenset[str]) -> bool:
+    path = Path(file_path)
+    name = path.name.lower()
+    for p in path.parts[:-1]:
         tokens = PATH_SEGMENT_SPLIT_RE.split(p.lower())
-        if any(t in TEST_PATH_SEGMENTS for t in tokens):
+        if any(t in segments for t in tokens):
             return True
+    if name in TEST_FILE_NAMES or TEST_FILE_RE.search(name):
+        return True
     if any(name.startswith(p) for p in TEST_FILE_PREFIXES):
         return True
     return any(name.endswith(s) for s in TEST_FILE_SUFFIXES)
+
+
+def is_test_path(file_path: str) -> bool:
+    """True if `file_path` is test, example, fixture or mock code.
+
+    Directory names are split into words (`unit-tests`, `api-examples`); the
+    file name is not. It counts only by explicit test-file convention, so a
+    production `demo_server.py` or `mock_server.py` is not test code (#65).
+    """
+    return _test_path(file_path, TEST_PATH_SEGMENTS)
+
+
+def is_example_only_path(file_path: str) -> bool:
+    """True if `file_path` is test-like only because of an example/demo directory."""
+    return is_test_path(file_path) and not _test_path(
+        file_path, TEST_PATH_SEGMENTS - EXAMPLE_PATH_SEGMENTS
+    )

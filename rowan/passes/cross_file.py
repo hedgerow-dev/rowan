@@ -47,6 +47,8 @@ from rowan.analysis.request_sources import (
     function_reads_source as _function_reads_request_source,
 )
 from rowan.analysis.stmt_walk import iter_body_statements as _iter_body_statements
+from rowan.analysis.test_paths import ENTRYPOINT_RE as _ENTRYPOINT_RE
+from rowan.analysis.test_paths import is_example_only_path as _is_example_only_path
 from rowan.analysis.test_paths import is_test_path as _is_test_path
 from rowan.core.confidence import BOUNDARY_SOURCE, CROSSFILE_TAINT
 from rowan.core.finding_clusters import concrete_sink_symbol
@@ -5289,7 +5291,9 @@ def _drop_test_anchored(result: ScanResult, target_path: Path) -> int:
     findings (88%) anchored in test files, and 121 of 121 in langchain, because
     test suites call `llm.invoke()` / `model.generate()` constantly and every
     one matched the model-receiver heuristic. `EnrichmentPass._suppress_test_
-    findings` only downgrades to MEDIUM/0.4, which still buries the real ones.
+    findings` only downgrades, which still buries the real ones. A demo or
+    example file that is itself an entrypoint (Gradio, Streamlit, a route
+    module) is deployed code and is kept (#65).
 
     The path is made relative to the scan root first. Testing the absolute path
     would match any repository that merely happens to live under a directory
@@ -5303,12 +5307,20 @@ def _drop_test_anchored(result: ScanResult, target_path: Path) -> int:
             rel = str(Path(f.file_path).resolve().relative_to(Path(target_path).resolve()))
         except (ValueError, OSError):
             rel = Path(f.file_path).name  # outside the root: judge on filename alone
-        if _is_test_path(rel):
+        if _is_test_path(rel) and not (_is_example_only_path(rel) and _is_entrypoint(f.file_path)):
             dropped += 1
             continue
         kept.append(f)
     result.findings = kept
     return dropped
+
+
+def _is_entrypoint(file_path: str) -> bool:
+    """A demo/example file that serves requests itself is deployed code (#65)."""
+    try:
+        return bool(_ENTRYPOINT_RE.search(Path(file_path).read_text(encoding="utf-8", errors="ignore")))
+    except OSError:
+        return False
 
 
 def _sink_description(callee_sig: _FunctionSig | None, taint_flow: TaintFlow | None) -> str:
