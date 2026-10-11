@@ -779,7 +779,7 @@ Post-processing over all accumulated findings:
   reaching the same sink from the same file are distinct vulnerable entry
   points, not near-duplicates of each other, even if their definitions
   happen to sit within the merge window.
-- **Confidence scoring**: neuroscan capped at 0.7, bulk matches penalized.
+- **Confidence scoring**: neuroscan capped at 0.7.
   Taint findings (opengrep and crossfile) score through one shared,
   calibratable model (`core/confidence.py`, #123, replacing two
   independently hand-picked hop-confidence ladders that disagreed on what

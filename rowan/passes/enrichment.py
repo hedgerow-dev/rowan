@@ -10,7 +10,7 @@ import contextlib
 import logging
 import re
 import time
-from collections import Counter, defaultdict
+from collections import defaultdict
 from functools import cache
 from pathlib import Path
 
@@ -29,7 +29,6 @@ from rowan.analysis.source_tracer import classify_origin as ast_classify_origin
 from rowan.analysis.test_paths import is_no_attacker_path as _is_no_attacker_path
 from rowan.analysis.test_paths import is_test_path as _is_test_path
 from rowan.core.confidence import (
-    BULK_MATCH_CAP,
     OPENGREP_TAINT,
     PATTERN_ONLY_CAP,
 )
@@ -605,8 +604,7 @@ def _cap_severity(finding: Finding, cap: Severity) -> None:
 class EnrichmentPass:
     name = "enrichment"
 
-    def __init__(self, dedup_threshold: int = 3):
-        self._dedup_threshold = dedup_threshold
+    def __init__(self):
         self._file_head_cache: dict[str, str] = {}
         self._guard_ast_cache: dict[str, ast.AST | None] = {}
 
@@ -1050,8 +1048,7 @@ class EnrichmentPass:
                     cluster = [f]
             merged.append(self._merge_cluster(cluster))
 
-        counts = Counter((f.file_path, f.rule_id) for f in merged)
-        return [self._mark_bulk(f, counts) for f in merged]
+        return merged
 
     @staticmethod
     def _merge_cluster(cluster: list[Finding]) -> Finding:
@@ -1064,13 +1061,6 @@ class EnrichmentPass:
             best.metadata["cluster_end"] = cluster[-1].start_line
             best.metadata["occurrence_count"] = len(cluster)
         return best
-
-    def _mark_bulk(self, finding: Finding, counts: Counter) -> Finding:
-        count = counts.get((finding.file_path, finding.rule_id), 1)
-        if count >= self._dedup_threshold:
-            finding.metadata["bulk_match"] = True
-            finding.metadata["match_count"] = count
-        return finding
 
     def _merge_duplicate_rule_groups(
         self, findings: list[Finding], context: ScanContext
@@ -2463,8 +2453,6 @@ class EnrichmentPass:
             elif f.engine == "opengrep" and f.taint_flow is not None:
                 f.confidence = OPENGREP_TAINT(len(f.taint_flow.intermediate))
 
-            if f.metadata.get("bulk_match"):
-                f.confidence = min(f.confidence, BULK_MATCH_CAP)
 
         return findings
 

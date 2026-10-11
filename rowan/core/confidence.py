@@ -77,10 +77,6 @@ PATTERN_ONLY_CAP = 0.70
 #: webhook) emitted directly by CrossFilePass.
 BOUNDARY_SOURCE = 0.65
 
-#: A finding that matched in bulk (many identical hits) is capped -- high
-#: volume of the same match is weak individual evidence.
-BULK_MATCH_CAP = 0.60
-
 #: Object-level authorization (BOLA/IDOR) findings from `AuthzPass` (issue #171,
 #: ADR-0003). A heuristic *absence* detector -- it asserts an ownership predicate
 #: is missing rather than confirming a dataflow -- so it sits below the

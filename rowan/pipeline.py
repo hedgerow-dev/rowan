@@ -678,6 +678,10 @@ class ScanPipeline:
         """Load the converter manifest for metadata enrichment."""
         # The manifest of the rules actually in use, not the package default (PL-05).
         manifest_path = rules_dir / "converted" / "_manifest.json"
+        if not manifest_path.parent.is_dir():
+            # A rules directory with no converted regex rules has nothing for
+            # the manifest to describe.
+            return
         try:
             data = json.loads(manifest_path.read_text(encoding="utf-8"))
             rule_map: dict[str, dict] = {}
@@ -690,3 +694,9 @@ class ScanPipeline:
             logger.info("Loaded conversion manifest: %d rules", len(rule_map))
         except (OSError, ValueError, KeyError) as e:
             logger.warning("Could not load conversion manifest: %s", e)
+            # Three enrichment filters and the cross-file sink classifier read
+            # it; without it they silently switch off (#64).
+            self._context.result.degraded_passes["conversion_manifest"] = (
+                f"could not load {manifest_path.name} ({e}); sanitizer-window, "
+                "secret and pattern-not filters are off"
+            )
