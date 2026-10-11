@@ -636,14 +636,29 @@ rules:
     pattern-sinks:
       - patterns:
           - pattern-either:
-              - pattern: requests.get($URL)
-              - pattern: requests.post($URL)
-              - pattern: requests.put($URL)
-              - pattern: requests.delete($URL)
-              - pattern: httpx.get($URL)
-              - pattern: httpx.AsyncClient(...).get($URL)
-              - pattern: urllib.request.urlopen($URL)
-              - pattern: urllib.request.Request($URL)
+              - patterns:
+                  - pattern-either:
+                      - pattern: requests.$M($URL, ...)
+                      - pattern: requests.$M(..., url=$URL, ...)
+                      - pattern: httpx.$M($URL, ...)
+                      - pattern: httpx.$M(..., url=$URL, ...)
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(get|post|put|patch|delete|head|options|stream)$
+              - pattern: requests.request($METHOD, $URL, ...)
+              - pattern: httpx.request($METHOD, $URL, ...)
+              # A requests/httpx/aiohttp session or client object.
+              - patterns:
+                  - pattern: $CLIENT.$M($URL, ...)
+                  - metavariable-regex:
+                      metavariable: $CLIENT
+                      regex: (?i).*(session|client|http).*
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(get|post|put|patch|delete|head|options|stream)$
+              - pattern: urllib.request.urlopen($URL, ...)
+              - pattern: urllib.request.Request($URL, ...)
+              - pattern: urllib.request.urlretrieve($URL, ...)
           - pattern-not-inside: |
               if $URL in $ALLOWLIST:
                   ...
@@ -652,6 +667,9 @@ rules:
                   ...
               else:
                   ...
+          # Only the URL decides where the request goes: a tainted params=,
+          # body or header sent to a fixed host is not SSRF (#72).
+          - focus-metavariable: $URL
 
   # ── SSTI ─────────────────────────────────────────────────────────
   - id: TNT-SSTI-001
