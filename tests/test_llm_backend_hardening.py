@@ -3,11 +3,13 @@ No network: httpx.post is patched throughout."""
 
 from __future__ import annotations
 
+import logging
 from unittest.mock import MagicMock, patch
 
 import httpx
+import pytest
 
-from rowan.agents.llm_backend import LLMBackend
+from rowan.agents.llm_backend import _RETRY_ATTEMPTS, LLMBackend
 
 
 def _ok(text: str = "hi") -> MagicMock:
@@ -94,6 +96,37 @@ class TestRetry:
     def test_does_not_retry_401(self, post, sleep):
         post.side_effect = [_status(401), _ok("never")]
         resp = LLMBackend(backend="deepseek", api_key="k").generate("p")
+        assert resp.text.startswith("LLM error")
+        assert post.call_count == 1
+        assert not sleep.called
+
+    @pytest.mark.parametrize(
+        "exc", [httpx.ConnectError("refused"), httpx.ReadError("reset"), httpx.RemoteProtocolError("dropped")]
+    )
+    @patch("threading.Event.wait", return_value=False)
+    @patch("rowan.agents.llm_backend.httpx.post")
+    def test_retries_on_dropped_connection_then_succeeds(self, post, sleep, exc):
+        post.side_effect = [exc, _ok("done")]
+        backend = LLMBackend(backend="deepseek", api_key="test-not-a-real-key")
+        assert backend.generate("p").text == "done"
+        assert post.call_count == 2
+        assert backend.retry_count == 1
+
+    @patch("threading.Event.wait", return_value=False)
+    @patch("rowan.agents.llm_backend.httpx.post")
+    def test_dropped_connection_every_attempt_gives_up_with_warning(self, post, sleep, caplog):
+        post.side_effect = httpx.ConnectError("refused")
+        with caplog.at_level(logging.WARNING, logger="rowan.agents.llm_backend"):
+            resp = LLMBackend(backend="deepseek", api_key="test-not-a-real-key").generate("p")
+        assert resp.text.startswith("LLM error")
+        assert post.call_count == _RETRY_ATTEMPTS
+        assert any(r.getMessage() == "LLM request failed: refused" for r in caplog.records)
+
+    @patch("threading.Event.wait", return_value=False)
+    @patch("rowan.agents.llm_backend.httpx.post")
+    def test_unsupported_protocol_does_not_retry(self, post, sleep):
+        post.side_effect = [httpx.UnsupportedProtocol("ftp"), _ok("never")]
+        resp = LLMBackend(backend="deepseek", api_key="test-not-a-real-key").generate("p")
         assert resp.text.startswith("LLM error")
         assert post.call_count == 1
         assert not sleep.called

@@ -403,7 +403,7 @@ class LLMBackend:
     def _post_with_retry(
         self, url: str, body: dict[str, Any], headers: dict[str, str]
     ) -> dict[str, Any] | str:
-        """POST with retry on 429, 5xx and timeouts. Returns the parsed JSON
+        """POST with retry on 429, 5xx, timeouts and dropped connections. Returns the parsed JSON
         object or a short error string; every other failure mode is terminal
         (401, 400) or not JSON. Retrying is what stops a rate-limited batch
         of findings from silently vanishing from a hunt (HN-08)."""
@@ -417,7 +417,9 @@ class LLMBackend:
             try:
                 response = httpx.post(url, json=body, headers=headers, timeout=self._timeout)
                 response.raise_for_status()
-            except httpx.TimeoutException as e:
+            except (httpx.TimeoutException, httpx.NetworkError, httpx.RemoteProtocolError) as e:
+                # Timeouts and dropped connections are transient; a bad URL
+                # scheme (UnsupportedProtocol) falls through and is terminal.
                 error, retryable, delay = f"{e}", True, None
             except httpx.HTTPStatusError as e:
                 status = e.response.status_code
