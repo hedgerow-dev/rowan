@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.3.11 (alpha)
+
+Fixes from a full review of the detection rules and engine (#47).
+
+- `--confirmed` no longer hides FastAPI and Flask route-parameter flows:
+  route parameters are traced as HTTP input.
+- FastAPI dependencies declared through a type alias (`SessionDep =
+  Annotated[Session, Depends(get_db)]`, `CurrentUser`) are no longer treated
+  as request input, by the taint source or the cross-file route check.
+- Engine findings (cross-file, authz) are no longer demoted by a regex over
+  the first 50 lines of the file, so a route's severity no longer depends on
+  the router's variable name.
+- The auto deployment profile checks every file in sorted order instead of
+  the first 20 in filesystem order, and never demotes a finding with a taint
+  trace.
+- Test-path detection no longer treats production files such as
+  `demo_server.py` or `mock_server.py` as tests; demo and tool-directory
+  files that serve requests are not demoted.
+- Two taint sinks close together stay two findings; `occurrence_count` and
+  `cluster_lines` report folded repeats.
+- Duplicate merging: an unconfirmed taint finding no longer wins the merge,
+  and code injection and command injection on one line stay separate.
+- Taint sinks focus on the dangerous argument and accept extra arguments:
+  - SSRF: the URL, so a tainted body or `params=` to a fixed host is not
+    SSRF; `requests.get(u, timeout=5)` and session calls are matched.
+  - SSTI: the template string, not the render context.
+  - Deserialization and `exec`/`eval`: `yaml.load(d, Loader=...)`,
+    `exec(code, {})` and `pickle.load(f, encoding=...)` are matched.
+- Fixed rules: the Dockerfile setuid rule flagged `chmod 644` and missed
+  setuid modes; a Java AI-key rule reported model names as CRITICAL secrets;
+  Ruby backtick command injection could never match.
+- A conversion-manifest load failure marks the scan degraded.
+
 ## v0.3.10 (alpha)
 
 - FastAPI route parameters are taint sources. A parameter of a route
