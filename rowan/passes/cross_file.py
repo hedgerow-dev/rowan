@@ -1573,6 +1573,18 @@ def _collect_http_route_nodes(tree: ast.AST) -> set[int]:
 # the same spirit as AGENT-TOOL-001 -- the vulnerability doesn't need to
 # cross a file boundary to be real, since the "caller" here is an external
 # broker/client, not trusted in-repo code.
+# What reaches a boundary's parameters. The model chooses a tool's arguments;
+# an HTTP-facing entrypoint receives request data. File-level reachability
+# guesses must not demote either (#60). Task-queue payloads come from whoever
+# can enqueue, which is not established here, so they get no source kind.
+_BOUNDARY_SOURCE_KIND: dict[str, str] = {
+    "agent_tool": "tool_param",
+    "http_route": "http_input",
+    "webhook": "http_input",
+    "graphql": "http_input",
+    "grpc": "http_input",
+}
+
 _BOUNDARY_RULE_IDS: dict[str, tuple[str, str]] = {
     "agent_tool": ("AGENT-TOOL-001", "Agent tool"),
     "task_queue": ("TASK-QUEUE-001", "Task queue handler"),
@@ -5858,9 +5870,10 @@ class CrossFilePass:
                         "boundary_source": True,
                         "boundary_kind": boundary_kind,
                         "caller": func.name,
-                        # The model chooses a tool's arguments: file-level
-                        # reachability guesses must not demote this finding.
-                        **({"source_kind": "tool_param"} if boundary_kind == "agent_tool" else {}),
+                        # See _BOUNDARY_SOURCE_KIND: file-level reachability
+                        # guesses must not demote this finding.
+                        **({"source_kind": _BOUNDARY_SOURCE_KIND[boundary_kind]}
+                           if boundary_kind in _BOUNDARY_SOURCE_KIND else {}),
                     },
                 )
             )

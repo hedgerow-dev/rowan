@@ -455,3 +455,48 @@ class TestTimingAttackAuthContextEscalation:
             f"must not confirm auth context, got severity={f.severity}"
         )
         assert f.metadata.get("no_auth_context") is True
+
+
+class TestEngineFindingsKeepTheirSeverity:
+    """#60: the exploitability cap re-judged evidence-bearing engine findings
+    from a 50-line file-head regex, so one route's shell injection was HIGH,
+    MEDIUM or LOW depending on the router's variable name and whether the head
+    happened to contain open(...)."""
+
+    _HANDLER = (
+        "@{router}.post('/run')\n"
+        "def run(host: str):\n"
+        "    subprocess.run('ping ' + host, shell=True)\n"
+    )
+
+    def _cap(self, tmp_path, head: str, router: str, engine: str) -> Severity:
+        fp = tmp_path / f"{router}_{engine}.py"
+        fp.write_text(head + self._HANDLER.format(router=router), encoding="utf-8")
+        f = Finding(
+            rule_id="HTTP-ROUTE-001", message="m", severity=Severity.HIGH,
+            category=Category.COMMAND_INJECTION, file_path=str(fp), start_line=3,
+            engine=engine, confidence=0.9,
+        )
+        return EnrichmentPass()._cap_exploitability([f])[0].severity
+
+    def test_engine_finding_is_not_capped_by_file_head(self, tmp_path):
+        local_read = "import json, subprocess\ncfg = json.load(open('c.json'))\n"
+        assert self._cap(tmp_path, local_read, "api", "crossfile") == Severity.HIGH
+        assert self._cap(tmp_path, "import subprocess\n", "items_router", "crossfile") == Severity.HIGH
+
+    def test_pattern_finding_is_still_capped(self, tmp_path):
+        local_read = "import json, subprocess\ncfg = json.load(open('c.json'))\n"
+        assert self._cap(tmp_path, local_read, "api", "neuroscan") == Severity.LOW
+
+
+def test_http_boundary_findings_count_as_proven_external_input():
+    from rowan.passes.enrichment import _has_proven_external_source
+
+    route = Finding(rule_id="HTTP-ROUTE-001", message="m", severity=Severity.HIGH,
+                    category=Category.COMMAND_INJECTION, file_path="a.py", start_line=1,
+                    engine="crossfile", metadata={"boundary_source": True, "source_kind": "http_input"})
+    assert _has_proven_external_source(route)
+    pattern = Finding(rule_id="NS-CMDI-002", message="m", severity=Severity.HIGH,
+                      category=Category.COMMAND_INJECTION, file_path="a.py", start_line=1,
+                      engine="neuroscan", metadata={"source_kind": "http_input"})
+    assert not _has_proven_external_source(pattern)

@@ -579,15 +579,20 @@ def _has_agent_boundary_source(finding: Finding) -> bool:
 def _has_proven_external_source(finding: Finding) -> bool:
     """The finding's own trace proves external input reached the sink.
 
-    A model boundary source, or a taint flow from a rule whose sources are
-    HTTP request reads (`source_kind: http_input`). File- and repo-level
+    A model boundary source, a taint flow from a rule whose sources are HTTP
+    request reads (`source_kind: http_input`), or a cross-file boundary
+    finding for an HTTP-facing entrypoint. File- and repo-level
     guesses (a web-framework import, the library profile) must not demote it:
     route modules often receive `app` from elsewhere, and routers such as
     httprouter or Web Forms code-behind carry no import those guesses know.
     """
-    return _has_agent_boundary_source(finding) or (
-        finding.taint_flow is not None and finding.metadata.get("source_kind") == "http_input"
-    )
+    if _has_agent_boundary_source(finding):
+        return True
+    if finding.metadata.get("source_kind") != "http_input":
+        return False
+    # A taint trace, or a cross-file boundary finding: its boundary kind
+    # (HTTP route, webhook, GraphQL, gRPC) is the external source.
+    return finding.taint_flow is not None or bool(finding.metadata.get("boundary_source"))
 
 
 def _cap_severity(finding: Finding, cap: Severity) -> None:
@@ -2585,6 +2590,12 @@ class EnrichmentPass:
             # risk -- each pass's own severity is authoritative. mfv (a model
             # file analysed by Hayward) is the same: a binary has no head.
             if f.engine in ("mcpconfig", "smuggle", "mcptoctou", "mfv"):
+                continue
+            # An evidence-bearing engine (cross-file boundary, authz, ...)
+            # computed its finding; a file-head regex is no evidence against
+            # it. The router's name or an unrelated open() in the first 50
+            # lines used to swing one route between HIGH and LOW (#60).
+            if _is_evidence_bearing_engine(f.engine):
                 continue
             if _has_agent_boundary_source(f) or (
                 f.taint_flow is not None
