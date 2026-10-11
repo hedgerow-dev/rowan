@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.3.10 (alpha)
+
+- FastAPI route parameters are taint sources. A parameter of a route
+  handler (`@app.get("/x") def f(name: str, q: str = Query(), item: Item)`)
+  now reaches the Python taint rules as user input. Validated types (`int`,
+  `UUID`, ...), `Depends()`/`Security()` values and framework objects are not
+  sources. XSS gains an `HTMLResponse` sink.
+- SQL injection (`TNT-SQLI-002`) and vector-store query (`TNT-ML-004`) rules
+  sink only the query argument. A database handle that carried user data no
+  longer makes parameterized ORM lookups look like injection.
+- One issue, one finding. Findings on one line merge when their rules use
+  related CWEs (`eval()` tagged CWE-78, 94 or 95; debug mode as 215 or 489),
+  and a pattern finding on a line a taint trace passes through merges into
+  the taint finding. The merged finding keeps every CWE and the highest
+  severity and confidence of its reports.
+- `eval()`/`exec()` are reported as code injection (CWE-95), no longer as OS
+  command injection (`TNT-CMDI-001`).
+- CONTRIBUTING.md: benchmarks measure changes, they do not steer them.
+
+RealVuln (63 repos, measured after the changes, not used to make them): TP
+650 to 669, FP 1264 to 1226, precision 0.340 to 0.353, recall 0.353 to 0.364.
+
 ## v0.3.9 (alpha)
 
 - Opengrep runs with a 4 GiB memory cap per rule per file. A file that hits
