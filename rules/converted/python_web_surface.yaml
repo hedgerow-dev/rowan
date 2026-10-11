@@ -69,39 +69,6 @@ rules:
       instead of a general-purpose pattern.'
     residual:
     - sanitizer
-- id: ns-websec-330-001
-  languages:
-  - python
-  severity: ERROR
-  message: 'A security-sensitive value is generated with the `random` module. `random` is a Mersenne Twister seeded from a
-    small state: an attacker who observes a few outputs can recover the internal state and predict every past and future value.
-    For a session token, password-reset code, salt, nonce, or key that is a complete break. Use `secrets` (`secrets.token_urlsafe`,
-    `secrets.token_bytes`) or `random.SystemRandom`, both of which draw from the OS CSPRNG.'
-  patterns:
-  - pattern-either:
-    - pattern-regex: (?i)\b\w*(?:token|secret|nonce|salt|otp|passwd|password|apikey|api_key|secret_key|session_id|sessionid|reset_code|recovery_code|csrf)\w*\s*=\s*[^=\n]*\brandom\.(?:random|randint|randrange|choice|choices|sample|shuffle|uniform|getrandbits)\s*\(
-    - pattern-regex: \b(?:key|iv|nonce|seed_material)\w*\s*=\s*bytes(?:array)?\s*\(\s*random\.
-  - pattern-not-regex: (?m)^\s*#
-  - pattern-not-regex: random\.SystemRandom
-  metadata:
-    category: crypto
-    cwe:
-    - 330
-    - 338
-    original_engine: neuroscan
-    fix: 'Use the `secrets` module: `secrets.token_urlsafe(32)` for a URL-safe token, `secrets.token_bytes(32)` for raw key
-      material, `secrets.choice(alphabet)` for a random character. Where an existing `random.Random` API shape must be kept,
-      swap the instance for `random.SystemRandom()`.'
-  paths:
-    exclude:
-    - /tests/
-    - /test/
-    - /testing/
-    - /benchmarks/
-    - /examples/
-    - test_*.py
-    - '*_test.py'
-    - conftest.py
 - id: ns-websec-276-001
   languages:
   - python

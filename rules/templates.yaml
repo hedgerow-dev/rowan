@@ -42,12 +42,14 @@ rules:
     patterns:
       # Jinja/Django |safe, Jinja's Markup-equivalent |escape bypasses, and
       # Django's {% autoescape off %} sibling filter.
-      - '\{\{[^}]*\|\s*safe\s*\}\}'
-      - '\{\{[^}]*\|\s*safeseq\s*\}\}'
+      - '\{\{.*?\|\s*safe\s*-?\}\}'
+      - '\{\{.*?\|\s*safeseq\s*-?\}\}'
     pattern-not:
       # A literal filter chain ending in escape/forceescape is explicit and
       # safe; so is a comment.
       - '\|\s*(?:escape|force_escape|e)\b'
+      # Documented safe way to embed JSON in a <script> tag.
+      - '\|\s*tojson\s*\|\s*safe'
       - '(?m)^\s*(?:\{#|<!--)'
     message: |
       This value is rendered with escaping bypassed (|safe). The filter is
@@ -56,15 +58,3 @@ rules:
       not decidable from the template alone -- verify the source.
     fix: "Drop the |safe filter, or sanitize the value with bleach.clean() (or the framework's sanitizer) before it reaches the template."
 
-  - id: NS-TPL-003
-    name: Django csrf_token exempted in template form
-    severity: medium
-    category: auth
-    cwe: [352]
-    languages: [html]
-    patterns:
-      - '\{%-?\s*csrf_exempt\s*-?%\}'
-    message: |
-      CSRF protection is disabled for this form. A cross-origin page can
-      submit it on behalf of a logged-in user.
-    fix: "Remove the exemption and include {% csrf_token %} in the form."

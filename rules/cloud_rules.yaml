@@ -58,7 +58,6 @@ rules:
       - 'ServerSideEncryption\s*[=:]\s*(?:None|none|"")'
       - 'encrypted\s*[=:]\s*[Ff]alse'
       - 'SSEAlgorithm\s*[=:]\s*(?:None|none|"")'
-      - 'kms_key_id\s*=\s*None'
     pattern-not:
       - '(?m)^\s*#'
       - '(?m)^\s*//.*'
@@ -76,10 +75,8 @@ rules:
     cwe: [668]
     languages: [python, javascript, typescript, java, go]
     patterns:
-      - 'PubliclyAccessible\s*[=:]\s*[Tt]rue'
-      - 'publicly_accessible\s*=\s*True'
-      - 'authorized_networks.*0\.0\.0\.0'
-      - 'ip_configuration.*authorized_networks.*0\.0\.0\.0/0'
+      - '(?i)publicly_?accessible[''"]?\s*[=:]\s*true'
+      - 'authorized_networks.*(?<![\d.])0\.0\.0\.0'
     pattern-not:
       - '(?m)^\s*#'
       - '(?m)^\s*//.*'
@@ -97,8 +94,6 @@ rules:
     cwe: [778]
     languages: [python, javascript, typescript, java, go]
     patterns:
-      - 'logging\s*[=:]\s*false'
-      - 'enable_logging\s*=\s*False'
       - 'access_log_enabled\s*[=:]\s*false'
       - 'cloudtrail.*IsLogging.*false'
       - 'log_analytics.*enabled.*false'
@@ -145,8 +140,8 @@ rules:
       - 'CidrIp.*0\.0\.0\.0/0'
       - 'cidr_blocks.*0\.0\.0\.0/0'
       - 'source_ranges.*0\.0\.0\.0/0'
-      - 'IpProtocol.*-1'
-      - 'from_port.*0.*to_port.*65535'
+      - 'IpProtocol\W+-1\b'
+      - 'from_port\s*[=:]\s*0\b.*to_port\s*[=:]\s*65535'
     pattern-not:
       - '(?m)^\s*#'
       - '(?m)^\s*//.*'

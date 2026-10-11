@@ -1207,8 +1207,15 @@ def _web_surface_rule(rule_id: str) -> NeuroScanRule:
     return matches[0]
 
 
-def test_ns_websec_330_flags_token_from_random_module(tmp_path):
-    rule = _web_surface_rule("ns-websec-330-001")
+def _misc_rule(rule_id: str) -> NeuroScanRule:
+    rules_path = Path(__file__).resolve().parents[1] / "rules" / "misc_rules.yaml"
+    matches = [r for r in load_neuroscan_rules(rules_path) if r.metadata.id == rule_id]
+    assert matches, f"{rule_id} not found in misc_rules.yaml"
+    return matches[0]
+
+
+def test_ns_bb_014_flags_token_from_random_module(tmp_path):
+    rule = _misc_rule("ns-bb-014")
     assert rule.metadata.cwe_ids == [330, 338]
     assert rule.metadata.category == Category.CRYPTO
 
@@ -1229,8 +1236,8 @@ def test_ns_websec_330_flags_token_from_random_module(tmp_path):
     assert lines == {4, 8}
 
 
-def test_ns_websec_330_silent_on_secrets_and_systemrandom(tmp_path):
-    rule = _web_surface_rule("ns-websec-330-001")
+def test_ns_bb_014_silent_on_secrets_and_systemrandom(tmp_path):
+    rule = _misc_rule("ns-bb-014")
     path = tmp_path / "security.py"
     path.write_text(
         "import random\n"
@@ -1250,11 +1257,11 @@ def test_ns_websec_330_silent_on_secrets_and_systemrandom(tmp_path):
     assert rule.check(path) == []
 
 
-def test_ns_websec_330_silent_on_benign_random_string(tmp_path):
+def test_ns_bb_014_silent_on_benign_random_string(tmp_path):
     """The withdrawn idiom-anchored patterns fired on random suffixes for temp
     names (44 hits, near-100% false positive). Only a security-named binding
     counts."""
-    rule = _web_surface_rule("ns-websec-330-001")
+    rule = _misc_rule("ns-bb-014")
     path = tmp_path / "local.py"
     path.write_text(
         "import random\n"

@@ -69,7 +69,6 @@ rules:
     - pattern-regex: ServerSideEncryption\s*[=:]\s*(?:None|none|"")
     - pattern-regex: encrypted\s*[=:]\s*[Ff]alse
     - pattern-regex: SSEAlgorithm\s*[=:]\s*(?:None|none|"")
-    - pattern-regex: kms_key_id\s*=\s*None
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?m)^\s*//.*
   - pattern-not-regex: (?:def test_|conftest|unittest)
@@ -92,10 +91,8 @@ rules:
     subnets and use VPC peering or Private Link for access.'
   patterns:
   - pattern-either:
-    - pattern-regex: PubliclyAccessible\s*[=:]\s*[Tt]rue
-    - pattern-regex: publicly_accessible\s*=\s*True
-    - pattern-regex: authorized_networks.*0\.0\.0\.0
-    - pattern-regex: ip_configuration.*authorized_networks.*0\.0\.0\.0/0
+    - pattern-regex: (?i)publicly_?accessible['"]?\s*[=:]\s*true
+    - pattern-regex: authorized_networks.*(?<![\d.])0\.0\.0\.0
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?m)^\s*//.*
   - pattern-not-regex: (?:def test_|conftest|unittest)
@@ -118,8 +115,6 @@ rules:
     or Azure Monitor for security event tracking and compliance.'
   patterns:
   - pattern-either:
-    - pattern-regex: logging\s*[=:]\s*false
-    - pattern-regex: enable_logging\s*=\s*False
     - pattern-regex: access_log_enabled\s*[=:]\s*false
     - pattern-regex: cloudtrail.*IsLogging.*false
     - pattern-regex: log_analytics.*enabled.*false
@@ -176,8 +171,8 @@ rules:
     - pattern-regex: CidrIp.*0\.0\.0\.0/0
     - pattern-regex: cidr_blocks.*0\.0\.0\.0/0
     - pattern-regex: source_ranges.*0\.0\.0\.0/0
-    - pattern-regex: IpProtocol.*-1
-    - pattern-regex: from_port.*0.*to_port.*65535
+    - pattern-regex: IpProtocol\W+-1\b
+    - pattern-regex: from_port\s*[=:]\s*0\b.*to_port\s*[=:]\s*65535
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?m)^\s*//.*
   - pattern-not-regex: (?:def test_|conftest|unittest)

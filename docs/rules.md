@@ -1,6 +1,6 @@
 # Rule Catalog
 
-Rowan ships 595 source-code rules across 50 YAML files. Model files are
+Rowan ships 593 source-code rules across 50 YAML files. Model files are
 scanned by [Hayward](https://github.com/hedgerow-dev/hayward), Hedgerow's
 model-file scanner, which Rowan installs as a dependency.
 
@@ -8,7 +8,7 @@ model-file scanner, which Rowan installs as a dependency.
 
 | Engine | Speed | Precision | Rules |
 |--------|-------|-----------|-------|
-| NeuroScan (regex) | Fast (<1ms/file) | Surface-level | 390 |
+| NeuroScan (regex) | Fast (<1ms/file) | Surface-level | 388 |
 | Taint/structural (Opengrep) | Slower | Evidence varies by rule | 205 |
 | Hayward (model files) | Fast | Format-aware, structural | [Hayward rules](https://github.com/hedgerow-dev/hayward/blob/main/docs/rules.md) |
 
@@ -70,12 +70,12 @@ rulepack's pattern-only checks; its taint-mode siblings live in
 | `csharp.yaml` | 11 | C#-specific: Process.Start, SqlCommand, deserialization, XSS |
 | `php.yaml` | 12 | PHP-specific: eval, shell, include, SQL, deserialization |
 | `ruby.yaml` | 11 | Ruby-specific: eval, YAML.load, ERB, send, SQL |
-| `templates.yaml` | 3 | Server-rendered templates (.html/.jinja/.j2): autoescape disabled, `\|safe` rendering, csrf_exempt. Pattern-only -- there is no template dataflow engine |
+| `templates.yaml` | 2 | Server-rendered templates (.html/.jinja/.j2): autoescape disabled, `\|safe` rendering. Pattern-only -- there is no template dataflow engine |
 | `rust.yaml` | 11 | Rust-specific: unsafe, Command, SQL, crypto |
 | `terraform.yaml` | 12 | IaC: security groups, S3, IAM, RDS, CloudFront, EKS, KMS |
 | `dockerfile.yaml` | 12 | Container: latest tag, root user, capabilities |
 | `github_actions.yaml` | 7 | CI/CD: hardcoded secrets, pull_request_target, unpinned actions, context-expression injection, workflow-input and PR-head-ref injection into `run:` |
-| `python_web_surface.yaml` | 5 | Bug-bounty-style web surface checks: sensitive data in query strings, XXE, ReDoS, weak randomness, default permissions |
+| `python_web_surface.yaml` | 4 | Bug-bounty-style web surface checks: sensitive data in query strings, XXE, ReDoS, default permissions |
 | `ingest_surface.yaml` | 5 | Ingest-time RCE: fsspec ReferenceFileSystem unsandboxed Jinja rendering, HDF5/zarr/kerchunk artifact-internal path following |
 | `inference_plane.yaml` | 5 | Inference-plane parameter and cache-key leaks: KV/routing control params on the public request schema, unkeyed or truncated cache-key derivation |
 
@@ -152,7 +152,7 @@ message, not in the rule id) and the structural trust-boundary findings
 `AGENT-TOOL-001` (agent-tool sink detection), `TASK-QUEUE-001` (Celery/RQ
 task handlers), `GRPC-001` (gRPC servicer methods), `GRAPHQL-001` (GraphQL
 resolvers), and `WEBHOOK-001` (webhook/callback handlers) are not YAML rules
-and aren't counted in the 595 total above: they're emitted directly by
+and aren't counted in the 593 total above: they're emitted directly by
 `CrossFilePass`'s AST analysis rather than loaded from `rules/*.yaml`. See
 `ARCHITECTURE.md`'s "Pass 4: CrossFilePass" section for how they're
 generated.

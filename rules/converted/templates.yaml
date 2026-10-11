@@ -40,9 +40,10 @@ rules:
     not decidable from the template alone -- verify the source.'
   patterns:
   - pattern-either:
-    - pattern-regex: \{\{[^}]*\|\s*safe\s*\}\}
-    - pattern-regex: \{\{[^}]*\|\s*safeseq\s*\}\}
+    - pattern-regex: \{\{.*?\|\s*safe\s*-?\}\}
+    - pattern-regex: \{\{.*?\|\s*safeseq\s*-?\}\}
   - pattern-not-regex: \|\s*(?:escape|force_escape|e)\b
+  - pattern-not-regex: \|\s*tojson\s*\|\s*safe
   - pattern-not-regex: (?m)^\s*(?:\{#|<!--)
   metadata:
     category: xss
@@ -54,29 +55,6 @@ rules:
       the template.
     residual:
     - sanitizer
-  paths:
-    include:
-    - '*.html'
-    - '*.htm'
-    - '*.jinja'
-    - '*.jinja2'
-    - '*.j2'
-- id: NS-TPL-003
-  languages:
-  - generic
-  severity: WARNING
-  message: 'CSRF protection is disabled for this form. A cross-origin page can
-
-    submit it on behalf of a logged-in user.'
-  patterns:
-  - pattern-regex: \{%-?\s*csrf_exempt\s*-?%\}
-  metadata:
-    category: auth
-    cwe:
-    - 352
-    original_engine: neuroscan
-    rule_name: Django csrf_token exempted in template form
-    fix: Remove the exemption and include {% csrf_token %} in the form.
   paths:
     include:
     - '*.html'

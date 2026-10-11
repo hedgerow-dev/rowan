@@ -1,7 +1,7 @@
 {
   "meta": {
-    "total_rules": 390,
-    "ok": 390,
+    "total_rules": 388,
+    "ok": 388,
     "warning": 0,
     "error": 0,
     "secrets_residual": 5,
@@ -5099,6 +5099,7 @@
       "warnings": [],
       "name": "Insecure random for security-sensitive value",
       "pattern_not": [
+        "(?i)\\b(?:(?:max|min|num|n|total)_tokens|tokens|\\w*tokens?_(?:ids?|idx|indices|counts?|len|length|num))\\s*[:=]",
         "random\\.SystemRandom",
         "(?m)^\\s*#",
         "(?m)^\\s*//.*",
@@ -6394,24 +6395,6 @@
       ]
     },
     {
-      "id": "ns-websec-330-001",
-      "category": "crypto",
-      "cwe": [
-        330,
-        338
-      ],
-      "original_severity": "ERROR",
-      "original_engine": "neuroscan",
-      "residual": [],
-      "status": "ok",
-      "warnings": [],
-      "fix": "Use the `secrets` module: `secrets.token_urlsafe(32)` for a URL-safe token, `secrets.token_bytes(32)` for raw key material, `secrets.choice(alphabet)` for a random character. Where an existing `random.Random` API shape must be kept, swap the instance for `random.SystemRandom()`.",
-      "pattern_not": [
-        "(?m)^\\s*#",
-        "random\\.SystemRandom"
-      ]
-    },
-    {
       "id": "ns-websec-276-001",
       "category": "config",
       "cwe": [
@@ -7680,22 +7663,9 @@
       "fix": "Drop the |safe filter, or sanitize the value with bleach.clean() (or the framework's sanitizer) before it reaches the template.",
       "pattern_not": [
         "\\|\\s*(?:escape|force_escape|e)\\b",
+        "\\|\\s*tojson\\s*\\|\\s*safe",
         "(?m)^\\s*(?:\\{#|<!--)"
       ]
-    },
-    {
-      "id": "NS-TPL-003",
-      "category": "auth",
-      "cwe": [
-        352
-      ],
-      "original_severity": "medium",
-      "original_engine": "neuroscan",
-      "residual": [],
-      "status": "ok",
-      "warnings": [],
-      "name": "Django csrf_token exempted in template form",
-      "fix": "Remove the exemption and include {% csrf_token %} in the form."
     },
     {
       "id": "TF-CONFIG-001",

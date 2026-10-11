@@ -300,43 +300,6 @@ rules:
   # `request.*` attribute chain removed all of those false positives (this
   # exact pattern re-run afterward: 0 matches in the same corpora).
 
-  - id: ns-websec-330-001
-    message: >
-      A security-sensitive value is generated with the `random` module.
-      `random` is a Mersenne Twister seeded from a small state: an attacker
-      who observes a few outputs can recover the internal state and predict
-      every past and future value. For a session token, password-reset
-      code, salt, nonce, or key that is a complete break. Use `secrets`
-      (`secrets.token_urlsafe`, `secrets.token_bytes`) or
-      `random.SystemRandom`, both of which draw from the OS CSPRNG.
-    severity: ERROR
-    languages: [python]
-    exclude_paths:
-      - "/tests/"
-      - "/test/"
-      - "/testing/"
-      - "/benchmarks/"
-      - "/examples/"
-      - "test_*.py"
-      - "*_test.py"
-      - "conftest.py"
-    patterns:
-      # A security-named binding assigned directly from the `random` module.
-      - (?i)\b\w*(?:token|secret|nonce|salt|otp|passwd|password|apikey|api_key|secret_key|session_id|sessionid|reset_code|recovery_code|csrf)\w*\s*=\s*[^=\n]*\brandom\.(?:random|randint|randrange|choice|choices|sample|shuffle|uniform|getrandbits)\s*\(
-      # Key material: a bytes/bytearray buffer filled from the `random`
-      # module. Narrower than bare `getrandbits` (which matches benign
-      # trace-id generators) because the bytes() wrapper is the key-material
-      # idiom specifically.
-      - \b(?:key|iv|nonce|seed_material)\w*\s*=\s*bytes(?:array)?\s*\(\s*random\.
-    pattern-not:
-      - '(?m)^\s*#'
-      # random.SystemRandom() IS the CSPRNG-backed API -- same method names.
-      - random\.SystemRandom
-    metadata:
-      cwe: [330, 338]
-      category: crypto
-      fix: "Use the `secrets` module: `secrets.token_urlsafe(32)` for a URL-safe token, `secrets.token_bytes(32)` for raw key material, `secrets.choice(alphabet)` for a random character. Where an existing `random.Random` API shape must be kept, swap the instance for `random.SystemRandom()`."
-
   # =========================================================================
   # CWE-276/732: world-writable file or directory permissions
   # =========================================================================
