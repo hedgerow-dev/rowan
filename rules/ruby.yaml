@@ -31,9 +31,11 @@ rules:
     # `exec("cmd")`), so `(?<![.\w])` (matching NS-INJECT-002's Python
     # equivalent) excludes any `receiver.exec(...)` member call.
     patterns:
-      - '\bsystem\s*\('
+      # Paren-less `system "ls #{x}"` is idiomatic Ruby. Backticks interpolate
+      # with #{...}; the old `${` is shell syntax and never matched Ruby.
+      - '\bsystem\s*[("\x27]'
       - '(?<![.\w])exec\s*\('
-      - '`[^`]+\$\{[^`]+`'
+      - '`[^`]*#\{[^`]+`'
       - '%x\s*\('
     pattern-not:
       - 'system\s*\(\s*\['

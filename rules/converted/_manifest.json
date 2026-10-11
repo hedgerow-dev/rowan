@@ -3418,10 +3418,9 @@
       "residual": [],
       "status": "ok",
       "warnings": [],
-      "name": "Setuid/setgid bit in COPY",
+      "name": "Setuid/setgid bit set with chmod",
       "pattern_not": [
-        "(?m)^\\s*#",
-        "(?:def test_|conftest|unittest)"
+        "(?m)^\\s*#"
       ]
     },
     {

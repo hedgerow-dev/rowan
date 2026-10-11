@@ -209,12 +209,11 @@ rules:
 
     surface. Remove setuid bit from binaries.'
   patterns:
-  - pattern-regex: chmod\s+[0-7]*[46][0-7]{2}\s
+  - pattern-regex: chmod\s+(?:-\S+\s+)*(?:0?[2-7][0-7]{3}\b|[ugoa]*[+=][rwxXt]*s)
   - pattern-not-regex: (?m)^\s*#
-  - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
     category: config
     cwe:
     - 250
     original_engine: neuroscan
-    rule_name: Setuid/setgid bit in COPY
+    rule_name: Setuid/setgid bit set with chmod

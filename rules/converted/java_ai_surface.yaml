@@ -33,7 +33,7 @@ rules:
     Move it to an injected secret and rotate the exposed credential.'
   patterns:
   - pattern-either:
-    - pattern-regex: (?i)\b(?:openai|anthropic|gemini|cohere|mistral|groq|langsmith|langfuse)[A-Za-z0-9_]*(?:ApiKey|SecretKey|Token)?\s*=\s*["'][A-Za-z0-9_\-]{16,}["']
+    - pattern-regex: (?i)\b(?:openai|anthropic|gemini|cohere|mistral|groq|langsmith|langfuse)[A-Za-z0-9_]*(?:Api_?Key|Secret_?Key|Token|Secret|Key)\s*=\s*["'][A-Za-z0-9_\-]{16,}["']
     - pattern-regex: (?i)\.(?:apiKey|secretKey|accessToken)\s*\(\s*["'][A-Za-z0-9_\-]{16,}["']\s*\)
   - pattern-not-regex: (?m)^\s*//
   - pattern-not-regex: (?i)(?:example|placeholder|your[-_ ]?(?:api[-_ ]?)?key|changeme|dummy|test[-_ ]?key)

@@ -28,9 +28,9 @@ rules:
     Use array form or Open3.capture3 with separate arguments.'
   patterns:
   - pattern-either:
-    - pattern-regex: \bsystem\s*\(
+    - pattern-regex: \bsystem\s*[("\x27]
     - pattern-regex: (?<![.\w])exec\s*\(
-    - pattern-regex: '`[^`]+\$\{[^`]+`'
+    - pattern-regex: '`[^`]*#\{[^`]+`'
     - pattern-regex: '%x\s*\('
   - pattern-not-regex: system\s*\(\s*\[
   - pattern-not-regex: def exec\b

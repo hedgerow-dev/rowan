@@ -29,8 +29,10 @@ rules:
     category: secrets
     cwe: [798]
     languages: [java]
+    # The key-name suffix is required: without it `openAiModel = "..."`
+    # (a model name) was reported as a CRITICAL secret.
     patterns:
-      - '(?i)\b(?:openai|anthropic|gemini|cohere|mistral|groq|langsmith|langfuse)[A-Za-z0-9_]*(?:ApiKey|SecretKey|Token)?\s*=\s*["''][A-Za-z0-9_\-]{16,}["'']'
+      - '(?i)\b(?:openai|anthropic|gemini|cohere|mistral|groq|langsmith|langfuse)[A-Za-z0-9_]*(?:Api_?Key|Secret_?Key|Token|Secret|Key)\s*=\s*["''][A-Za-z0-9_\-]{16,}["'']'
       - '(?i)\.(?:apiKey|secretKey|accessToken)\s*\(\s*["''][A-Za-z0-9_\-]{16,}["'']\s*\)'
     pattern-not:
       - '(?m)^\s*//'

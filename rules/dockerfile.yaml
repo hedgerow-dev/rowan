@@ -175,16 +175,18 @@ rules:
       access enabling container escape.
 
   - id: DK-CONFIG-009
-    name: Setuid/setgid bit in COPY
+    name: Setuid/setgid bit set with chmod
     severity: medium
     category: config
     cwe: [250]
     languages: [dockerfile]
+    # The special bits are the LEADING digit of a four-digit mode (4755,
+    # 2755, 06755) or a symbolic u+s / g+s. The old `[0-7]*[46][0-7]{2}`
+    # matched ordinary 644/600 and missed every real setuid mode.
     patterns:
-      - 'chmod\s+[0-7]*[46][0-7]{2}\s'
+      - 'chmod\s+(?:-\S+\s+)*(?:0?[2-7][0-7]{3}\b|[ugoa]*[+=][rwxXt]*s)'
     pattern-not:
       - '(?m)^\s*#'
-      - '(?:def test_|conftest|unittest)'
     message: |
       setuid/setgid binary in container. Unnecessary privilege escalation
       surface. Remove setuid bit from binaries.
