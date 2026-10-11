@@ -1207,61 +1207,6 @@ def _web_surface_rule(rule_id: str) -> NeuroScanRule:
     return matches[0]
 
 
-def test_ns_websec_1004_flags_cookie_without_httponly(tmp_path):
-    rule = _web_surface_rule("ns-websec-1004-001")
-    assert rule.metadata.cwe_ids == [1004]
-    assert rule.metadata.category == Category.CONFIG
-
-    path = tmp_path / "views.py"
-    path.write_text(
-        "def login(user):\n"
-        "    resp = make_response(redirect('/'))\n"
-        "    resp.set_cookie('session', issue_token(user.id))\n"
-        "    return resp\n",
-        encoding="utf-8",
-    )
-    findings = rule.check(path)
-    assert len(findings) == 1
-    assert findings[0].start_line == 3
-
-
-def test_ns_websec_1004_silent_when_httponly_passed(tmp_path):
-    """The sanitizer window must cover a multi-line set_cookie() call, and must
-    accept a non-literal value: `httponly=settings.HTTPONLY` still passes the
-    flag. Requiring the literal `True` produced 9 false positives in langflow."""
-    rule = _web_surface_rule("ns-websec-1004-001")
-
-    literal = tmp_path / "literal.py"
-    literal.write_text(
-        "def login(user):\n"
-        "    resp = make_response(redirect('/'))\n"
-        "    resp.set_cookie(\n"
-        "        'session',\n"
-        "        issue_token(user.id),\n"
-        "        httponly=True,\n"
-        "        secure=True,\n"
-        "        samesite='Lax',\n"
-        "    )\n"
-        "    return resp\n",
-        encoding="utf-8",
-    )
-    assert rule.check(literal) == []
-
-    from_config = tmp_path / "from_config.py"
-    from_config.write_text(
-        "def login(user):\n"
-        "    resp = make_response(redirect('/'))\n"
-        "    resp.set_cookie(\n"
-        "        'session',\n"
-        "        issue_token(user.id),\n"
-        "        httponly=auth_settings.ACCESS_HTTPONLY,\n"
-        "    )\n"
-        "    return resp\n",
-        encoding="utf-8",
-    )
-    assert rule.check(from_config) == []
-
-
 def test_ns_websec_330_flags_token_from_random_module(tmp_path):
     rule = _web_surface_rule("ns-websec-330-001")
     assert rule.metadata.cwe_ids == [330, 338]

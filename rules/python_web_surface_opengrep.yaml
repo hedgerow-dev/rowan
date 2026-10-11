@@ -1,0 +1,84 @@
+# Structural companions to python_web_surface.yaml. Cookie flags are often on
+# a later line of a wrapped set_cookie(...) call, which a line regex cannot
+# see (#71). These keep their original rule IDs.
+
+rules:
+  - id: ns-websec-1004-001
+    message: >
+      A cookie is set without an `httponly` argument. Flask, Django, and
+      Starlette/FastAPI all default it to False, so the value is readable
+      from JavaScript via `document.cookie`: any XSS anywhere on the
+      origin can exfiltrate it. If this cookie carries a session or auth
+      token, that turns a contained XSS into full account takeover.
+    severity: WARNING
+    languages: [python]
+    paths:
+      exclude:
+        - "**/tests/**"
+        - "**/test/**"
+        - "**/test_*.py"
+        - "**/*_test.py"
+        - "**/conftest.py"
+    metadata:
+      cwe: [1004]
+      category: config
+      fix: "Pass `httponly=True` on any cookie carrying a session or auth token, together with `secure=True` and `samesite=\"Lax\"` (or `\"Strict\"`). Only set `httponly=False` for a cookie a first-party script genuinely has to read, and never for one that authenticates the request."
+    patterns:
+      # Two arguments (or key=/value=) is a response cookie; the client-side
+      # cookie jar takes a single Cookie object.
+      - pattern-either:
+          - pattern: $R.$SET($K, $V, ...)
+          - pattern: $R.$SET(..., value=$V, ...)
+      - metavariable-regex:
+          metavariable: $SET
+          regex: ^(set_cookie|set_signed_cookie)$
+      - pattern-not: $R.$SET(..., httponly=$H, ...)
+      # Flags hidden in a helper's kwargs (3 FPs in dify, where it sets them).
+      - pattern-not: $R.$SET(..., **$KW)
+
+  - id: ns-websec-614-001
+    message: >
+      A cookie is set without the `secure` flag (or with `secure=False`).
+      Flask, Django, and Starlette/FastAPI all default it to False, so the
+      browser will send this cookie over plain HTTP: a network attacker on
+      the path (public Wi-Fi, a downgraded link, a captive portal) reads it
+      directly. If it carries a session or auth token, that is session
+      hijacking with no XSS required. Pass `secure=True` on any cookie that
+      authenticates the request.
+    severity: WARNING
+    languages: [python]
+    paths:
+      exclude:
+        - "**/tests/**"
+        - "**/test/**"
+        - "**/test_*.py"
+        - "**/*_test.py"
+        - "**/conftest.py"
+    metadata:
+      cwe: [614]
+      category: config
+      fix: "Pass `secure=True` on any cookie carrying a session or auth token, together with `httponly=True` and `samesite=\"Lax\"` (or `\"Strict\"`). For Django, set `SESSION_COOKIE_SECURE = True` and `CSRF_COOKIE_SECURE = True` in settings; for Flask, `app.config[\"SESSION_COOKIE_SECURE\"] = True`. Only serve a cookie without Secure over a connection you know is never HTTPS, which for an authenticated app is never."
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: $R.$SET($K, $V, ...)
+              - pattern: $R.$SET(..., value=$V, ...)
+          - metavariable-regex:
+              metavariable: $SET
+              regex: ^(set_cookie|set_signed_cookie)$
+          # A config value (secure=settings.X) still passes the flag.
+          - pattern-not: $R.$SET(..., secure=$S, ...)
+          - pattern-not: $R.$SET(..., **$KW)
+      - patterns:
+          - pattern: $R.$SET(..., secure=False, ...)
+          - metavariable-regex:
+              metavariable: $SET
+              regex: ^(set_cookie|set_signed_cookie)$
+      - patterns:
+          - pattern-either:
+              - pattern: $NAME = False
+              - pattern: $APP.config[$NAME] = False
+              - pattern: $APP.config.update(..., $NAME=False, ...)
+          - metavariable-regex:
+              metavariable: $NAME
+              regex: ^["']?(SESSION_COOKIE_SECURE|CSRF_COOKIE_SECURE)["']?$

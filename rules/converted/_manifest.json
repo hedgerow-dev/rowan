@@ -1,11 +1,11 @@
 {
   "meta": {
-    "total_rules": 392,
-    "ok": 392,
+    "total_rules": 390,
+    "ok": 390,
     "warning": 0,
     "error": 0,
     "secrets_residual": 5,
-    "sanitizer_residual": 231,
+    "sanitizer_residual": 229,
     "converter_version": "1.0"
   },
   "rules": [
@@ -6391,50 +6391,6 @@
       "pattern_not": [
         "(?m)^\\s*#",
         "(?:def test_|conftest|unittest)"
-      ]
-    },
-    {
-      "id": "ns-websec-1004-001",
-      "category": "config",
-      "cwe": [
-        1004
-      ],
-      "original_severity": "WARNING",
-      "original_engine": "neuroscan",
-      "residual": [
-        "sanitizer"
-      ],
-      "status": "ok",
-      "warnings": [],
-      "fix": "Pass `httponly=True` on any cookie carrying a session or auth token, together with `secure=True` and `samesite=\"Lax\"` (or `\"Strict\"`). Only set `httponly=False` for a cookie a first-party script genuinely has to read, and never for one that authenticates the request.",
-      "pattern_not": [
-        "(?m)^\\s*#",
-        "set_cookie\\s*\\(\\s*\\*\\*"
-      ],
-      "sanitizers": [
-        "(?i)httponly\\s*="
-      ]
-    },
-    {
-      "id": "ns-websec-614-001",
-      "category": "config",
-      "cwe": [
-        614
-      ],
-      "original_severity": "WARNING",
-      "original_engine": "neuroscan",
-      "residual": [
-        "sanitizer"
-      ],
-      "status": "ok",
-      "warnings": [],
-      "fix": "Pass `secure=True` on any cookie carrying a session or auth token, together with `httponly=True` and `samesite=\"Lax\"` (or `\"Strict\"`). For Django, set `SESSION_COOKIE_SECURE = True` and `CSRF_COOKIE_SECURE = True` in settings. Only serve a cookie without Secure over a connection you know is never HTTPS, which for an authenticated app is never.",
-      "pattern_not": [
-        "(?m)^\\s*#",
-        "set_cookie\\s*\\(\\s*\\*\\*"
-      ],
-      "sanitizers": [
-        "(?i)\\bsecure\\s*=\\s*(?!false\\b)\\S"
       ]
     },
     {
