@@ -276,7 +276,8 @@ rules:
               - pattern: django.utils.html.escape($INPUT)
               - pattern: conditional_escape($INPUT)
               - pattern: bleach.clean($INPUT)
-              - pattern: strip_tags($INPUT)
+              # Not strip_tags: Django documents that its output is not
+              # guaranteed safe HTML (#74).
 
   - id: TNT-PATH-001
     mode: taint

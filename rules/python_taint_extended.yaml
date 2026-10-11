@@ -126,15 +126,10 @@ rules:
     pattern-sanitizers:
       - patterns:
           - pattern-either:
-              # Parameterized execution is the fix this rule's own message
-              # recommends, so it has to be recognized on ANY DB handle, not
-              # just one literally named `cursor`. The sink patterns above
-              # already match $DB/$CONN/$SESSION receivers; the sanitizer was
-              # hardcoded to `cursor` and so never fired on conn.execute(
-              # sql, params), flagging correctly-parameterized queries as
-              # "without parameterization" (#302).
-              - pattern: $DBH.execute($SQL, $PARAMS)
-              - pattern: $DBH.executemany($SQL, $PARAMS)
+              # No `execute($SQL, $PARAMS)` sanitizer: the sink is focused on
+              # $SQL, so a constant query with bound parameters never fires,
+              # and the sanitizer only hid an f-string query that also passes
+              # parameters (#74).
               # `text(...)` is SQLAlchemy's raw-SQL constructor, not a
               # sanitizer; the bound form is covered by the two-argument
               # execute pattern above (RT-05).
@@ -399,7 +394,7 @@ rules:
           - pattern-either:
               - pattern: validate_url(...)
               - pattern: is_allowed_domain(...)
-              - pattern: urlparse(...)
+              # Not urlparse: parsing a URL does not check where it points (#74).
 
   # ---------------------------------------------------------------------------
   # PY-TAINT-004: SSTI (extended with Django/Mako/Tornado)

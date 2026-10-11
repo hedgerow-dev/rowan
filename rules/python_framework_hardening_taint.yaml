@@ -240,7 +240,9 @@ rules:
           - pattern-either:
               - pattern: secure_filename(...)
               - pattern: os.path.basename(...)
-              - pattern: $ROOT.joinpath(...).resolve(...)
+              # Not joinpath(...).resolve(): without a containment check the
+              # resolved path can still leave the root, as this rule's own
+              # message says (#74).
 
   - id: TNT-PY-FWK-URLFETCH-001
     mode: taint

@@ -159,24 +159,15 @@ def test_parameterized_query_sanitizer_matches_any_db_handle():
         assert not re.search(pattern, src), f"must NOT read as parameterized: {src}"
 
 
-def test_tnt_sqli_002_sanitizer_is_not_hardcoded_to_cursor():
-    """The rule-level `pattern-sanitizers` had the same hardcoded-`cursor` bug
-    as the registry regex above, independently (#302). Both had to be fixed;
-    this pins the rule side."""
+def test_tnt_sqli_002_has_no_parameterized_execute_sanitizer():
+    """#302 added an `execute($SQL, $PARAMS)` sanitizer so parameterized calls
+    were not flagged. The sink is now focused on $SQL, which already keeps a
+    constant query with bound parameters clean, and the sanitizer only hid an
+    f-string query that also passes parameters (#74). The behaviour is pinned
+    in tests/test_python_sanitizer_bypasses.py."""
     import yaml
 
     rules_path = RULES_DIR / "python_taint_extended.yaml"
     data = yaml.safe_load(rules_path.read_text(encoding="utf-8"))
     rule = next(r for r in data["rules"] if r["id"] == "TNT-SQLI-002")
-    sanitizer_patterns = [
-        p
-        for block in rule["pattern-sanitizers"]
-        for p in block["patterns"][0]["pattern-either"]
-    ]
-    execute_patterns = [p["pattern"] for p in sanitizer_patterns if "execute" in p["pattern"]]
-    assert execute_patterns, "TNT-SQLI-002 must still recognize parameterized execution"
-    for pat in execute_patterns:
-        assert not pat.startswith("cursor."), (
-            f"{pat!r} is hardcoded to a receiver named `cursor`; the sink patterns "
-            "match any receiver, so the sanitizer must too"
-        )
+    assert "execute($SQL, $PARAMS)" not in str(rule.get("pattern-sanitizers"))

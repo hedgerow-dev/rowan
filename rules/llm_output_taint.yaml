@@ -57,15 +57,15 @@
 # Opengrep's taint engine propagates taint through the `+=` accumulation
 # automatically once the delta expression itself is a recognized source.
 #
-# ── Structured-output sanitizers (SQL/shell/eval sinks only) ─────────────
-# Per issue #133's FP-considerations: a completion passed through a
-# structured-output validator (Pydantic model_validate/parse_obj, a
-# json.loads + schema-shaped check, or the `instructor` library's
-# response_model= pattern) counts as a sanitizer for the SQL/shell/eval
-# sinks (001-003) but explicitly NOT for the HTML sink (006): a
-# Pydantic-validated string is still unescaped HTML. 004/005 do not use
-# the structured-output sanitizer either (a schema-valid URL or path is
-# not thereby a safe URL/path); they get their own domain sanitizers.
+# ── No structured-output sanitizers ──────────────────────────────────────
+# Issue #133 once counted Pydantic model_validate/parse_obj, json.loads and
+# instructor's response_model= as sanitizers for the SQL/shell/eval sinks.
+# Removed (#74): parsing and schema validation constrain the shape, not the
+# value. `json.loads(r)["command"]` or a schema-valid `sql: str` field is
+# still model-chosen text, and a rule cannot see whether a field is an enum.
+# Bound parameters are not a sanitizer for 001 either: the model wrote the
+# statement. Domain sanitizers (shlex.quote for shell, URL/path checks for
+# 004/005) remain.
 
 rules:
 
@@ -180,24 +180,24 @@ rules:
     pattern-sinks:
       - patterns:
           - pattern-either:
-              - pattern: cursor.execute($SQL)
-              - pattern: cursor.executemany($SQL)
+              - pattern: cursor.execute($SQL, ...)
+              - pattern: cursor.executemany($SQL, ...)
               - patterns:
                   - pattern-either:
-                      - pattern: $DB.execute($SQL)
-                      - pattern: $DB.run($SQL)
+                      - pattern: $DB.execute($SQL, ...)
+                      - pattern: $DB.run($SQL, ...)
                   - metavariable-regex:
                       metavariable: $DB
                       regex: (?i).*(db|database|conn|session|sql|cursor|engine).*
               - patterns:
-                  - pattern: $CONN.execute($SQL)
+                  - pattern: $CONN.execute($SQL, ...)
                   - metavariable-regex:
                       metavariable: $CONN
                       regex: (?i).*(db|database|conn|session|sql|cursor|engine).*
               - patterns:
                   - pattern-either:
-                      - pattern: $SESSION.execute($SQL)
-                      - pattern: $SESSION.execute(text($SQL))
+                      - pattern: $SESSION.execute($SQL, ...)
+                      - pattern: $SESSION.execute(text($SQL), ...)
                   - metavariable-regex:
                       metavariable: $SESSION
                       regex: (?i).*(db|database|conn|session|sql|cursor|engine).*
@@ -210,18 +210,9 @@ rules:
                 - pattern-not: $X.update(...)
                 - pattern-not: $X.delete(...)
                 - pattern-not: $X.values(...)
-    pattern-sanitizers:
-      - patterns:
-          - pattern-either:
-              - pattern: cursor.execute($SQL, $PARAMS)
-              - pattern: $DB.execute($SQL, $PARAMS)
-              - pattern: $SESSION.execute($SQL, $PARAMS)
-              - pattern: $MODEL.model_validate(...)
-              - pattern: $MODEL.model_validate_json(...)
-              - pattern: $MODEL.parse_obj(...)
-              - pattern: $MODEL.parse_raw(...)
-              - pattern: $VAR = json.loads(...)
-              - pattern: $CLIENT.chat.completions.create(..., response_model=$SCHEMA, ...)
+          # The statement only, with or without bound parameters: the model
+          # wrote it, so parameters do not make it safe (#74).
+          - focus-metavariable: $SQL
 
   # ── TNT-LLMOUT-002: LLM output -> shell execution ───────────────────
   # ShellGPT-style assistants executing model-suggested commands. Distinct
@@ -330,12 +321,6 @@ rules:
           - pattern-either:
               - pattern: shlex.quote(...)
               - pattern: subprocess.run([..., ...])
-              - pattern: $MODEL.model_validate(...)
-              - pattern: $MODEL.model_validate_json(...)
-              - pattern: $MODEL.parse_obj(...)
-              - pattern: $MODEL.parse_raw(...)
-              - pattern: $VAR = json.loads(...)
-              - pattern: $CLIENT.chat.completions.create(..., response_model=$SCHEMA, ...)
 
   # ── TNT-LLMOUT-003: LLM output -> Python/pandas eval family ─────────
   # PandasAI CVE-2024-12366 (prompt -> pd.eval RCE). eval()/exec() are
@@ -447,15 +432,6 @@ rules:
               - pattern: pandas.eval($EXPR, ...)
               - pattern: $DF.query($EXPR, engine="python", ...)
               - pattern: $DF.eval($EXPR, engine="python", ...)
-    pattern-sanitizers:
-      - patterns:
-          - pattern-either:
-              - pattern: $MODEL.model_validate(...)
-              - pattern: $MODEL.model_validate_json(...)
-              - pattern: $MODEL.parse_obj(...)
-              - pattern: $MODEL.parse_raw(...)
-              - pattern: $VAR = json.loads(...)
-              - pattern: $CLIENT.chat.completions.create(..., response_model=$SCHEMA, ...)
 
   # ── TNT-LLMOUT-004: LLM output -> outbound HTTP request URL (SSRF) ──
   # Agent-driven SSRF: model emits an internal URL, the agent fetches it.

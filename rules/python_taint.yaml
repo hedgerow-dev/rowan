@@ -361,8 +361,9 @@ rules:
               - pattern: subprocess.check_call([$CMD, ...])
     pattern-sanitizers:
       - patterns:
+          # Not shlex.quote: it leaves `--upload-pack=x` unchanged, so an
+          # injected option survives (#74).
           - pattern-either:
-              - pattern: shlex.quote(...)
               - pattern: int(...)
               - pattern: float(...)
 

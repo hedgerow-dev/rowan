@@ -74,7 +74,7 @@ class TestLLMOutputSQL:
             "cursor.execute() must be flagged"
         )
 
-    def test_pydantic_validated_sql_not_flagged(self, tmp_path):
+    def test_pydantic_validated_sql_is_still_flagged(self, tmp_path):
         src = (
             "from pydantic import BaseModel\n\n"
             "class SafeQuery(BaseModel):\n"
@@ -86,12 +86,12 @@ class TestLLMOutputSQL:
             "    cursor.execute(validated)\n"
         )
         findings = _scan(tmp_path, "sql_agent_validated.py", src, "TNT-LLMOUT-001")
-        assert not findings, (
-            "completion text validated through a Pydantic structured-output "
-            "model must be treated as sanitized for the SQL sink"
-        )
+        # #74: schema validation constrains shape, not value; a schema-valid
+        # string field is still model-chosen. Bound parameters do not make
+        # a model-written statement safe.
+        assert findings
 
-    def test_parameterized_query_not_flagged(self, tmp_path):
+    def test_model_written_sql_with_bound_params_is_flagged(self, tmp_path):
         src = (
             "def run(prompt):\n"
             "    resp = openai_client.chat.completions.create(model='gpt-4o', messages=prompt)\n"
@@ -99,7 +99,10 @@ class TestLLMOutputSQL:
             "    cursor.execute(sql, params)\n"
         )
         findings = _scan(tmp_path, "sql_agent_param.py", src, "TNT-LLMOUT-001")
-        assert not findings, "parameterized execute() call must not be flagged"
+        # #74: schema validation constrains shape, not value; a schema-valid
+        # string field is still model-chosen. Bound parameters do not make
+        # a model-written statement safe.
+        assert findings
 
     def test_asyncio_run_not_flagged_as_sql_sink(self, tmp_path):
         """Regression guard: found scanning scan-targets/autogen -- a bare
@@ -146,7 +149,7 @@ class TestLLMOutputShell:
         findings = _scan(tmp_path, "shell_stream_agent.py", src, "TNT-LLMOUT-002")
         assert findings, "streaming delta accumulated into a shell sink must be flagged"
 
-    def test_pydantic_validated_command_not_flagged(self, tmp_path):
+    def test_pydantic_validated_command_is_still_flagged(self, tmp_path):
         src = (
             "from pydantic import BaseModel\n"
             "import subprocess\n\n"
@@ -158,10 +161,10 @@ class TestLLMOutputShell:
             "    subprocess.run(validated, shell=True)\n"
         )
         findings = _scan(tmp_path, "shell_agent_validated.py", src, "TNT-LLMOUT-002")
-        assert not findings, (
-            "completion text validated through a Pydantic structured-output "
-            "model must be treated as sanitized for the shell sink"
-        )
+        # #74: schema validation constrains shape, not value; a schema-valid
+        # string field is still model-chosen. Bound parameters do not make
+        # a model-written statement safe.
+        assert findings
 
     def test_list_arg_subprocess_not_flagged(self, tmp_path):
         src = (
@@ -207,7 +210,7 @@ class TestLLMOutputEvalFamily:
         findings = _scan(tmp_path, "eval_stream_agent.py", src, "TNT-LLMOUT-003")
         assert findings, "streaming delta accumulated into eval() must be flagged"
 
-    def test_pydantic_validated_expr_not_flagged(self, tmp_path):
+    def test_pydantic_validated_expr_is_still_flagged(self, tmp_path):
         src = (
             "from pydantic import BaseModel\n\n"
             "class SafeExpr(BaseModel):\n"
@@ -218,10 +221,10 @@ class TestLLMOutputEvalFamily:
             "    df.query(validated, engine='python')\n"
         )
         findings = _scan(tmp_path, "pandas_agent_validated.py", src, "TNT-LLMOUT-003")
-        assert not findings, (
-            "completion text validated through a Pydantic structured-output "
-            "model must be treated as sanitized for the eval-family sink"
-        )
+        # #74: schema validation constrains shape, not value; a schema-valid
+        # string field is still model-chosen. Bound parameters do not make
+        # a model-written statement safe.
+        assert findings
 
     def test_default_engine_df_query_not_flagged(self, tmp_path):
         """DataFrame.query()'s default engine (numexpr) evaluates a

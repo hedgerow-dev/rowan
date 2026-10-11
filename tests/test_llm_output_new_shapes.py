@@ -254,11 +254,11 @@ class TestLiteLLMAndInstructor:
         )
         assert _lines(_scan(tmp_path, "ll.py", src, SQL)) == {5}
 
-    def test_instructor_response_model_is_a_source_but_sanitized_for_sql(self, tmp_path):
+    def test_instructor_response_model_is_a_source_and_not_a_sanitizer(self, tmp_path):
         """Nothing was added for Instructor: the patched client keeps the
         `$CLIENT.chat.completions.create(...)` shape, which is already a
-        source, and `response_model=` is the documented structured-output
-        sanitizer for the SQL/shell/eval sinks (not for HTML)."""
+        source. `response_model=` is not a sanitizer (#74): a schema-valid
+        `name: str` field is still model-chosen text."""
         src = (
             "import instructor\n"
             "from openai import OpenAI\n\n"
@@ -268,5 +268,5 @@ class TestLiteLLMAndInstructor:
             "    cursor.execute(user.name)\n"
             "    st.markdown(user.name, unsafe_allow_html=True)\n"
         )
-        assert _scan(tmp_path, "ins.py", src, SQL) == []
+        assert _lines(_scan(tmp_path, "ins.py", src, SQL)) == {7}
         assert _lines(_scan(tmp_path, "ins.py", src, HTML)) == {8}
