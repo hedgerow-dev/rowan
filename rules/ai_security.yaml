@@ -43,7 +43,7 @@ rules:
     severity: ERROR
     languages: [python]
     patterns:
-      - 'np\.load\([^)]*allow_pickle\s*=\s*True'
+      - 'np\.load\((?:[^()]|\([^()]*\))*allow_pickle\s*=\s*True'
     pattern-not:
       - '(?m)^\s*#'
       - '(?:def test_|conftest|unittest)'
@@ -130,7 +130,7 @@ rules:
     patterns:
       - 'pd\.read_pickle\('
       - 'pandas\.read_pickle\('
-      - 'np\.load\([^)]*allow_pickle\s*=\s*True'
+      - 'np\.load\((?:[^()]|\([^()]*\))*allow_pickle\s*=\s*True'
     pattern-not:
       - '(?m)^\s*#'
       - '(?:def test_|conftest|unittest)'
@@ -247,9 +247,9 @@ rules:
     severity: ERROR
     languages: [python]
     patterns:
-      - 'keras\.models\.load_model\([^)]*safe_mode\s*=\s*False'
-      - 'tf\.keras\.models\.load_model\([^)]*safe_mode\s*=\s*False'
-      - 'keras\.saving\.load_model\([^)]*safe_mode\s*=\s*False'
+      - 'keras\.models\.load_model\((?:[^()]|\([^()]*\))*safe_mode\s*=\s*False'
+      - 'tf\.keras\.models\.load_model\((?:[^()]|\([^()]*\))*safe_mode\s*=\s*False'
+      - 'keras\.saving\.load_model\((?:[^()]|\([^()]*\))*safe_mode\s*=\s*False'
     pattern-not:
       - '(?m)^\s*#'
       - '(?:def test_|conftest|unittest)'
@@ -363,9 +363,9 @@ rules:
     severity: ERROR
     languages: [python]
     patterns:
-      - 'OmegaConf\.to_container\([^)]*resolve\s*=\s*True'
+      - 'OmegaConf\.to_container\((?:[^()]|\([^()]*\))*resolve\s*=\s*True'
       - 'OmegaConf\.create\('
-      - 'compose\([^)]*overrides\s*='
+      - 'compose\((?:[^()]|\([^()]*\))*overrides\s*='
     pattern-not:
       - '(?m)^\s*#'
       - '(?:def test_|conftest|unittest)'
@@ -402,8 +402,8 @@ rules:
     pattern-not:
       - 'weights_only\s*=\s*True'
       - 'safetensors'
-      - 'torch\.load\([^)]*map_location\s*='
-      - 'torch\.load\([^)]*mmap\s*=\s*True'
+      - 'torch\.load\((?:[^()]|\([^()]*\))*map_location\s*='
+      - 'torch\.load\((?:[^()]|\([^()]*\))*mmap\s*=\s*True'
       - 'if\s+format\s+in\s+\['
       - '(?m)^\s*#'
       - '(?:def test_|conftest|unittest)'
@@ -568,7 +568,7 @@ rules:
     severity: ERROR
     languages: [python]
     patterns:
-      - 'load_dataset\([^)]*trust_remote_code\s*=\s*True'
+      - 'load_dataset\((?:[^()]|\([^()]*\))*trust_remote_code\s*=\s*True'
     pattern-not:
       - '(?m)^\s*#'
       - '(?:def test_|conftest|unittest)'
@@ -675,7 +675,7 @@ rules:
       - 'filter\s*=\s*["''\w]'
       - 'members\s*='
       - 'tarfile\.open\([^)]*["'']r:'
-      - 'tarfile\.open\([^)]*mode\s*=\s*["'']r'
+      - 'tarfile\.open\((?:[^()]|\([^()]*\))*mode\s*=\s*["'']r'
       - 'ZipFile\([^)]*\).*\.extractall\('
       - '(?m)^\s*#'
       - '(?:def test_|conftest|unittest)'
@@ -905,9 +905,9 @@ rules:
       - 'shell\s*=\s*False'
       - '(?:argparse|sys\.argv|--help|setup\.py|pip\s+install|pip\s+uninstall)'
       - 'subprocess\.(?:run|Popen|call)\(\[["''](?:git|docker|pip|npm|cargo|go|make|cmake)["'']'
-      - 'subprocess\.(?:run|Popen|call)\([^)]*capture_output\s*=\s*True'
-      - 'subprocess\.(?:run|Popen|call)\([^)]*check\s*=\s*True'
-      - 'subprocess\.(?:run|Popen|call)\([^)]*text\s*=\s*True'
+      - 'subprocess\.(?:run|Popen|call)\((?:[^()]|\([^()]*\))*capture_output\s*=\s*True'
+      - 'subprocess\.(?:run|Popen|call)\((?:[^()]|\([^()]*\))*check\s*=\s*True'
+      - 'subprocess\.(?:run|Popen|call)\((?:[^()]|\([^()]*\))*text\s*=\s*True'
       - '(?m)^\s*#'
       - '(?:def test_|conftest|unittest)'
       - '(?:@fixture|@pytest)'
@@ -1075,7 +1075,7 @@ rules:
     languages: [python, dockerfile, yaml]
     patterns:
       - 'bentoml\s+serve\b[^\n]*--host\s+0\.0\.0\.0'
-      - 'bentoml\.Server\([^)]*host\s*=\s*["'']0\.0\.0\.0'
+      - 'bentoml\.Server\((?:[^()]|\([^()]*\))*host\s*=\s*["'']0\.0\.0\.0'
       - 'runner_host\s*=\s*["'']0\.0\.0\.0'
       - '(?m)^\s*ENV\s+BENTOML_HOST\s*=?\s*["'']?0\.0\.0\.0'
       - '"?0\.0\.0\.0:3000:3000"?'
@@ -1985,9 +1985,9 @@ rules:
     severity: ERROR
     languages: [python]
     patterns:
-      - '(?:mcp|server|app)\.run\([^)]*host\s*=\s*["'']0\.0\.0\.0["'']'
+      - '(?:mcp|server|app)\.run\((?:[^()]|\([^()]*\))*host\s*=\s*["'']0\.0\.0\.0["'']'
       - '(?:mcp|server|app)\.run\([^)]*["'']0\.0\.0\.0["''][^)]*\)'
-      - 'FastMCP\([^)]*host\s*=\s*["'']0\.0\.0\.0["'']'
+      - 'FastMCP\((?:[^()]|\([^()]*\))*host\s*=\s*["'']0\.0\.0\.0["'']'
     pattern-not:
       - '(?m)^\s*#'
       - '(?:def test_|conftest|unittest)'
@@ -2016,8 +2016,8 @@ rules:
     severity: WARNING
     languages: [python]
     patterns:
-      - '(?:mcp|server|app)\.run\([^)]*transport\s*=\s*["'']streamable[-_]http["'']'
-      - '(?:mcp|server|app)\.run\([^)]*transport\s*=\s*["'']sse["'']'
+      - '(?:mcp|server|app)\.run\((?:[^()]|\([^()]*\))*transport\s*=\s*["'']streamable[-_]http["'']'
+      - '(?:mcp|server|app)\.run\((?:[^()]|\([^()]*\))*transport\s*=\s*["'']sse["'']'
     pattern-not:
       - '(?m)^\s*#'
       - '(?:def test_|conftest|unittest)'
@@ -2148,7 +2148,7 @@ rules:
     severity: ERROR
     languages: [python]
     patterns:
-      - 'A2AServer\([^)]*host\s*=\s*["'']0\.0\.0\.0["'']'
+      - 'A2AServer\((?:[^()]|\([^()]*\))*host\s*=\s*["'']0\.0\.0\.0["'']'
       - 'A2AServer\([^)]*["'']0\.0\.0\.0["''][^)]*\)'
       - 'A2AStarletteApplication\([^)]*["'']0\.0\.0\.0["'']'
       - 'A2AFastAPIApplication\([^)]*["'']0\.0\.0\.0["'']'
@@ -2873,9 +2873,9 @@ rules:
       - 'shell\s*=\s*False'
       - '(?:argparse|sys\.argv|--help|setup\.py|pip\s+install|pip\s+uninstall)'
       - 'subprocess\.run\(\[["\x27](?:git|docker|pip|npm|cargo|go|make|cmake)["\x27]'
-      - 'subprocess\.(?:run|Popen|call)\([^)]*capture_output\s*=\s*True'
-      - 'subprocess\.(?:run|Popen|call)\([^)]*check\s*=\s*True'
-      - 'subprocess\.(?:run|Popen|call)\([^)]*text\s*=\s*True'
+      - 'subprocess\.(?:run|Popen|call)\((?:[^()]|\([^()]*\))*capture_output\s*=\s*True'
+      - 'subprocess\.(?:run|Popen|call)\((?:[^()]|\([^()]*\))*check\s*=\s*True'
+      - 'subprocess\.(?:run|Popen|call)\((?:[^()]|\([^()]*\))*text\s*=\s*True'
       - "(?i)os\\.system\\s*\\((?:(?!\\ndef )[\\s\\S]){0,400}?(?:e2b|Sandbox\\(|modal\\.Sandbox|\\bdocker\\b|gvisor|nsjail|firecracker|RestrictedPython|compile_restricted|pyodide|daytona)"
       - "(?i)subprocess\\.(?:run|Popen|call)\\s*\\((?:(?!\\ndef )[\\s\\S]){0,400}?(?:e2b|Sandbox\\(|modal\\.Sandbox|\\bdocker\\b|gvisor|nsjail|firecracker|RestrictedPython|compile_restricted|pyodide|daytona)"
       - "(?i)@(?:tool|mcp\\.tool|server\\.tool|app\\.tool)\\b(?:(?!\\ndef )[\\s\\S]){0,300}?\\bexec\\((?:(?!\\ndef )[\\s\\S]){0,400}?(?:e2b|Sandbox\\(|modal\\.Sandbox|\\bdocker\\b|gvisor|nsjail|firecracker|RestrictedPython|compile_restricted|pyodide|daytona)"

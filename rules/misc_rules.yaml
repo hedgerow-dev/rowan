@@ -512,7 +512,7 @@ rules:
     cwe: [668]
     languages: [python]
     patterns:
-      - '\.launch\([^)]*share\s*=\s*True'
+      - '\.launch\((?:[^()]|\([^()]*\))*share\s*=\s*True'
     pattern-not:
       - '(?m)^\s*#'
       - '(?:def test_|conftest|unittest)'
@@ -527,7 +527,7 @@ rules:
     cwe: [287]
     languages: [python]
     patterns:
-      - '\.launch\([^)]*server_name\s*=\s*["'']0\.0\.0\.0["'']'
+      - '\.launch\((?:[^()]|\([^()]*\))*server_name\s*=\s*["'']0\.0\.0\.0["'']'
     pattern-not:
       - 'auth\s*='
       - '(?m)^\s*#'

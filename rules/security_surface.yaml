@@ -204,7 +204,7 @@ rules:
       - 'filter\s*=\s*["''\w]'
       - 'members\s*='
       - 'tarfile\.open\([^)]*["'']r:'
-      - 'tarfile\.open\([^)]*mode\s*=\s*["'']r'
+      - 'tarfile\.open\((?:[^()]|\([^()]*\))*mode\s*=\s*["'']r'
       - 'ZipFile\([^)]*\).*\.extractall\('
       - '(?m)^\s*#'
       - '(?:def test_|conftest|unittest)'
@@ -255,7 +255,7 @@ rules:
     severity: ERROR
     languages: [python]
     patterns:
-      - subprocess\.\w+\([^)]*shell\s*=\s*True
+      - subprocess\.\w+\((?:[^()]|\([^()]*\))*shell\s*=\s*True
     pattern-not:
       - '(?m)^\s*#'
       - '(?:def test_|conftest|unittest)'
@@ -692,7 +692,7 @@ rules:
       - algorithms?\s*=\s*\[.*["']none["']
       - verify_signature.*False
       - jwt\.verify\(\s*\w+\s*,\s*["']
-      - jwt\.decode\([^)]*verify\s*=\s*False
+      - jwt\.decode\((?:[^()]|\([^()]*\))*verify\s*=\s*False
       # Absorbed from ns-bb-002 (rules/misc_rules.yaml, since deleted as
       # a duplicate): both rules
       # fired on the same `algorithms=[...none...]` idiom on the same line,

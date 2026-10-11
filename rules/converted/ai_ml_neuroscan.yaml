@@ -59,7 +59,7 @@ rules:
 
     Combined with file upload or code execution, this is remotely exploitable.'
   patterns:
-  - pattern-regex: \.launch\s*\([^)]*share\s*=\s*True
+  - pattern-regex: \.launch\s*\((?:[^()]|\([^()]*\))*share\s*=\s*True
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
@@ -153,9 +153,9 @@ rules:
   - pattern-not-regex: shell\s*=\s*False
   - pattern-not-regex: (?:argparse|sys\.argv|--help|setup\.py|pip\s+install|pip\s+uninstall)
   - pattern-not-regex: subprocess\.run\(\[["'](?:git|docker|pip|npm|cargo|go|make|cmake)["']
-  - pattern-not-regex: subprocess\.(?:run|Popen|call)\([^)]*capture_output\s*=\s*True
-  - pattern-not-regex: subprocess\.(?:run|Popen|call)\([^)]*check\s*=\s*True
-  - pattern-not-regex: subprocess\.(?:run|Popen|call)\([^)]*text\s*=\s*True
+  - pattern-not-regex: subprocess\.(?:run|Popen|call)\((?:[^()]|\([^()]*\))*capture_output\s*=\s*True
+  - pattern-not-regex: subprocess\.(?:run|Popen|call)\((?:[^()]|\([^()]*\))*check\s*=\s*True
+  - pattern-not-regex: subprocess\.(?:run|Popen|call)\((?:[^()]|\([^()]*\))*text\s*=\s*True
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   - pattern-not-regex: (?:@fixture|@pytest)
@@ -270,7 +270,7 @@ rules:
 
     environments handling sensitive data.'
   patterns:
-  - pattern-regex: chromadb\.Settings\s*\([^)]*anonymized_telemetry\s*=\s*True
+  - pattern-regex: chromadb\.Settings\s*\((?:[^()]|\([^()]*\))*anonymized_telemetry\s*=\s*True
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
@@ -486,7 +486,7 @@ rules:
 
     resources or deliver poisoned data. Specify split and limit samples.'
   patterns:
-  - pattern-regex: load_dataset\s*\([^)]*streaming\s*=\s*True
+  - pattern-regex: load_dataset\s*\((?:[^()]|\([^()]*\))*streaming\s*=\s*True
   - pattern-not-regex: split\s*=
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)

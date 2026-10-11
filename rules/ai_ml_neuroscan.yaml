@@ -49,7 +49,7 @@ rules:
     cwe: [94]
     languages: [python]
     patterns:
-      - '\.launch\s*\([^)]*share\s*=\s*True'
+      - '\.launch\s*\((?:[^()]|\([^()]*\))*share\s*=\s*True'
     pattern-not:
       - '(?m)^\s*#'
       - '(?:def test_|conftest|unittest)'
@@ -126,9 +126,9 @@ rules:
       - 'shell\s*=\s*False'
       - '(?:argparse|sys\.argv|--help|setup\.py|pip\s+install|pip\s+uninstall)'
       - 'subprocess\.run\(\[["''](?:git|docker|pip|npm|cargo|go|make|cmake)["'']'
-      - 'subprocess\.(?:run|Popen|call)\([^)]*capture_output\s*=\s*True'
-      - 'subprocess\.(?:run|Popen|call)\([^)]*check\s*=\s*True'
-      - 'subprocess\.(?:run|Popen|call)\([^)]*text\s*=\s*True'
+      - 'subprocess\.(?:run|Popen|call)\((?:[^()]|\([^()]*\))*capture_output\s*=\s*True'
+      - 'subprocess\.(?:run|Popen|call)\((?:[^()]|\([^()]*\))*check\s*=\s*True'
+      - 'subprocess\.(?:run|Popen|call)\((?:[^()]|\([^()]*\))*text\s*=\s*True'
       - '(?m)^\s*#'
       - '(?:def test_|conftest|unittest)'
       - '(?:@fixture|@pytest)'
@@ -229,7 +229,7 @@ rules:
     cwe: [200]
     languages: [python]
     patterns:
-      - 'chromadb\.Settings\s*\([^)]*anonymized_telemetry\s*=\s*True'
+      - 'chromadb\.Settings\s*\((?:[^()]|\([^()]*\))*anonymized_telemetry\s*=\s*True'
     pattern-not:
       - '(?m)^\s*#'
       - '(?:def test_|conftest|unittest)'
@@ -411,7 +411,7 @@ rules:
     cwe: [829]
     languages: [python]
     patterns:
-      - 'load_dataset\s*\([^)]*streaming\s*=\s*True'
+      - 'load_dataset\s*\((?:[^()]|\([^()]*\))*streaming\s*=\s*True'
     pattern-not:
       - 'split\s*='
       - '(?m)^\s*#'

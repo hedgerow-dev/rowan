@@ -406,7 +406,7 @@ rules:
 
     code execution. Never enable debug mode in production.'
   patterns:
-  - pattern-regex: \.run\([^)]*debug\s*=\s*True
+  - pattern-regex: \.run\((?:[^()]|\([^()]*\))*debug\s*=\s*True
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:

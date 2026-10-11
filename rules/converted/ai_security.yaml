@@ -41,7 +41,7 @@ rules:
   severity: ERROR
   message: np.load() with allow_pickle=True enables arbitrary code execution
   patterns:
-  - pattern-regex: np\.load\([^)]*allow_pickle\s*=\s*True
+  - pattern-regex: np\.load\((?:[^()]|\([^()]*\))*allow_pickle\s*=\s*True
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
@@ -143,7 +143,7 @@ rules:
   - pattern-either:
     - pattern-regex: pd\.read_pickle\(
     - pattern-regex: pandas\.read_pickle\(
-    - pattern-regex: np\.load\([^)]*allow_pickle\s*=\s*True
+    - pattern-regex: np\.load\((?:[^()]|\([^()]*\))*allow_pickle\s*=\s*True
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
@@ -281,9 +281,9 @@ rules:
     check, allowing arbitrary code execution on load (CVE-2024-3660).
   patterns:
   - pattern-either:
-    - pattern-regex: keras\.models\.load_model\([^)]*safe_mode\s*=\s*False
-    - pattern-regex: tf\.keras\.models\.load_model\([^)]*safe_mode\s*=\s*False
-    - pattern-regex: keras\.saving\.load_model\([^)]*safe_mode\s*=\s*False
+    - pattern-regex: keras\.models\.load_model\((?:[^()]|\([^()]*\))*safe_mode\s*=\s*False
+    - pattern-regex: tf\.keras\.models\.load_model\((?:[^()]|\([^()]*\))*safe_mode\s*=\s*False
+    - pattern-regex: keras\.saving\.load_model\((?:[^()]|\([^()]*\))*safe_mode\s*=\s*False
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
@@ -408,9 +408,9 @@ rules:
   message: Hydra/OmegaConf resolver with user input enables remote code execution
   patterns:
   - pattern-either:
-    - pattern-regex: OmegaConf\.to_container\([^)]*resolve\s*=\s*True
+    - pattern-regex: OmegaConf\.to_container\((?:[^()]|\([^()]*\))*resolve\s*=\s*True
     - pattern-regex: OmegaConf\.create\(
-    - pattern-regex: compose\([^)]*overrides\s*=
+    - pattern-regex: compose\((?:[^()]|\([^()]*\))*overrides\s*=
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
@@ -450,8 +450,8 @@ rules:
     - pattern-regex: pickle\.load\(
   - pattern-not-regex: weights_only\s*=\s*True
   - pattern-not-regex: safetensors
-  - pattern-not-regex: torch\.load\([^)]*map_location\s*=
-  - pattern-not-regex: torch\.load\([^)]*mmap\s*=\s*True
+  - pattern-not-regex: torch\.load\((?:[^()]|\([^()]*\))*map_location\s*=
+  - pattern-not-regex: torch\.load\((?:[^()]|\([^()]*\))*mmap\s*=\s*True
   - pattern-not-regex: if\s+format\s+in\s+\[
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
@@ -649,7 +649,7 @@ rules:
     prefer a dataset revision that ships data files directly over trusting the script, rather than pinning revision= on the
     script itself (ns-aiml-059 covers the model-repo case).
   patterns:
-  - pattern-regex: load_dataset\([^)]*trust_remote_code\s*=\s*True
+  - pattern-regex: load_dataset\((?:[^()]|\([^()]*\))*trust_remote_code\s*=\s*True
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
@@ -768,7 +768,7 @@ rules:
   - pattern-not-regex: filter\s*=\s*["'\w]
   - pattern-not-regex: members\s*=
   - pattern-not-regex: 'tarfile\.open\([^)]*["'']r:'
-  - pattern-not-regex: tarfile\.open\([^)]*mode\s*=\s*["']r
+  - pattern-not-regex: tarfile\.open\((?:[^()]|\([^()]*\))*mode\s*=\s*["']r
   - pattern-not-regex: ZipFile\([^)]*\).*\.extractall\(
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
@@ -1023,9 +1023,9 @@ rules:
   - pattern-not-regex: shell\s*=\s*False
   - pattern-not-regex: (?:argparse|sys\.argv|--help|setup\.py|pip\s+install|pip\s+uninstall)
   - pattern-not-regex: subprocess\.(?:run|Popen|call)\(\[["'](?:git|docker|pip|npm|cargo|go|make|cmake)["']
-  - pattern-not-regex: subprocess\.(?:run|Popen|call)\([^)]*capture_output\s*=\s*True
-  - pattern-not-regex: subprocess\.(?:run|Popen|call)\([^)]*check\s*=\s*True
-  - pattern-not-regex: subprocess\.(?:run|Popen|call)\([^)]*text\s*=\s*True
+  - pattern-not-regex: subprocess\.(?:run|Popen|call)\((?:[^()]|\([^()]*\))*capture_output\s*=\s*True
+  - pattern-not-regex: subprocess\.(?:run|Popen|call)\((?:[^()]|\([^()]*\))*check\s*=\s*True
+  - pattern-not-regex: subprocess\.(?:run|Popen|call)\((?:[^()]|\([^()]*\))*text\s*=\s*True
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   - pattern-not-regex: (?:@fixture|@pytest)
@@ -1165,7 +1165,7 @@ rules:
   patterns:
   - pattern-either:
     - pattern-regex: bentoml\s+serve\b[^\n]*--host\s+0\.0\.0\.0
-    - pattern-regex: bentoml\.Server\([^)]*host\s*=\s*["']0\.0\.0\.0
+    - pattern-regex: bentoml\.Server\((?:[^()]|\([^()]*\))*host\s*=\s*["']0\.0\.0\.0
     - pattern-regex: runner_host\s*=\s*["']0\.0\.0\.0
     - pattern-regex: (?m)^\s*ENV\s+BENTOML_HOST\s*=?\s*["']?0\.0\.0\.0
     - pattern-regex: '"?0\.0\.0\.0:3000:3000"?'
@@ -2018,9 +2018,9 @@ rules:
     one line is expected, not duplicate reporting.'
   patterns:
   - pattern-either:
-    - pattern-regex: (?:mcp|server|app)\.run\([^)]*host\s*=\s*["']0\.0\.0\.0["']
+    - pattern-regex: (?:mcp|server|app)\.run\((?:[^()]|\([^()]*\))*host\s*=\s*["']0\.0\.0\.0["']
     - pattern-regex: (?:mcp|server|app)\.run\([^)]*["']0\.0\.0\.0["'][^)]*\)
-    - pattern-regex: FastMCP\([^)]*host\s*=\s*["']0\.0\.0\.0["']
+    - pattern-regex: FastMCP\((?:[^()]|\([^()]*\))*host\s*=\s*["']0\.0\.0\.0["']
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
@@ -2062,8 +2062,8 @@ rules:
     one line is expected, not duplicate reporting.'
   patterns:
   - pattern-either:
-    - pattern-regex: (?:mcp|server|app)\.run\([^)]*transport\s*=\s*["']streamable[-_]http["']
-    - pattern-regex: (?:mcp|server|app)\.run\([^)]*transport\s*=\s*["']sse["']
+    - pattern-regex: (?:mcp|server|app)\.run\((?:[^()]|\([^()]*\))*transport\s*=\s*["']streamable[-_]http["']
+    - pattern-regex: (?:mcp|server|app)\.run\((?:[^()]|\([^()]*\))*transport\s*=\s*["']sse["']
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   - pattern-not-regex: (?i)auth.*required
@@ -2209,7 +2209,7 @@ rules:
     server identifiers, so it does not fire on unrelated 0.0.0.0 binds.'
   patterns:
   - pattern-either:
-    - pattern-regex: A2AServer\([^)]*host\s*=\s*["']0\.0\.0\.0["']
+    - pattern-regex: A2AServer\((?:[^()]|\([^()]*\))*host\s*=\s*["']0\.0\.0\.0["']
     - pattern-regex: A2AServer\([^)]*["']0\.0\.0\.0["'][^)]*\)
     - pattern-regex: A2AStarletteApplication\([^)]*["']0\.0\.0\.0["']
     - pattern-regex: A2AFastAPIApplication\([^)]*["']0\.0\.0\.0["']
@@ -3027,9 +3027,9 @@ rules:
   - pattern-not-regex: shell\s*=\s*False
   - pattern-not-regex: (?:argparse|sys\.argv|--help|setup\.py|pip\s+install|pip\s+uninstall)
   - pattern-not-regex: subprocess\.run\(\[["\x27](?:git|docker|pip|npm|cargo|go|make|cmake)["\x27]
-  - pattern-not-regex: subprocess\.(?:run|Popen|call)\([^)]*capture_output\s*=\s*True
-  - pattern-not-regex: subprocess\.(?:run|Popen|call)\([^)]*check\s*=\s*True
-  - pattern-not-regex: subprocess\.(?:run|Popen|call)\([^)]*text\s*=\s*True
+  - pattern-not-regex: subprocess\.(?:run|Popen|call)\((?:[^()]|\([^()]*\))*capture_output\s*=\s*True
+  - pattern-not-regex: subprocess\.(?:run|Popen|call)\((?:[^()]|\([^()]*\))*check\s*=\s*True
+  - pattern-not-regex: subprocess\.(?:run|Popen|call)\((?:[^()]|\([^()]*\))*text\s*=\s*True
   - pattern-not-regex: (?i)os\.system\s*\((?:(?!\ndef )[\s\S]){0,400}?(?:e2b|Sandbox\(|modal\.Sandbox|\bdocker\b|gvisor|nsjail|firecracker|RestrictedPython|compile_restricted|pyodide|daytona)
   - pattern-not-regex: (?i)subprocess\.(?:run|Popen|call)\s*\((?:(?!\ndef )[\s\S]){0,400}?(?:e2b|Sandbox\(|modal\.Sandbox|\bdocker\b|gvisor|nsjail|firecracker|RestrictedPython|compile_restricted|pyodide|daytona)
   - pattern-not-regex: (?i)@(?:tool|mcp\.tool|server\.tool|app\.tool)\b(?:(?!\ndef )[\s\S]){0,300}?\bexec\((?:(?!\ndef )[\s\S]){0,400}?(?:e2b|Sandbox\(|modal\.Sandbox|\bdocker\b|gvisor|nsjail|firecracker|RestrictedPython|compile_restricted|pyodide|daytona)

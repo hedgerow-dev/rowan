@@ -141,9 +141,9 @@
         "shell\\s*=\\s*False",
         "(?:argparse|sys\\.argv|--help|setup\\.py|pip\\s+install|pip\\s+uninstall)",
         "subprocess\\.run\\(\\[[\"'](?:git|docker|pip|npm|cargo|go|make|cmake)[\"']",
-        "subprocess\\.(?:run|Popen|call)\\([^)]*capture_output\\s*=\\s*True",
-        "subprocess\\.(?:run|Popen|call)\\([^)]*check\\s*=\\s*True",
-        "subprocess\\.(?:run|Popen|call)\\([^)]*text\\s*=\\s*True",
+        "subprocess\\.(?:run|Popen|call)\\((?:[^()]|\\([^()]*\\))*capture_output\\s*=\\s*True",
+        "subprocess\\.(?:run|Popen|call)\\((?:[^()]|\\([^()]*\\))*check\\s*=\\s*True",
+        "subprocess\\.(?:run|Popen|call)\\((?:[^()]|\\([^()]*\\))*text\\s*=\\s*True",
         "(?m)^\\s*#",
         "(?:def test_|conftest|unittest)",
         "(?:@fixture|@pytest)"
@@ -972,8 +972,8 @@
       "pattern_not": [
         "weights_only\\s*=\\s*True",
         "safetensors",
-        "torch\\.load\\([^)]*map_location\\s*=",
-        "torch\\.load\\([^)]*mmap\\s*=\\s*True",
+        "torch\\.load\\((?:[^()]|\\([^()]*\\))*map_location\\s*=",
+        "torch\\.load\\((?:[^()]|\\([^()]*\\))*mmap\\s*=\\s*True",
         "if\\s+format\\s+in\\s+\\[",
         "(?m)^\\s*#",
         "(?:def test_|conftest|unittest)"
@@ -1264,7 +1264,7 @@
         "filter\\s*=\\s*[\"'\\w]",
         "members\\s*=",
         "tarfile\\.open\\([^)]*[\"']r:",
-        "tarfile\\.open\\([^)]*mode\\s*=\\s*[\"']r",
+        "tarfile\\.open\\((?:[^()]|\\([^()]*\\))*mode\\s*=\\s*[\"']r",
         "ZipFile\\([^)]*\\).*\\.extractall\\(",
         "(?m)^\\s*#",
         "(?:def test_|conftest|unittest)"
@@ -1498,9 +1498,9 @@
         "shell\\s*=\\s*False",
         "(?:argparse|sys\\.argv|--help|setup\\.py|pip\\s+install|pip\\s+uninstall)",
         "subprocess\\.(?:run|Popen|call)\\(\\[[\"'](?:git|docker|pip|npm|cargo|go|make|cmake)[\"']",
-        "subprocess\\.(?:run|Popen|call)\\([^)]*capture_output\\s*=\\s*True",
-        "subprocess\\.(?:run|Popen|call)\\([^)]*check\\s*=\\s*True",
-        "subprocess\\.(?:run|Popen|call)\\([^)]*text\\s*=\\s*True",
+        "subprocess\\.(?:run|Popen|call)\\((?:[^()]|\\([^()]*\\))*capture_output\\s*=\\s*True",
+        "subprocess\\.(?:run|Popen|call)\\((?:[^()]|\\([^()]*\\))*check\\s*=\\s*True",
+        "subprocess\\.(?:run|Popen|call)\\((?:[^()]|\\([^()]*\\))*text\\s*=\\s*True",
         "(?m)^\\s*#",
         "(?:def test_|conftest|unittest)",
         "(?:@fixture|@pytest)"
@@ -2650,9 +2650,9 @@
         "shell\\s*=\\s*False",
         "(?:argparse|sys\\.argv|--help|setup\\.py|pip\\s+install|pip\\s+uninstall)",
         "subprocess\\.run\\(\\[[\"\\x27](?:git|docker|pip|npm|cargo|go|make|cmake)[\"\\x27]",
-        "subprocess\\.(?:run|Popen|call)\\([^)]*capture_output\\s*=\\s*True",
-        "subprocess\\.(?:run|Popen|call)\\([^)]*check\\s*=\\s*True",
-        "subprocess\\.(?:run|Popen|call)\\([^)]*text\\s*=\\s*True",
+        "subprocess\\.(?:run|Popen|call)\\((?:[^()]|\\([^()]*\\))*capture_output\\s*=\\s*True",
+        "subprocess\\.(?:run|Popen|call)\\((?:[^()]|\\([^()]*\\))*check\\s*=\\s*True",
+        "subprocess\\.(?:run|Popen|call)\\((?:[^()]|\\([^()]*\\))*text\\s*=\\s*True",
         "(?i)os\\.system\\s*\\((?:(?!\\ndef )[\\s\\S]){0,400}?(?:e2b|Sandbox\\(|modal\\.Sandbox|\\bdocker\\b|gvisor|nsjail|firecracker|RestrictedPython|compile_restricted|pyodide|daytona)",
         "(?i)subprocess\\.(?:run|Popen|call)\\s*\\((?:(?!\\ndef )[\\s\\S]){0,400}?(?:e2b|Sandbox\\(|modal\\.Sandbox|\\bdocker\\b|gvisor|nsjail|firecracker|RestrictedPython|compile_restricted|pyodide|daytona)",
         "(?i)@(?:tool|mcp\\.tool|server\\.tool|app\\.tool)\\b(?:(?!\\ndef )[\\s\\S]){0,300}?\\bexec\\((?:(?!\\ndef )[\\s\\S]){0,400}?(?:e2b|Sandbox\\(|modal\\.Sandbox|\\bdocker\\b|gvisor|nsjail|firecracker|RestrictedPython|compile_restricted|pyodide|daytona)"
@@ -5594,8 +5594,8 @@
       "pattern_not": [
         "weights_only\\s*=\\s*True",
         "safetensors\\.torch\\.load_file",
-        "torch\\.load\\([^)]*map_location\\s*=",
-        "torch\\.load\\([^)]*mmap\\s*=\\s*True",
+        "torch\\.load\\((?:[^()]|\\([^()]*\\))*map_location\\s*=",
+        "torch\\.load\\((?:[^()]|\\([^()]*\\))*mmap\\s*=\\s*True",
         "from_pretrained",
         "model\\.load",
         "(?m)^\\s*#",
@@ -7093,7 +7093,7 @@
         "filter\\s*=\\s*[\"'\\w]",
         "members\\s*=",
         "tarfile\\.open\\([^)]*[\"']r:",
-        "tarfile\\.open\\([^)]*mode\\s*=\\s*[\"']r",
+        "tarfile\\.open\\((?:[^()]|\\([^()]*\\))*mode\\s*=\\s*[\"']r",
         "ZipFile\\([^)]*\\).*\\.extractall\\(",
         "(?m)^\\s*#",
         "(?:def test_|conftest|unittest)"

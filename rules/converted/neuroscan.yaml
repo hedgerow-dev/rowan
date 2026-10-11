@@ -43,8 +43,8 @@ rules:
   - pattern-regex: torch\.load\s*\(
   - pattern-not-regex: weights_only\s*=\s*True
   - pattern-not-regex: safetensors\.torch\.load_file
-  - pattern-not-regex: torch\.load\([^)]*map_location\s*=
-  - pattern-not-regex: torch\.load\([^)]*mmap\s*=\s*True
+  - pattern-not-regex: torch\.load\((?:[^()]|\([^()]*\))*map_location\s*=
+  - pattern-not-regex: torch\.load\((?:[^()]|\([^()]*\))*mmap\s*=\s*True
   - pattern-not-regex: from_pretrained
   - pattern-not-regex: model\.load
   - pattern-not-regex: (?m)^\s*#
@@ -171,7 +171,7 @@ rules:
   severity: ERROR
   message: subprocess with shell=True enables command injection. Use shell=False with a list of args.
   patterns:
-  - pattern-regex: subprocess\.\w+\s*\([^)]*shell\s*=\s*True
+  - pattern-regex: subprocess\.\w+\s*\((?:[^()]|\([^()]*\))*shell\s*=\s*True
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
@@ -330,7 +330,7 @@ rules:
     Enable autoescape=True or escape untrusted values explicitly.'
   patterns:
   - pattern-either:
-    - pattern-regex: Environment\s*\([^)]*autoescape\s*=\s*False
+    - pattern-regex: Environment\s*\((?:[^()]|\([^()]*\))*autoescape\s*=\s*False
     - pattern-regex: \.jinja_env\.autoescape\s*=\s*False
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
@@ -481,7 +481,7 @@ rules:
 
     and allow arbitrary code execution via the Werkzeug debugger.'
   patterns:
-  - pattern-regex: app\.run\s*\([^)]*debug\s*=\s*True
+  - pattern-regex: app\.run\s*\((?:[^()]|\([^()]*\))*debug\s*=\s*True
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:

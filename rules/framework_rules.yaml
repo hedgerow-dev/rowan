@@ -363,7 +363,7 @@ rules:
     cwe: [489]
     languages: [python]
     patterns:
-      - '\.run\([^)]*debug\s*=\s*True'
+      - '\.run\((?:[^()]|\([^()]*\))*debug\s*=\s*True'
     pattern-not:
       - '(?m)^\s*#'
       - '(?:def test_|conftest|unittest)'

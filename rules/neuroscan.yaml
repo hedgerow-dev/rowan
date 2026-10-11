@@ -46,8 +46,8 @@ rules:
     pattern-not:
       - 'weights_only\s*=\s*True'
       - 'safetensors\.torch\.load_file'
-      - 'torch\.load\([^)]*map_location\s*='
-      - 'torch\.load\([^)]*mmap\s*=\s*True'
+      - 'torch\.load\((?:[^()]|\([^()]*\))*map_location\s*='
+      - 'torch\.load\((?:[^()]|\([^()]*\))*mmap\s*=\s*True'
       - 'from_pretrained'
       - 'model\.load'
       - '(?m)^\s*#'
@@ -152,7 +152,7 @@ rules:
     cwe: [78]
     languages: [python]
     patterns:
-      - 'subprocess\.\w+\s*\([^)]*shell\s*=\s*True'
+      - 'subprocess\.\w+\s*\((?:[^()]|\([^()]*\))*shell\s*=\s*True'
     pattern-not:
       - '(?m)^\s*#'
       - '(?:def test_|conftest|unittest)'
@@ -290,7 +290,7 @@ rules:
     # unambiguous signal); default/True environments and Markup-safe render
     # paths are unaffected.
     patterns:
-      - 'Environment\s*\([^)]*autoescape\s*=\s*False'
+      - 'Environment\s*\((?:[^()]|\([^()]*\))*autoescape\s*=\s*False'
       - '\.jinja_env\.autoescape\s*=\s*False'
     pattern-not:
       - '(?m)^\s*#'
@@ -424,7 +424,7 @@ rules:
     cwe: [489]
     languages: [python]
     patterns:
-      - 'app\.run\s*\([^)]*debug\s*=\s*True'
+      - 'app\.run\s*\((?:[^()]|\([^()]*\))*debug\s*=\s*True'
     pattern-not:
       - '(?m)^\s*#'
       - '(?:def test_|conftest|unittest)'

@@ -86,6 +86,12 @@ Add to an existing YAML file in `rules/` or create a new one:
   languages: [python]
 ```
 
+Regex rules match one pattern at a time. Know these limits before writing one:
+
+- **`patterns` is OR, not AND.** A rule with patterns A and B fires on any line with A or any line with B.
+- **`pattern-not` only sees the finding's own line.** An exclusion on another line (a later Terraform attribute, a `setSecure` call, a comment above) never suppresses anything. "X without Y" across lines needs a structural Opengrep rule (`pattern` plus `pattern-not-inside`).
+- **Do not write `\([^)]*kw=`.** It stops at the first `)`, so `run(build(x), shell=True)` is missed. Use `\((?:[^()]|\([^()]*\))*kw=`; a test lints for this.
+
 ### Taint rule
 
 Add to an existing `*_taint.yaml` file in `rules/`:

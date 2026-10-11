@@ -190,7 +190,7 @@ rules:
   - pattern-not-regex: filter\s*=\s*["'\w]
   - pattern-not-regex: members\s*=
   - pattern-not-regex: 'tarfile\.open\([^)]*["'']r:'
-  - pattern-not-regex: tarfile\.open\([^)]*mode\s*=\s*["']r
+  - pattern-not-regex: tarfile\.open\((?:[^()]|\([^()]*\))*mode\s*=\s*["']r
   - pattern-not-regex: ZipFile\([^)]*\).*\.extractall\(
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
@@ -248,7 +248,7 @@ rules:
   severity: ERROR
   message: subprocess with shell=True.
   patterns:
-  - pattern-regex: subprocess\.\w+\([^)]*shell\s*=\s*True
+  - pattern-regex: subprocess\.\w+\((?:[^()]|\([^()]*\))*shell\s*=\s*True
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
@@ -668,7 +668,7 @@ rules:
     - pattern-regex: algorithms?\s*=\s*\[.*["']none["']
     - pattern-regex: verify_signature.*False
     - pattern-regex: jwt\.verify\(\s*\w+\s*,\s*["']
-    - pattern-regex: jwt\.decode\([^)]*verify\s*=\s*False
+    - pattern-regex: jwt\.decode\((?:[^()]|\([^()]*\))*verify\s*=\s*False
     - pattern-regex: algorithm.*HS256.*RS256
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?m)^\s*//.*

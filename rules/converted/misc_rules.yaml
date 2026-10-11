@@ -619,7 +619,7 @@ rules:
 
     file upload or code execution, this is remotely exploitable.'
   patterns:
-  - pattern-regex: \.launch\([^)]*share\s*=\s*True
+  - pattern-regex: \.launch\((?:[^()]|\([^()]*\))*share\s*=\s*True
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
@@ -636,7 +636,7 @@ rules:
 
     can access the app. Add auth=("user", "pass") or use auth callbacks.'
   patterns:
-  - pattern-regex: \.launch\([^)]*server_name\s*=\s*["']0\.0\.0\.0["']
+  - pattern-regex: \.launch\((?:[^()]|\([^()]*\))*server_name\s*=\s*["']0\.0\.0\.0["']
   - pattern-not-regex: auth\s*=
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
