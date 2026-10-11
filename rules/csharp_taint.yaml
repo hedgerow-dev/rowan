@@ -33,6 +33,36 @@ rules:
               $RET $METHOD(..., [FromRoute] $TYPE $PARAM, ...) {
                 ...
               }
+    pattern-sinks:
+      - pattern: new SqlCommand(...)
+      - pattern: (SqlCommand $CMD).ExecuteReader()
+      - pattern: (SqlCommand $CMD).ExecuteNonQuery()
+      - pattern: $DB.FromSqlRaw(...)
+      - pattern: $CONN.Query(...)
+      - pattern: $CONN.Execute(...)
+    pattern-sanitizers:
+      - pattern: (SqlCommand $CMD).Parameters.AddWithValue(...)
+      - pattern: (SqlCommand $CMD).Parameters.Add(...)
+      - pattern: int.TryParse(...)
+      - pattern: $DB.FromSqlInterpolated(...)
+
+  # Operator-input sibling of tnt-cs-sqli-001, as Java EXT-19 and Go do (#73).
+  - id: tnt-cs-sqli-002
+    mode: taint
+    languages: [csharp]
+    severity: WARNING
+    message: >-
+      Configuration or command-line input (env var or argv) flows into a SQL query
+      unchanged. Operator-controlled, so lower risk than request input, but
+      the same injection sink built from untrusted text.
+    metadata:
+      cwe:
+        - "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
+      confidence: MEDIUM
+      source_kind: operator_input
+      category: injection
+      fix: "Use parameterized queries (SqlCommand.Parameters.AddWithValue / EF Core FromSqlInterpolated) instead of concatenating input into SQL text."
+    pattern-sources:
       - pattern: Environment.GetEnvironmentVariable(...)
       - pattern: args[$IDX]
     pattern-sinks:
@@ -82,6 +112,34 @@ rules:
               $RET $METHOD(..., [FromRoute] $TYPE $PARAM, ...) {
                 ...
               }
+    pattern-sinks:
+      - pattern: Process.Start(...)
+      - pattern: PowerShell.Create()
+      - patterns:
+          - pattern: $PSI.Arguments = $ARG
+          - pattern-inside: |
+              $PSI = new ProcessStartInfo(...);
+              ...
+    pattern-sanitizers:
+      - pattern: Path.GetFileName(...)
+
+  # Operator-input sibling of tnt-cs-cmdi-001, as Java EXT-19 and Go do (#73).
+  - id: tnt-cs-cmdi-002
+    mode: taint
+    languages: [csharp]
+    severity: WARNING
+    message: >-
+      Configuration or command-line input (env var or argv) flows into an OS command
+      unchanged. Operator-controlled, so lower risk than request input, but
+      the same injection sink built from untrusted text.
+    metadata:
+      cwe:
+        - "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+      confidence: MEDIUM
+      source_kind: operator_input
+      category: command_injection
+      fix: "Avoid building shell commands from user input; if a process must be started, pass arguments via ProcessStartInfo.ArgumentList rather than a single interpolated string."
+    pattern-sources:
       - pattern: Environment.GetEnvironmentVariable(...)
       - pattern: args[$IDX]
     pattern-sinks:
@@ -129,8 +187,6 @@ rules:
               $RET $METHOD(..., [FromRoute] $TYPE $PARAM, ...) {
                 ...
               }
-      - pattern: Environment.GetEnvironmentVariable(...)
-      - pattern: args[$IDX]
     pattern-sinks:
       - pattern: File.ReadAllText(...)
       - pattern: File.ReadAllBytes(...)
@@ -174,8 +230,6 @@ rules:
               $RET $METHOD(..., [FromRoute] $TYPE $PARAM, ...) {
                 ...
               }
-      - pattern: Environment.GetEnvironmentVariable(...)
-      - pattern: args[$IDX]
     pattern-sinks:
       - pattern: $CLIENT.GetStringAsync(...)
       # Typed: bare `$X.GetAsync(...)` also matched CQRS query objects
@@ -223,8 +277,6 @@ rules:
               $RET $METHOD(..., [FromRoute] $TYPE $PARAM, ...) {
                 ...
               }
-      - pattern: Environment.GetEnvironmentVariable(...)
-      - pattern: args[$IDX]
     pattern-sinks:
       - pattern: Response.Write(...)
       - pattern: Html.Raw(...)
@@ -268,8 +320,6 @@ rules:
               $RET $METHOD(..., [FromRoute] $TYPE $PARAM, ...) {
                 ...
               }
-      - pattern: Environment.GetEnvironmentVariable(...)
-      - pattern: args[$IDX]
     pattern-sinks:
       - pattern: (BinaryFormatter $BF).Deserialize(...)
       - pattern: JsonConvert.DeserializeObject(...)
@@ -312,8 +362,6 @@ rules:
               $RET $METHOD(..., [FromRoute] $TYPE $PARAM, ...) {
                 ...
               }
-      - pattern: Environment.GetEnvironmentVariable(...)
-      - pattern: args[$IDX]
     pattern-sinks:
       - pattern: new DirectorySearcher(...)
       - pattern: new DirectoryEntry(...)
@@ -361,8 +409,6 @@ rules:
               $RET $METHOD(..., [FromRoute] $TYPE $PARAM, ...) {
                 ...
               }
-      - pattern: Environment.GetEnvironmentVariable(...)
-      - pattern: args[$IDX]
     pattern-sinks:
       - pattern: $LOG.LogInformation(...)
       - pattern: $LOG.LogWarning(...)

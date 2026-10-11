@@ -380,17 +380,6 @@ rules:
       # the `$DB.Query(...)` SQL sink. These sinks do not collide, and the bare
       # form is what reaches macaron-style contexts (gogs internal/route).
       - pattern: $C.Query(...)
-      # rowan-registry:begin source=operator_input_go
-      - patterns:
-          - pattern-either:
-              - pattern: os.Getenv(...)
-              - pattern: os.LookupEnv(...)
-              - pattern: flag.String(...)
-              - pattern: flag.Arg(...)
-              - pattern: os.Args
-              - pattern: viper.GetString(...)
-              - pattern: viper.Get(...)
-      # rowan-registry:end source=operator_input_go
     pattern-sinks:
       - pattern: log.Printf(...)
       - pattern: log.Println(...)
@@ -435,17 +424,6 @@ rules:
       # the `$DB.Query(...)` SQL sink. These sinks do not collide, and the bare
       # form is what reaches macaron-style contexts (gogs internal/route).
       - pattern: $C.Query(...)
-      # rowan-registry:begin source=operator_input_go
-      - patterns:
-          - pattern-either:
-              - pattern: os.Getenv(...)
-              - pattern: os.LookupEnv(...)
-              - pattern: flag.String(...)
-              - pattern: flag.Arg(...)
-              - pattern: os.Args
-              - pattern: viper.GetString(...)
-              - pattern: viper.Get(...)
-      # rowan-registry:end source=operator_input_go
     pattern-sinks:
       - pattern: $W.Header().Set(...)
       - pattern: $W.Header().Add(...)
