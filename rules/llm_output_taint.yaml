@@ -316,6 +316,7 @@ rules:
               - pattern: subprocess.Popen($CMD, shell=True, ...)
               - pattern: os.system($CMD)
               - pattern: os.popen($CMD)
+          - focus-metavariable: $CMD
     pattern-sanitizers:
       - patterns:
           - pattern-either:
@@ -426,12 +427,13 @@ rules:
     pattern-sinks:
       - patterns:
           - pattern-either:
-              - pattern: eval($CODE)
-              - pattern: exec($CODE)
-              - pattern: pd.eval($EXPR, ...)
-              - pattern: pandas.eval($EXPR, ...)
-              - pattern: $DF.query($EXPR, engine="python", ...)
-              - pattern: $DF.eval($EXPR, engine="python", ...)
+              - pattern: eval($CODE, ...)
+              - pattern: exec($CODE, ...)
+              - pattern: pd.eval($CODE, ...)
+              - pattern: pandas.eval($CODE, ...)
+              - pattern: $DF.query($CODE, engine="python", ...)
+              - pattern: $DF.eval($CODE, engine="python", ...)
+          - focus-metavariable: $CODE
 
   # ── TNT-LLMOUT-004: LLM output -> outbound HTTP request URL (SSRF) ──
   # Agent-driven SSRF: model emits an internal URL, the agent fetches it.
@@ -653,6 +655,7 @@ rules:
               - pattern: shutil.copy2(..., $PATH)
               - pattern: shutil.move(..., $PATH)
               - pattern: shutil.copytree(..., $PATH)
+          - focus-metavariable: $PATH
     pattern-sanitizers:
       - patterns:
           - pattern-either:
@@ -775,6 +778,7 @@ rules:
               - pattern: st.markdown($TEXT, unsafe_allow_html=True, ...)
               - pattern: st.write($TEXT, unsafe_allow_html=True, ...)
               - pattern: render_template_string($TEXT, ...)
+          - focus-metavariable: $TEXT
     pattern-sanitizers:
       - patterns:
           - pattern-either:
