@@ -647,6 +647,80 @@ _WEB_REQUEST_JS_DESTRUCTURED_SOURCES: list[Entry] = [
     },
 ]
 
+#: Request values in frameworks whose handlers never read `req.query` /
+#: `req.body` (detection review, #54). Next.js route-handler reads are scoped
+#: to an exported HTTP-verb function so `await response.json()` on a fetch
+#: result is not a source.
+_NEXT_ROUTE_VERB = r"^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$"
+_WEB_REQUEST_JS_FRAMEWORK_SOURCES: list[Entry] = [
+    # Express / Koa accessors the explicit sources miss.
+    "req.get(...)",
+    "req.header(...)",
+    "req.cookies",
+    "req.originalUrl",
+    "req.url",
+    "req.path",
+    "req.files",
+    "req.file",
+    "ctx.request.query",
+    "ctx.cookies.get(...)",
+    # Hono: `c.req.query('x')`, `c.req.param()`, `await c.req.json()`.
+    "$C.req.query(...)",
+    "$C.req.queries(...)",
+    "$C.req.param(...)",
+    "$C.req.header(...)",
+    "$C.req.json()",
+    "$C.req.parseBody(...)",
+    "$C.req.formData()",
+    # Next.js App Router route handlers.
+    {
+        "patterns": [
+            {
+                "pattern-either": [
+                    {"pattern-inside": "export async function $VERB($REQ, ...) {\n  ...\n}"},
+                    {"pattern-inside": "export function $VERB($REQ, ...) {\n  ...\n}"},
+                ]
+            },
+            {"metavariable-regex": {"metavariable": "$VERB", "regex": _NEXT_ROUTE_VERB}},
+            {
+                "pattern-either": [
+                    "$REQ.nextUrl.searchParams.get(...)",
+                    "$REQ.nextUrl.searchParams",
+                    "$REQ.json()",
+                    "$REQ.formData()",
+                    "$REQ.text()",
+                    "new URL($REQ.url)",
+                ]
+            },
+        ]
+    },
+    # Next.js server actions and form handlers take a FormData argument.
+    {
+        "patterns": [
+            {
+                "pattern-either": [
+                    {"pattern-inside": "async function $F(..., $FD: FormData, ...) {\n  ...\n}"},
+                    {"pattern-inside": "function $F(..., $FD: FormData, ...) {\n  ...\n}"},
+                ]
+            },
+            "$FD.get(...)",
+        ]
+    },
+    # NestJS controller parameters bound by decorator.
+    {
+        "patterns": [
+            {
+                "pattern-either": [
+                    {"pattern-inside": "'class $CLS { $M(..., @$DEC(...) $P: $T, ...) { ... } }'"},
+                    {"pattern-inside": "'class $CLS { async $M(..., @$DEC(...) $P: $T, ...) { ... } }'"},
+                ]
+            },
+            {"metavariable-regex": {"metavariable": "$DEC", "regex": r"^(Query|Param|Body|Headers|Ip|HostParam)$"}},
+            "$P",
+        ]
+    },
+]
+
 #: name -> ordered list of opengrep source entries.
 SOURCES: dict[str, list[Entry]] = {
     "web_request": _WEB_REQUEST_SOURCES,
@@ -665,6 +739,7 @@ SOURCES: dict[str, list[Entry]] = {
     "llm_output_go": _LLM_OUTPUT_GO_SOURCES,
     "mcp_tool_arg_go": _MCP_TOOL_ARG_GO_SOURCES,
     "web_request_js_destructured": _WEB_REQUEST_JS_DESTRUCTURED_SOURCES,
+    "web_request_js_frameworks": _WEB_REQUEST_JS_FRAMEWORK_SOURCES,
     # For Python rules whose source list does not include it (open
     # redirect's narrower list, the http_request rules).
     "web_request_fastapi_params": [_FASTAPI_PARAM_SOURCE],

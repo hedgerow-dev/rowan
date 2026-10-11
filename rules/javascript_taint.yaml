@@ -62,6 +62,66 @@ rules:
                       metavariable: $SRC
                       regex: ^(query|body|params|headers|cookies)$
       # rowan-registry:end source=web_request_js_destructured
+      # rowan-registry:begin source=web_request_js_frameworks
+      - patterns:
+          - pattern-either:
+              - pattern: req.get(...)
+              - pattern: req.header(...)
+              - pattern: req.cookies
+              - pattern: req.originalUrl
+              - pattern: req.url
+              - pattern: req.path
+              - pattern: req.files
+              - pattern: req.file
+              - pattern: ctx.request.query
+              - pattern: ctx.cookies.get(...)
+              - pattern: $C.req.query(...)
+              - pattern: $C.req.queries(...)
+              - pattern: $C.req.param(...)
+              - pattern: $C.req.header(...)
+              - pattern: $C.req.json()
+              - pattern: $C.req.parseBody(...)
+              - pattern: $C.req.formData()
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          export async function $VERB($REQ, ...) {
+                            ...
+                          }
+                      - pattern-inside: |
+                          export function $VERB($REQ, ...) {
+                            ...
+                          }
+                  - metavariable-regex:
+                      metavariable: $VERB
+                      regex: ^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$
+                  - pattern-either:
+                      - pattern: $REQ.nextUrl.searchParams.get(...)
+                      - pattern: $REQ.nextUrl.searchParams
+                      - pattern: $REQ.json()
+                      - pattern: $REQ.formData()
+                      - pattern: $REQ.text()
+                      - pattern: new URL($REQ.url)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          async function $F(..., $FD: FormData, ...) {
+                            ...
+                          }
+                      - pattern-inside: |
+                          function $F(..., $FD: FormData, ...) {
+                            ...
+                          }
+                  - pattern: $FD.get(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: 'class $CLS { $M(..., @$DEC(...) $P: $T, ...) { ... } }'
+                      - pattern-inside: 'class $CLS { async $M(..., @$DEC(...) $P: $T, ...) { ... } }'
+                  - metavariable-regex:
+                      metavariable: $DEC
+                      regex: ^(Query|Param|Body|Headers|Ip|HostParam)$
+                  - pattern: $P
+      # rowan-registry:end source=web_request_js_frameworks
     pattern-sinks:
       - patterns:
           - pattern-either:
@@ -72,6 +132,9 @@ rules:
               - pattern: pool.query($SQL, ...)
               - pattern: sequelize.query($SQL, ...)
               - pattern: knex.raw($SQL, ...)
+          # Hono's request accessor `c.req.query('x')` is a source, not a
+          # database query.
+          - pattern-not: $X.req.query(...)
           - focus-metavariable: $SQL
     pattern-sanitizers:
       - pattern: $DB.where(...)
@@ -139,6 +202,66 @@ rules:
                       metavariable: $SRC
                       regex: ^(query|body|params|headers|cookies)$
       # rowan-registry:end source=web_request_js_destructured
+      # rowan-registry:begin source=web_request_js_frameworks
+      - patterns:
+          - pattern-either:
+              - pattern: req.get(...)
+              - pattern: req.header(...)
+              - pattern: req.cookies
+              - pattern: req.originalUrl
+              - pattern: req.url
+              - pattern: req.path
+              - pattern: req.files
+              - pattern: req.file
+              - pattern: ctx.request.query
+              - pattern: ctx.cookies.get(...)
+              - pattern: $C.req.query(...)
+              - pattern: $C.req.queries(...)
+              - pattern: $C.req.param(...)
+              - pattern: $C.req.header(...)
+              - pattern: $C.req.json()
+              - pattern: $C.req.parseBody(...)
+              - pattern: $C.req.formData()
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          export async function $VERB($REQ, ...) {
+                            ...
+                          }
+                      - pattern-inside: |
+                          export function $VERB($REQ, ...) {
+                            ...
+                          }
+                  - metavariable-regex:
+                      metavariable: $VERB
+                      regex: ^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$
+                  - pattern-either:
+                      - pattern: $REQ.nextUrl.searchParams.get(...)
+                      - pattern: $REQ.nextUrl.searchParams
+                      - pattern: $REQ.json()
+                      - pattern: $REQ.formData()
+                      - pattern: $REQ.text()
+                      - pattern: new URL($REQ.url)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          async function $F(..., $FD: FormData, ...) {
+                            ...
+                          }
+                      - pattern-inside: |
+                          function $F(..., $FD: FormData, ...) {
+                            ...
+                          }
+                  - pattern: $FD.get(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: 'class $CLS { $M(..., @$DEC(...) $P: $T, ...) { ... } }'
+                      - pattern-inside: 'class $CLS { async $M(..., @$DEC(...) $P: $T, ...) { ... } }'
+                  - metavariable-regex:
+                      metavariable: $DEC
+                      regex: ^(Query|Param|Body|Headers|Ip|HostParam)$
+                  - pattern: $P
+      # rowan-registry:end source=web_request_js_frameworks
     pattern-sinks:
       - pattern: exec(...)
       - pattern: execSync(...)
@@ -207,6 +330,66 @@ rules:
                       metavariable: $SRC
                       regex: ^(query|body|params|headers|cookies)$
       # rowan-registry:end source=web_request_js_destructured
+      # rowan-registry:begin source=web_request_js_frameworks
+      - patterns:
+          - pattern-either:
+              - pattern: req.get(...)
+              - pattern: req.header(...)
+              - pattern: req.cookies
+              - pattern: req.originalUrl
+              - pattern: req.url
+              - pattern: req.path
+              - pattern: req.files
+              - pattern: req.file
+              - pattern: ctx.request.query
+              - pattern: ctx.cookies.get(...)
+              - pattern: $C.req.query(...)
+              - pattern: $C.req.queries(...)
+              - pattern: $C.req.param(...)
+              - pattern: $C.req.header(...)
+              - pattern: $C.req.json()
+              - pattern: $C.req.parseBody(...)
+              - pattern: $C.req.formData()
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          export async function $VERB($REQ, ...) {
+                            ...
+                          }
+                      - pattern-inside: |
+                          export function $VERB($REQ, ...) {
+                            ...
+                          }
+                  - metavariable-regex:
+                      metavariable: $VERB
+                      regex: ^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$
+                  - pattern-either:
+                      - pattern: $REQ.nextUrl.searchParams.get(...)
+                      - pattern: $REQ.nextUrl.searchParams
+                      - pattern: $REQ.json()
+                      - pattern: $REQ.formData()
+                      - pattern: $REQ.text()
+                      - pattern: new URL($REQ.url)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          async function $F(..., $FD: FormData, ...) {
+                            ...
+                          }
+                      - pattern-inside: |
+                          function $F(..., $FD: FormData, ...) {
+                            ...
+                          }
+                  - pattern: $FD.get(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: 'class $CLS { $M(..., @$DEC(...) $P: $T, ...) { ... } }'
+                      - pattern-inside: 'class $CLS { async $M(..., @$DEC(...) $P: $T, ...) { ... } }'
+                  - metavariable-regex:
+                      metavariable: $DEC
+                      regex: ^(Query|Param|Body|Headers|Ip|HostParam)$
+                  - pattern: $P
+      # rowan-registry:end source=web_request_js_frameworks
     pattern-sinks:
       - pattern: fs.readFile(...)
       - pattern: fs.readFileSync(...)
@@ -330,6 +513,66 @@ rules:
                       metavariable: $SRC
                       regex: ^(query|body|params|headers|cookies)$
       # rowan-registry:end source=web_request_js_destructured
+      # rowan-registry:begin source=web_request_js_frameworks
+      - patterns:
+          - pattern-either:
+              - pattern: req.get(...)
+              - pattern: req.header(...)
+              - pattern: req.cookies
+              - pattern: req.originalUrl
+              - pattern: req.url
+              - pattern: req.path
+              - pattern: req.files
+              - pattern: req.file
+              - pattern: ctx.request.query
+              - pattern: ctx.cookies.get(...)
+              - pattern: $C.req.query(...)
+              - pattern: $C.req.queries(...)
+              - pattern: $C.req.param(...)
+              - pattern: $C.req.header(...)
+              - pattern: $C.req.json()
+              - pattern: $C.req.parseBody(...)
+              - pattern: $C.req.formData()
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          export async function $VERB($REQ, ...) {
+                            ...
+                          }
+                      - pattern-inside: |
+                          export function $VERB($REQ, ...) {
+                            ...
+                          }
+                  - metavariable-regex:
+                      metavariable: $VERB
+                      regex: ^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$
+                  - pattern-either:
+                      - pattern: $REQ.nextUrl.searchParams.get(...)
+                      - pattern: $REQ.nextUrl.searchParams
+                      - pattern: $REQ.json()
+                      - pattern: $REQ.formData()
+                      - pattern: $REQ.text()
+                      - pattern: new URL($REQ.url)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          async function $F(..., $FD: FormData, ...) {
+                            ...
+                          }
+                      - pattern-inside: |
+                          function $F(..., $FD: FormData, ...) {
+                            ...
+                          }
+                  - pattern: $FD.get(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: 'class $CLS { $M(..., @$DEC(...) $P: $T, ...) { ... } }'
+                      - pattern-inside: 'class $CLS { async $M(..., @$DEC(...) $P: $T, ...) { ... } }'
+                  - metavariable-regex:
+                      metavariable: $DEC
+                      regex: ^(Query|Param|Body|Headers|Ip|HostParam)$
+                  - pattern: $P
+      # rowan-registry:end source=web_request_js_frameworks
     pattern-sinks:
       - pattern: fetch(...)
       - pattern: axios.get(...)
@@ -400,6 +643,66 @@ rules:
                       metavariable: $SRC
                       regex: ^(query|body|params|headers|cookies)$
       # rowan-registry:end source=web_request_js_destructured
+      # rowan-registry:begin source=web_request_js_frameworks
+      - patterns:
+          - pattern-either:
+              - pattern: req.get(...)
+              - pattern: req.header(...)
+              - pattern: req.cookies
+              - pattern: req.originalUrl
+              - pattern: req.url
+              - pattern: req.path
+              - pattern: req.files
+              - pattern: req.file
+              - pattern: ctx.request.query
+              - pattern: ctx.cookies.get(...)
+              - pattern: $C.req.query(...)
+              - pattern: $C.req.queries(...)
+              - pattern: $C.req.param(...)
+              - pattern: $C.req.header(...)
+              - pattern: $C.req.json()
+              - pattern: $C.req.parseBody(...)
+              - pattern: $C.req.formData()
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          export async function $VERB($REQ, ...) {
+                            ...
+                          }
+                      - pattern-inside: |
+                          export function $VERB($REQ, ...) {
+                            ...
+                          }
+                  - metavariable-regex:
+                      metavariable: $VERB
+                      regex: ^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$
+                  - pattern-either:
+                      - pattern: $REQ.nextUrl.searchParams.get(...)
+                      - pattern: $REQ.nextUrl.searchParams
+                      - pattern: $REQ.json()
+                      - pattern: $REQ.formData()
+                      - pattern: $REQ.text()
+                      - pattern: new URL($REQ.url)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          async function $F(..., $FD: FormData, ...) {
+                            ...
+                          }
+                      - pattern-inside: |
+                          function $F(..., $FD: FormData, ...) {
+                            ...
+                          }
+                  - pattern: $FD.get(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: 'class $CLS { $M(..., @$DEC(...) $P: $T, ...) { ... } }'
+                      - pattern-inside: 'class $CLS { async $M(..., @$DEC(...) $P: $T, ...) { ... } }'
+                  - metavariable-regex:
+                      metavariable: $DEC
+                      regex: ^(Query|Param|Body|Headers|Ip|HostParam)$
+                  - pattern: $P
+      # rowan-registry:end source=web_request_js_frameworks
     pattern-sinks:
       - pattern: res.send(...)
       - pattern: $EL.innerHTML = $VAL
@@ -470,6 +773,66 @@ rules:
                       metavariable: $SRC
                       regex: ^(query|body|params|headers|cookies)$
       # rowan-registry:end source=web_request_js_destructured
+      # rowan-registry:begin source=web_request_js_frameworks
+      - patterns:
+          - pattern-either:
+              - pattern: req.get(...)
+              - pattern: req.header(...)
+              - pattern: req.cookies
+              - pattern: req.originalUrl
+              - pattern: req.url
+              - pattern: req.path
+              - pattern: req.files
+              - pattern: req.file
+              - pattern: ctx.request.query
+              - pattern: ctx.cookies.get(...)
+              - pattern: $C.req.query(...)
+              - pattern: $C.req.queries(...)
+              - pattern: $C.req.param(...)
+              - pattern: $C.req.header(...)
+              - pattern: $C.req.json()
+              - pattern: $C.req.parseBody(...)
+              - pattern: $C.req.formData()
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          export async function $VERB($REQ, ...) {
+                            ...
+                          }
+                      - pattern-inside: |
+                          export function $VERB($REQ, ...) {
+                            ...
+                          }
+                  - metavariable-regex:
+                      metavariable: $VERB
+                      regex: ^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$
+                  - pattern-either:
+                      - pattern: $REQ.nextUrl.searchParams.get(...)
+                      - pattern: $REQ.nextUrl.searchParams
+                      - pattern: $REQ.json()
+                      - pattern: $REQ.formData()
+                      - pattern: $REQ.text()
+                      - pattern: new URL($REQ.url)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          async function $F(..., $FD: FormData, ...) {
+                            ...
+                          }
+                      - pattern-inside: |
+                          function $F(..., $FD: FormData, ...) {
+                            ...
+                          }
+                  - pattern: $FD.get(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: 'class $CLS { $M(..., @$DEC(...) $P: $T, ...) { ... } }'
+                      - pattern-inside: 'class $CLS { async $M(..., @$DEC(...) $P: $T, ...) { ... } }'
+                  - metavariable-regex:
+                      metavariable: $DEC
+                      regex: ^(Query|Param|Body|Headers|Ip|HostParam)$
+                  - pattern: $P
+      # rowan-registry:end source=web_request_js_frameworks
     pattern-sinks:
       # A Sequelize options object (`where` / `include` keys) is SQL with
       # bound parameters, not a MongoDB filter.
@@ -545,6 +908,66 @@ rules:
                       metavariable: $SRC
                       regex: ^(query|body|params|headers|cookies)$
       # rowan-registry:end source=web_request_js_destructured
+      # rowan-registry:begin source=web_request_js_frameworks
+      - patterns:
+          - pattern-either:
+              - pattern: req.get(...)
+              - pattern: req.header(...)
+              - pattern: req.cookies
+              - pattern: req.originalUrl
+              - pattern: req.url
+              - pattern: req.path
+              - pattern: req.files
+              - pattern: req.file
+              - pattern: ctx.request.query
+              - pattern: ctx.cookies.get(...)
+              - pattern: $C.req.query(...)
+              - pattern: $C.req.queries(...)
+              - pattern: $C.req.param(...)
+              - pattern: $C.req.header(...)
+              - pattern: $C.req.json()
+              - pattern: $C.req.parseBody(...)
+              - pattern: $C.req.formData()
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          export async function $VERB($REQ, ...) {
+                            ...
+                          }
+                      - pattern-inside: |
+                          export function $VERB($REQ, ...) {
+                            ...
+                          }
+                  - metavariable-regex:
+                      metavariable: $VERB
+                      regex: ^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$
+                  - pattern-either:
+                      - pattern: $REQ.nextUrl.searchParams.get(...)
+                      - pattern: $REQ.nextUrl.searchParams
+                      - pattern: $REQ.json()
+                      - pattern: $REQ.formData()
+                      - pattern: $REQ.text()
+                      - pattern: new URL($REQ.url)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          async function $F(..., $FD: FormData, ...) {
+                            ...
+                          }
+                      - pattern-inside: |
+                          function $F(..., $FD: FormData, ...) {
+                            ...
+                          }
+                  - pattern: $FD.get(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: 'class $CLS { $M(..., @$DEC(...) $P: $T, ...) { ... } }'
+                      - pattern-inside: 'class $CLS { async $M(..., @$DEC(...) $P: $T, ...) { ... } }'
+                  - metavariable-regex:
+                      metavariable: $DEC
+                      regex: ^(Query|Param|Body|Headers|Ip|HostParam)$
+                  - pattern: $P
+      # rowan-registry:end source=web_request_js_frameworks
     pattern-sinks:
       - pattern: console.log(...)
       - pattern: console.info(...)
@@ -614,6 +1037,66 @@ rules:
                       metavariable: $SRC
                       regex: ^(query|body|params|headers|cookies)$
       # rowan-registry:end source=web_request_js_destructured
+      # rowan-registry:begin source=web_request_js_frameworks
+      - patterns:
+          - pattern-either:
+              - pattern: req.get(...)
+              - pattern: req.header(...)
+              - pattern: req.cookies
+              - pattern: req.originalUrl
+              - pattern: req.url
+              - pattern: req.path
+              - pattern: req.files
+              - pattern: req.file
+              - pattern: ctx.request.query
+              - pattern: ctx.cookies.get(...)
+              - pattern: $C.req.query(...)
+              - pattern: $C.req.queries(...)
+              - pattern: $C.req.param(...)
+              - pattern: $C.req.header(...)
+              - pattern: $C.req.json()
+              - pattern: $C.req.parseBody(...)
+              - pattern: $C.req.formData()
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          export async function $VERB($REQ, ...) {
+                            ...
+                          }
+                      - pattern-inside: |
+                          export function $VERB($REQ, ...) {
+                            ...
+                          }
+                  - metavariable-regex:
+                      metavariable: $VERB
+                      regex: ^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$
+                  - pattern-either:
+                      - pattern: $REQ.nextUrl.searchParams.get(...)
+                      - pattern: $REQ.nextUrl.searchParams
+                      - pattern: $REQ.json()
+                      - pattern: $REQ.formData()
+                      - pattern: $REQ.text()
+                      - pattern: new URL($REQ.url)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          async function $F(..., $FD: FormData, ...) {
+                            ...
+                          }
+                      - pattern-inside: |
+                          function $F(..., $FD: FormData, ...) {
+                            ...
+                          }
+                  - pattern: $FD.get(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: 'class $CLS { $M(..., @$DEC(...) $P: $T, ...) { ... } }'
+                      - pattern-inside: 'class $CLS { async $M(..., @$DEC(...) $P: $T, ...) { ... } }'
+                  - metavariable-regex:
+                      metavariable: $DEC
+                      regex: ^(Query|Param|Body|Headers|Ip|HostParam)$
+                  - pattern: $P
+      # rowan-registry:end source=web_request_js_frameworks
     pattern-sinks:
       - pattern: res.setHeader(...)
       - pattern: res.set(...)
@@ -685,6 +1168,66 @@ rules:
                       metavariable: $SRC
                       regex: ^(query|body|params|headers|cookies)$
       # rowan-registry:end source=web_request_js_destructured
+      # rowan-registry:begin source=web_request_js_frameworks
+      - patterns:
+          - pattern-either:
+              - pattern: req.get(...)
+              - pattern: req.header(...)
+              - pattern: req.cookies
+              - pattern: req.originalUrl
+              - pattern: req.url
+              - pattern: req.path
+              - pattern: req.files
+              - pattern: req.file
+              - pattern: ctx.request.query
+              - pattern: ctx.cookies.get(...)
+              - pattern: $C.req.query(...)
+              - pattern: $C.req.queries(...)
+              - pattern: $C.req.param(...)
+              - pattern: $C.req.header(...)
+              - pattern: $C.req.json()
+              - pattern: $C.req.parseBody(...)
+              - pattern: $C.req.formData()
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          export async function $VERB($REQ, ...) {
+                            ...
+                          }
+                      - pattern-inside: |
+                          export function $VERB($REQ, ...) {
+                            ...
+                          }
+                  - metavariable-regex:
+                      metavariable: $VERB
+                      regex: ^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$
+                  - pattern-either:
+                      - pattern: $REQ.nextUrl.searchParams.get(...)
+                      - pattern: $REQ.nextUrl.searchParams
+                      - pattern: $REQ.json()
+                      - pattern: $REQ.formData()
+                      - pattern: $REQ.text()
+                      - pattern: new URL($REQ.url)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          async function $F(..., $FD: FormData, ...) {
+                            ...
+                          }
+                      - pattern-inside: |
+                          function $F(..., $FD: FormData, ...) {
+                            ...
+                          }
+                  - pattern: $FD.get(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: 'class $CLS { $M(..., @$DEC(...) $P: $T, ...) { ... } }'
+                      - pattern-inside: 'class $CLS { async $M(..., @$DEC(...) $P: $T, ...) { ... } }'
+                  - metavariable-regex:
+                      metavariable: $DEC
+                      regex: ^(Query|Param|Body|Headers|Ip|HostParam)$
+                  - pattern: $P
+      # rowan-registry:end source=web_request_js_frameworks
     pattern-sinks:
       - pattern: res.redirect(...)
       - pattern: res.location(...)
@@ -756,6 +1299,66 @@ rules:
                       metavariable: $SRC
                       regex: ^(query|body|params|headers|cookies)$
       # rowan-registry:end source=web_request_js_destructured
+      # rowan-registry:begin source=web_request_js_frameworks
+      - patterns:
+          - pattern-either:
+              - pattern: req.get(...)
+              - pattern: req.header(...)
+              - pattern: req.cookies
+              - pattern: req.originalUrl
+              - pattern: req.url
+              - pattern: req.path
+              - pattern: req.files
+              - pattern: req.file
+              - pattern: ctx.request.query
+              - pattern: ctx.cookies.get(...)
+              - pattern: $C.req.query(...)
+              - pattern: $C.req.queries(...)
+              - pattern: $C.req.param(...)
+              - pattern: $C.req.header(...)
+              - pattern: $C.req.json()
+              - pattern: $C.req.parseBody(...)
+              - pattern: $C.req.formData()
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          export async function $VERB($REQ, ...) {
+                            ...
+                          }
+                      - pattern-inside: |
+                          export function $VERB($REQ, ...) {
+                            ...
+                          }
+                  - metavariable-regex:
+                      metavariable: $VERB
+                      regex: ^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$
+                  - pattern-either:
+                      - pattern: $REQ.nextUrl.searchParams.get(...)
+                      - pattern: $REQ.nextUrl.searchParams
+                      - pattern: $REQ.json()
+                      - pattern: $REQ.formData()
+                      - pattern: $REQ.text()
+                      - pattern: new URL($REQ.url)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          async function $F(..., $FD: FormData, ...) {
+                            ...
+                          }
+                      - pattern-inside: |
+                          function $F(..., $FD: FormData, ...) {
+                            ...
+                          }
+                  - pattern: $FD.get(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: 'class $CLS { $M(..., @$DEC(...) $P: $T, ...) { ... } }'
+                      - pattern-inside: 'class $CLS { async $M(..., @$DEC(...) $P: $T, ...) { ... } }'
+                  - metavariable-regex:
+                      metavariable: $DEC
+                      regex: ^(Query|Param|Body|Headers|Ip|HostParam)$
+                  - pattern: $P
+      # rowan-registry:end source=web_request_js_frameworks
     pattern-sinks:
       # Unsafe in every version: these revive functions from the payload.
       - pattern: $S.unserialize(...)
@@ -831,6 +1434,66 @@ rules:
                       metavariable: $SRC
                       regex: ^(query|body|params|headers|cookies)$
       # rowan-registry:end source=web_request_js_destructured
+      # rowan-registry:begin source=web_request_js_frameworks
+      - patterns:
+          - pattern-either:
+              - pattern: req.get(...)
+              - pattern: req.header(...)
+              - pattern: req.cookies
+              - pattern: req.originalUrl
+              - pattern: req.url
+              - pattern: req.path
+              - pattern: req.files
+              - pattern: req.file
+              - pattern: ctx.request.query
+              - pattern: ctx.cookies.get(...)
+              - pattern: $C.req.query(...)
+              - pattern: $C.req.queries(...)
+              - pattern: $C.req.param(...)
+              - pattern: $C.req.header(...)
+              - pattern: $C.req.json()
+              - pattern: $C.req.parseBody(...)
+              - pattern: $C.req.formData()
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          export async function $VERB($REQ, ...) {
+                            ...
+                          }
+                      - pattern-inside: |
+                          export function $VERB($REQ, ...) {
+                            ...
+                          }
+                  - metavariable-regex:
+                      metavariable: $VERB
+                      regex: ^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$
+                  - pattern-either:
+                      - pattern: $REQ.nextUrl.searchParams.get(...)
+                      - pattern: $REQ.nextUrl.searchParams
+                      - pattern: $REQ.json()
+                      - pattern: $REQ.formData()
+                      - pattern: $REQ.text()
+                      - pattern: new URL($REQ.url)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          async function $F(..., $FD: FormData, ...) {
+                            ...
+                          }
+                      - pattern-inside: |
+                          function $F(..., $FD: FormData, ...) {
+                            ...
+                          }
+                  - pattern: $FD.get(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: 'class $CLS { $M(..., @$DEC(...) $P: $T, ...) { ... } }'
+                      - pattern-inside: 'class $CLS { async $M(..., @$DEC(...) $P: $T, ...) { ... } }'
+                  - metavariable-regex:
+                      metavariable: $DEC
+                      regex: ^(Query|Param|Body|Headers|Ip|HostParam)$
+                  - pattern: $P
+      # rowan-registry:end source=web_request_js_frameworks
     pattern-sinks:
       # Only the template-source argument; render data is the safe path.
       - patterns:
@@ -912,6 +1575,66 @@ rules:
                       metavariable: $SRC
                       regex: ^(query|body|params|headers|cookies)$
       # rowan-registry:end source=web_request_js_destructured
+      # rowan-registry:begin source=web_request_js_frameworks
+      - patterns:
+          - pattern-either:
+              - pattern: req.get(...)
+              - pattern: req.header(...)
+              - pattern: req.cookies
+              - pattern: req.originalUrl
+              - pattern: req.url
+              - pattern: req.path
+              - pattern: req.files
+              - pattern: req.file
+              - pattern: ctx.request.query
+              - pattern: ctx.cookies.get(...)
+              - pattern: $C.req.query(...)
+              - pattern: $C.req.queries(...)
+              - pattern: $C.req.param(...)
+              - pattern: $C.req.header(...)
+              - pattern: $C.req.json()
+              - pattern: $C.req.parseBody(...)
+              - pattern: $C.req.formData()
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          export async function $VERB($REQ, ...) {
+                            ...
+                          }
+                      - pattern-inside: |
+                          export function $VERB($REQ, ...) {
+                            ...
+                          }
+                  - metavariable-regex:
+                      metavariable: $VERB
+                      regex: ^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$
+                  - pattern-either:
+                      - pattern: $REQ.nextUrl.searchParams.get(...)
+                      - pattern: $REQ.nextUrl.searchParams
+                      - pattern: $REQ.json()
+                      - pattern: $REQ.formData()
+                      - pattern: $REQ.text()
+                      - pattern: new URL($REQ.url)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: |
+                          async function $F(..., $FD: FormData, ...) {
+                            ...
+                          }
+                      - pattern-inside: |
+                          function $F(..., $FD: FormData, ...) {
+                            ...
+                          }
+                  - pattern: $FD.get(...)
+              - patterns:
+                  - pattern-either:
+                      - pattern-inside: 'class $CLS { $M(..., @$DEC(...) $P: $T, ...) { ... } }'
+                      - pattern-inside: 'class $CLS { async $M(..., @$DEC(...) $P: $T, ...) { ... } }'
+                  - metavariable-regex:
+                      metavariable: $DEC
+                      regex: ^(Query|Param|Body|Headers|Ip|HostParam)$
+                  - pattern: $P
+      # rowan-registry:end source=web_request_js_frameworks
     pattern-sinks:
       - pattern: Object.assign(...)
       - pattern: "_.merge(...)"
