@@ -171,6 +171,48 @@ class TestDeploymentProfiles:
             assert auto_detect_profile(root) == "library"
 
 
+class TestProfileDeterminism:
+    """#63: the auto profile looked at the first 20 Python files in directory
+    enumeration order, so the same repository was "server" on one filesystem
+    and "library" on another, and "library" demotes SSRF/XSS/AUTH to INFO."""
+
+    def _repo(self, root: Path) -> list[Path]:
+        utils = []
+        for i in range(22):
+            p = root / f"util_{i:02d}.py"
+            p.write_text("def f(x):\n    return x\n", encoding="utf-8")
+            utils.append(p)
+        views = root / "views.py"
+        views.write_text("from flask import Flask, request\napp = Flask(__name__)\n", encoding="utf-8")
+        return [*utils, views]
+
+    def test_profile_does_not_depend_on_file_order(self, tmp_path):
+        files = self._repo(tmp_path)
+        assert auto_detect_profile(tmp_path, files) == "server"
+        assert auto_detect_profile(tmp_path, list(reversed(files))) == "server"
+        assert auto_detect_profile(tmp_path, sorted(files)) == "server"
+
+    def test_library_profile_does_not_demote_a_taint_flow(self, tmp_path):
+        from rowan.config import ScanConfig
+        from rowan.core.findings import ScanResult, TaintFlow, TaintNode
+        from rowan.passes.base import ScanContext
+        from rowan.passes.enrichment import EnrichmentPass
+
+        def ssrf(flow):
+            return Finding(
+                rule_id="TNT-SSRF-002", message="m", severity=Severity.HIGH, category=Category.SSRF,
+                file_path="a.py", start_line=3,
+                taint_flow=TaintFlow(source=TaintNode("a.py", 2), sink=TaintNode("a.py", 3)) if flow else None,
+            )
+
+        ctx = ScanContext(config=ScanConfig(target=tmp_path, profile="library"), target_path=tmp_path, result=ScanResult())
+        flowed, bare = ssrf(True), ssrf(False)
+        EnrichmentPass()._apply_profile_filter([flowed, bare], ctx)
+
+        assert flowed.severity == Severity.HIGH
+        assert bare.severity == Severity.INFO
+
+
 class TestDependencyReachability:
 
     def test_torch_functions(self):

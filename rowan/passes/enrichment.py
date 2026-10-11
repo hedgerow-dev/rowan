@@ -2426,6 +2426,11 @@ class EnrichmentPass:
             if f.engine in ("authz", "js_authz", "mfv") or _has_proven_external_source(f):
                 result.append(f)
                 continue
+            # The profile is a repo-level guess; a taint trace is evidence
+            # about this sink and outranks it (#63).
+            if f.taint_flow is not None:
+                result.append(f)
+                continue
             if f.category in disabled:
                 f.severity = Severity.INFO
                 f.confidence = min(f.confidence, 0.2)

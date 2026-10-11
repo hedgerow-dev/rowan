@@ -50,7 +50,6 @@ _GO_CLI_RE = re.compile(r"flag\.Parse\(\)|github\.com/spf13/cobra|github\.com/ur
 _GO_MAIN_PACKAGE_RE = re.compile(r"^package\s+main\b", re.MULTILINE)
 
 _SKIP_DIRS = {".git", "node_modules", "venv", ".venv", "__pycache__", "dist", "build"}
-_MAX_FILES_CHECKED = 20
 _HEAD_LINES = 50
 
 
@@ -76,16 +75,12 @@ def _read_head(file_path: Path, target: Path) -> str | None:
 def _matches_in_files(
     files: Iterable[Path], target: Path, pattern: re.Pattern[str]
 ) -> bool:
-    checked = 0
-    for file_path in files:
+    # Every file, in sorted order: checking only the first N in directory
+    # enumeration order made the verdict depend on the filesystem (#63).
+    for file_path in sorted(files):
         head = _read_head(file_path, target)
-        if head is None:
-            continue
-        if pattern.search(head):
+        if head is not None and pattern.search(head):
             return True
-        checked += 1
-        if checked >= _MAX_FILES_CHECKED:
-            break
     return False
 
 
@@ -96,10 +91,9 @@ def _rglob_suffixes(target: Path, language: str) -> Iterable[Path]:
 
 def _detect_go_profile(target: Path, files: Iterable[Path] | None = None) -> str | None:
     """Scan Go sources for server frameworks, falling back to a CLI marker."""
-    checked = 0
     cli_candidate = False
     source_files = _rglob_suffixes(target, "go") if files is None else files
-    for file_path in source_files:
+    for file_path in sorted(source_files):
         head = _read_head(file_path, target)
         if head is None:
             continue
@@ -109,9 +103,6 @@ def _detect_go_profile(target: Path, files: Iterable[Path] | None = None) -> str
             return "server"
         if _GO_MAIN_PACKAGE_RE.search(head) and _GO_CLI_RE.search(head):
             cli_candidate = True
-        checked += 1
-        if checked >= _MAX_FILES_CHECKED:
-            break
     return "cli" if cli_candidate else None
 
 
