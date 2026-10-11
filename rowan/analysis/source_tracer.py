@@ -17,6 +17,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from rowan.analysis.dominance import find_enclosing_function
+from rowan.analysis.request_sources import route_input_names
 
 logger = logging.getLogger(__name__)
 
@@ -418,6 +419,11 @@ def trace_source(
 
     assignment = _nearest_assignment(tree, root_var, source_line)
     if assignment is None:
+        # A route handler's own parameters (FastAPI typed params, Flask
+        # `<name>` path variables) are request input, not caller data (#59).
+        func = find_enclosing_function(tree, source_line)
+        if func is not None and root_var in route_input_names(func):
+            return ORIGIN_HTTP_INPUT
         return ORIGIN_FUNCTION_PARAM
 
     rhs = None
