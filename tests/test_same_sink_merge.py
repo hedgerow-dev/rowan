@@ -169,3 +169,20 @@ def test_merged_finding_keeps_every_cwe_its_duplicates_had():
     assert merged.rule_id == "TNT-CMDI-001"
     assert merged.cwe_ids[0] == 78
     assert sorted(merged.cwe_ids) == [78, 94, 95]
+
+
+def test_merged_finding_is_as_severe_and_confident_as_its_strongest_member():
+    # An INFO survivor (stronger evidence tier) absorbing a MEDIUM injection
+    # finding hid the issue from the default view.
+    info = _finding("ns-aiml-168", category=Category.AI_ML, cwe=(94, 78), severity=Severity.INFO, tier="self-evident")
+    info.confidence = 0.3
+    medium = _finding("NS-INJECT-004", category=Category.INJECTION, cwe=(78,), severity=Severity.MEDIUM)
+    medium.confidence = 0.7
+
+    [merged] = _merge([info, medium])
+
+    # Without a proven flow on either side, the most severe report represents
+    # the issue, so the default view treats it as injection, not inventory.
+    assert merged.rule_id == "NS-INJECT-004"
+    assert merged.severity == Severity.MEDIUM
+    assert merged.confidence == 0.7

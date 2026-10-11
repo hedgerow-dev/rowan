@@ -1160,8 +1160,11 @@ class EnrichmentPass:
 
         def rank(f: Finding) -> tuple:
             tier = _EVIDENCE_TIER_RANK.get(f.metadata.get("evidence_tier"), len(_EVIDENCE_TIER_RANK))
-            # On equal evidence, keep the finding that can show its trace.
-            return (tier, f.taint_flow is None, _SEVERITY_RANK[f.severity], f.rule_id)
+            # A proven flow first, preferring one that can show its trace.
+            # Without one, the most severe report represents the issue: an
+            # INFO inventory match must not stand in for a MEDIUM injection.
+            proven = f.metadata.get("evidence_tier") in ("taint-flow", "engine")
+            return (not proven, f.taint_flow is None, _SEVERITY_RANK[f.severity], tier, f.rule_id)
 
         def same_issue(a: Finding, b: Finding) -> bool:
             # Same category and a shared CWE; or, in any category, CWEs from
@@ -1177,6 +1180,11 @@ class EnrichmentPass:
             # Keep every CWE the rules gave this issue, not only the
             # survivor's own label.
             into.cwe_ids = into.cwe_ids + [c for c in f.cwe_ids if c not in into.cwe_ids]
+            # One issue: as severe and as confident as its strongest report,
+            # so a weak survivor cannot hide a finding from the default view.
+            if _SEVERITY_RANK[f.severity] < _SEVERITY_RANK[into.severity]:
+                into.severity = f.severity
+            into.confidence = max(into.confidence, f.confidence)
             into.metadata["duplicate_rule_ids"] = sorted(
                 {*into.metadata.get("duplicate_rule_ids", [into.rule_id]),
                  *f.metadata.get("duplicate_rule_ids", [f.rule_id])}
