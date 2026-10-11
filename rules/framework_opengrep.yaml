@@ -1,0 +1,40 @@
+# Structural companions to framework_rules.yaml. "X without Y" checks whose Y
+# sits on another line cannot be regex rules: pattern-not only sees the
+# finding's own line (#71). These keep their original rule IDs.
+
+rules:
+  - id: ns-fw-py-004
+    message: >
+      Django MIDDLEWARE does not include CsrfViewMiddleware, so POST forms and
+      views are not protected against cross-site request forgery. Add
+      django.middleware.csrf.CsrfViewMiddleware to MIDDLEWARE.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      cwe: [352]
+      category: auth
+      fix: "Add \"django.middleware.csrf.CsrfViewMiddleware\" to MIDDLEWARE."
+    patterns:
+      - pattern-either:
+          - pattern: MIDDLEWARE = [...]
+          - pattern: MIDDLEWARE = (...)
+      - pattern-not: MIDDLEWARE = [..., "django.middleware.csrf.CsrfViewMiddleware", ...]
+      - pattern-not: MIDDLEWARE = (..., "django.middleware.csrf.CsrfViewMiddleware", ...)
+
+  - id: ns-fw-js-001
+    message: >
+      Express app without Helmet middleware in the same file. Helmet sets
+      security-related HTTP headers. If headers are set elsewhere, ignore
+      this; otherwise add app.use(helmet()).
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      cwe: [693]
+      category: config
+      fix: "Install helmet and add app.use(helmet()) before the routes."
+    patterns:
+      - pattern: $APP = express()
+      - pattern-not-inside: |
+          $APP = express();
+          ...
+          $APP.use(helmet(...));

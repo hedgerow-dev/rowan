@@ -6,24 +6,6 @@ rules:
 
   # ── Express.js ────────────────────────────────────────────────────
 
-  - id: ns-fw-js-001
-    name: Express missing Helmet
-    severity: WARNING
-    category: config
-    cwe: [693]
-    languages: [javascript, typescript]
-    patterns:
-      - 'express\(\)'
-      - '\.listen\('
-    pattern-not:
-      - 'helmet\('
-      - '(?m)^\s*#'
-      - '(?m)^\s*//.*'
-      - '(?:def test_|conftest|unittest)'
-    message: |
-      Express app without Helmet middleware. Helmet sets security-related HTTP headers.
-      Install and use helmet(): app.use(helmet()).
-
   - id: ns-fw-js-002
     name: CORS wildcard origin
     severity: WARNING
@@ -385,22 +367,6 @@ rules:
     message: |
       Redirect target from user input enables open redirect. Validate the
       URL against a whitelist or use url_for() with known endpoints.
-
-  - id: ns-fw-py-004
-    name: Django CSRF middleware missing
-    severity: WARNING
-    category: auth
-    cwe: [352]
-    languages: [python]
-    patterns:
-      - 'MIDDLEWARE'
-    pattern-not:
-      - 'CsrfViewMiddleware'
-      - '(?m)^\s*#'
-      - '(?:def test_|conftest|unittest)'
-    message: |
-      Django MIDDLEWARE defined but CsrfViewMiddleware may be missing.
-      Ensure django.middleware.csrf.CsrfViewMiddleware is in the MIDDLEWARE list.
 
   - id: ns-fw-sess-001
     name: Session fixation risk

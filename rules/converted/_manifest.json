@@ -1,7 +1,7 @@
 {
   "meta": {
-    "total_rules": 394,
-    "ok": 394,
+    "total_rules": 392,
+    "ok": 392,
     "warning": 0,
     "error": 0,
     "secrets_residual": 5,
@@ -3424,25 +3424,6 @@
       ]
     },
     {
-      "id": "ns-fw-js-001",
-      "category": "config",
-      "cwe": [
-        693
-      ],
-      "original_severity": "WARNING",
-      "original_engine": "neuroscan",
-      "residual": [],
-      "status": "ok",
-      "warnings": [],
-      "name": "Express missing Helmet",
-      "pattern_not": [
-        "helmet\\(",
-        "(?m)^\\s*#",
-        "(?m)^\\s*//.*",
-        "(?:def test_|conftest|unittest)"
-      ]
-    },
-    {
       "id": "ns-fw-js-002",
       "category": "config",
       "cwe": [
@@ -3819,24 +3800,6 @@
       "warnings": [],
       "name": "Flask open redirect",
       "pattern_not": [
-        "(?m)^\\s*#",
-        "(?:def test_|conftest|unittest)"
-      ]
-    },
-    {
-      "id": "ns-fw-py-004",
-      "category": "auth",
-      "cwe": [
-        352
-      ],
-      "original_severity": "WARNING",
-      "original_engine": "neuroscan",
-      "residual": [],
-      "status": "ok",
-      "warnings": [],
-      "name": "Django CSRF middleware missing",
-      "pattern_not": [
-        "CsrfViewMiddleware",
         "(?m)^\\s*#",
         "(?:def test_|conftest|unittest)"
       ]

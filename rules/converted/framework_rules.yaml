@@ -1,26 +1,4 @@
 rules:
-- id: ns-fw-js-001
-  languages:
-  - javascript
-  - typescript
-  severity: WARNING
-  message: 'Express app without Helmet middleware. Helmet sets security-related HTTP headers.
-
-    Install and use helmet(): app.use(helmet()).'
-  patterns:
-  - pattern-either:
-    - pattern-regex: express\(\)
-    - pattern-regex: \.listen\(
-  - pattern-not-regex: helmet\(
-  - pattern-not-regex: (?m)^\s*#
-  - pattern-not-regex: (?m)^\s*//.*
-  - pattern-not-regex: (?:def test_|conftest|unittest)
-  metadata:
-    category: config
-    cwe:
-    - 693
-    original_engine: neuroscan
-    rule_name: Express missing Helmet
 - id: ns-fw-js-002
   languages:
   - javascript
@@ -434,24 +412,6 @@ rules:
     rule_name: Flask open redirect
     residual:
     - sanitizer
-- id: ns-fw-py-004
-  languages:
-  - python
-  severity: WARNING
-  message: 'Django MIDDLEWARE defined but CsrfViewMiddleware may be missing.
-
-    Ensure django.middleware.csrf.CsrfViewMiddleware is in the MIDDLEWARE list.'
-  patterns:
-  - pattern-regex: MIDDLEWARE
-  - pattern-not-regex: CsrfViewMiddleware
-  - pattern-not-regex: (?m)^\s*#
-  - pattern-not-regex: (?:def test_|conftest|unittest)
-  metadata:
-    category: auth
-    cwe:
-    - 352
-    original_engine: neuroscan
-    rule_name: Django CSRF middleware missing
 - id: ns-fw-sess-001
   languages:
   - python
