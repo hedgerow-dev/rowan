@@ -593,6 +593,7 @@ rules:
                   - metavariable-regex:
                       metavariable: $COLLECTION
                       regex: (?i).*(collection|milvus|coll).*
+          - focus-metavariable: $FILT
     pattern-sanitizers:
       - patterns:
           - pattern-either:
@@ -1475,6 +1476,7 @@ rules:
               - pattern: request.form[...]
               - pattern: request.json.get(...)
               - pattern: request.json[...]
+              - pattern: request.get_json(...)
               - pattern: request.data
               - pattern: request.values.get(...)
               - pattern: request.cookies.get(...)
@@ -1517,6 +1519,7 @@ rules:
               - pattern: litellm.acompletion(..., max_tokens=$INPUT, ...)
               - pattern: litellm.acompletion(..., n=$INPUT, ...)
               - pattern: $CLIENT.text_generation(..., max_new_tokens=$INPUT, ...)
+          - focus-metavariable: $INPUT
     pattern-sanitizers:
       - patterns:
           - pattern-either:

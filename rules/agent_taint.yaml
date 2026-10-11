@@ -450,6 +450,7 @@ rules:
                   - metavariable-regex:
                       metavariable: $LLM
                       regex: (?i).*(llm|model|client|chat|agent|assistant|bot|gpt|openai|anthropic|deepseek).*
+          - focus-metavariable: $N
     pattern-sanitizers:
       - patterns:
           - pattern-either:
@@ -1540,13 +1541,21 @@ rules:
     pattern-sinks:
       - patterns:
           - pattern-either:
-              - pattern: $CTX.session.create_message(...)
-              - pattern: $CTX.create_message(...)
+              - pattern: $CTX.session.create_message($M, ...)
+              - pattern: $CTX.session.create_message(..., messages=$M, ...)
+              - pattern: $CTX.session.create_message(..., system_prompt=$M, ...)
+              - pattern: $CTX.create_message($M, ...)
+              - pattern: $CTX.create_message(..., messages=$M, ...)
+              - pattern: $CTX.create_message(..., system_prompt=$M, ...)
               - patterns:
-                  - pattern: $CTX.sample(...)
+                  - pattern-either:
+                      - pattern: $CTX.sample($M, ...)
+                      - pattern: $CTX.sample(..., messages=$M, ...)
+                      - pattern: $CTX.sample(..., system_prompt=$M, ...)
                   - metavariable-regex:
                       metavariable: $CTX
                       regex: (?i).*(ctx|context|session|mcp|server).*
+          - focus-metavariable: $M
     # The MCP context object (`ctx`/`context`/`self`/`request_context`) is
     # itself a tool-handler parameter, so the $PARAM source would otherwise
     # bind to it and the sink -- a method call ON that object -- would fire

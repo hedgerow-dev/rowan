@@ -1040,11 +1040,15 @@ rules:
     pattern-sinks:
       - patterns:
           - pattern-either:
-              - pattern: $LLM.generate($INPUT, system_prompt=$PROMPT)
+              - pattern: $LLM.generate(..., system_prompt=$PROMPT, ...)
               - pattern: |
-                  $LLM.chat([{"role": "system", "content": $PROMPT}, ...])
+                  $LLM.chat([{"role": "system", "content": $PROMPT}, ...], ...)
               - pattern: |
-                  openai.ChatCompletion.create(messages=[{"role": "system", "content": $PROMPT}, ...])
+                  openai.ChatCompletion.create(..., messages=[{"role": "system", "content": $PROMPT}, ...], ...)
+              - pattern: |
+                  $C.chat.completions.create(..., messages=[{"role": "system", "content": $PROMPT}, ...], ...)
+              - pattern: $C.messages.create(..., system=$PROMPT, ...)
+          - focus-metavariable: $PROMPT
 
   # ── msgpack object/ext-hook reconstruction on checkpoint load ───────
   # (CVE-2026-28277) GitHub issue #291. A checkpoint is deserialized with
