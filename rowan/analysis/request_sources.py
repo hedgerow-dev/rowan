@@ -198,15 +198,45 @@ def function_reads_llm_output(node: ast.AST) -> bool:
     return any(call_returns_llm_output(child) for child in ast.walk(node))
 
 
-def route_input_names(func: ast.FunctionDef | ast.AsyncFunctionDef) -> set[str]:
+#: Dependency aliases by naming convention (`SessionDep`, `TokenDep`,
+#: `CurrentUser`); mirrors the exclusion in the FastAPI Opengrep source.
+DEPENDENCY_ALIAS_NAME_RE = re.compile(r"^(?:\w*Deps?|\w*Dependency|Current[A-Z]\w*)$")
+_DEPENDENCY_MODULES = frozenset({"deps", "dependencies"})
+
+
+def _is_depends_call(node: ast.AST) -> bool:
+    return isinstance(node, ast.Call) and dotted_name(node.func).rsplit(".", 1)[-1] in {"Depends", "Security"}
+
+
+def dependency_alias_names(module: ast.Module) -> set[str]:
+    """Names that stand for an injected dependency in this module: aliases
+    assigned `Annotated[..., Depends(...)]`, and names imported from a
+    `deps`/`dependencies` module."""
+    names: set[str] = set()
+    for node in module.body:
+        if isinstance(node, ast.Assign) and any(_is_depends_call(n) for n in ast.walk(node.value)):
+            names.update(t.id for t in node.targets if isinstance(t, ast.Name))
+        elif isinstance(node, ast.ImportFrom) and node.module and (
+            node.module.rsplit(".", 1)[-1] in _DEPENDENCY_MODULES
+        ):
+            names.update(a.asname or a.name for a in node.names)
+    return names
+
+
+def route_input_names(
+    func: ast.FunctionDef | ast.AsyncFunctionDef, module: ast.Module | None = None,
+) -> set[str]:
     """Framework-bound route/query/body parameters, excluding dependencies.
 
     Route parameters are external inputs even without a request object (Flask
     path arguments and FastAPI typed parameters). Dependency providers retain
-    their own trust contract and are not treated as client-controlled.
+    their own trust contract and are not treated as client-controlled. That
+    includes dependencies declared through a type alias; pass `module` to
+    resolve aliases defined or imported there.
     """
     if not is_http_route(func):
         return set()
+    aliases = dependency_alias_names(module) if module is not None else set()
     args = func.args.posonlyargs + func.args.args
     defaults = [None] * (len(args) - len(func.args.defaults)) + list(func.args.defaults)
     pairs = [*zip(args, defaults, strict=True), *zip(func.args.kwonlyargs, func.args.kw_defaults, strict=True)]
@@ -218,4 +248,11 @@ def route_input_names(func: ast.FunctionDef | ast.AsyncFunctionDef) -> set[str]:
             isinstance(n, ast.Call) and dotted_name(n.func).rsplit('.', 1)[-1] in {'Depends', 'Security'}
             for n in ast.walk(arg.annotation)
         ))
+        and not (isinstance(arg.annotation, ast.Name) and (
+            arg.annotation.id in aliases or DEPENDENCY_ALIAS_NAME_RE.match(arg.annotation.id)
+        ))
+    } | {
+        # `def view(**kwargs)` receives Flask/Django path arguments there; a
+        # catch-all cannot be a Depends() dependency.
+        a.arg for a in (func.args.vararg, func.args.kwarg) if a is not None
     }

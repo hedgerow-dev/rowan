@@ -422,7 +422,7 @@ def trace_source(
         # A route handler's own parameters (FastAPI typed params, Flask
         # `<name>` path variables) are request input, not caller data (#59).
         func = find_enclosing_function(tree, source_line)
-        if func is not None and root_var in route_input_names(func):
+        if func is not None and isinstance(tree, ast.Module) and root_var in route_input_names(func, module=tree):
             return ORIGIN_HTTP_INPUT
         return ORIGIN_FUNCTION_PARAM
 

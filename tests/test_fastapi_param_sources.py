@@ -52,6 +52,7 @@ VULNERABLE = {
     "plain_str_to_shell": '@app.get("/a")\ndef a(host: str):\n    subprocess.run("ping " + host, shell=True)\n',
     "query_to_sql": '@app.get("/a")\ndef a(q: str = Query(...)):\n    db.execute(f"SELECT * FROM t WHERE n = \'{q}\'")\n',
     "path_param_to_open": '@app.get("/a/{name}")\ndef a(name: str = Path(...)):\n    open(os.path.join("/data", name))\n',
+    "imported_body_model": '@app.post("/a")\ndef a(item: ItemCreate):\n    os.system(item.cmd)\n',
     "pydantic_body_to_ssrf": '@app.post("/a")\ndef a(item: Item):\n    requests.get(item.url)\n',
     "header_to_shell": '@app.get("/a")\ndef a(x_cmd: str = Header(None)):\n    os.system(x_cmd)\n',
     "form_to_pickle": '@app.post("/a")\ndef a(data: str = Form(...)):\n    pickle.loads(data.encode())\n',
@@ -79,6 +80,15 @@ SAFE = {
         '@app.get("/a")\ndef a(cmd: str = Depends(get_cmd)):\n    os.system(cmd)\n'
     ),
     "undecorated": "def a(cmd: str):\n    os.system(cmd)\n",
+    # Dependencies declared through a type alias (the FastAPI template style)
+    # are injected services and principals, not request input.
+    "annotated_dependency_alias": (
+        "from typing import Annotated\n"
+        "SettingsDep = Annotated['Settings', Depends(lambda: 1)]\n"
+        '@app.get("/a")\ndef a(settings: SettingsDep):\n    os.system(settings.cmd)\n'
+    ),
+    "dependency_alias_named_dep": '@app.get("/a")\ndef a(token: TokenDep):\n    os.system(token.cmd)\n',
+    "current_user_alias": '@app.get("/a")\ndef a(user: CurrentUser):\n    os.system(user.cmd)\n',
     # The ORM binds `email` as a parameter. Passing user data to db.add()
     # taints the handle; that alone must not make db.query() a SQL sink.
     "orm_filter_after_add": (

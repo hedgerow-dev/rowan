@@ -46,6 +46,7 @@ from rowan.analysis.request_sources import (
 from rowan.analysis.request_sources import (
     function_reads_source as _function_reads_request_source,
 )
+from rowan.analysis.request_sources import route_input_names
 from rowan.analysis.stmt_walk import iter_body_statements as _iter_body_statements
 from rowan.analysis.test_paths import ENTRYPOINT_RE as _ENTRYPOINT_RE
 from rowan.analysis.test_paths import is_example_only_path as _is_example_only_path
@@ -3908,9 +3909,17 @@ def _extract_functions(
                 for dec in node.decorator_list
             )
             is_boundary_source = boundary_kind is not None
+            # An HTTP route's injected dependencies (Depends(), dependency
+            # aliases such as SessionDep or CurrentUser) are not request input.
+            route_seed = (
+                route_input_names(node, module=tree)
+                if boundary_kind == "http_route" and isinstance(tree, ast.Module)
+                else None
+            )
             has_sink, sink_detail, sink_line = (
                 _structural_path_sink(
-                    node, def_nodes, is_boundary_source, file_path, import_graph, def_nodes_by_name
+                    node, def_nodes, is_boundary_source, file_path, import_graph, def_nodes_by_name,
+                    seed_params=route_seed,
                 )
                 if def_nodes is not None
                 else (False, "", 0)

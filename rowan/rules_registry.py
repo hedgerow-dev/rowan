@@ -58,9 +58,12 @@ _PARAM_TYPE = (
     r"^(str|bytes|Any|Optional\[str\]|str \| None|None \| str|"
     r"(list|List|Optional)\[[A-Za-z_.]+\]|[A-Z]\w*)$"
 )
+# Framework objects, plus dependency aliases by naming convention
+# (`SessionDep`, `TokenDep`, `CurrentUser` in the FastAPI template), whose
+# Annotated[..., Depends(...)] definition usually lives in another module.
 _NOT_FRAMEWORK_TYPE = (
     r"^(?!(Request|Response|WebSocket|BackgroundTasks|HTTPConnection|SecurityScopes|"
-    r"Session|AsyncSession|UUID|Decimal)$)"
+    r"Session|AsyncSession|UUID|Decimal|\w*Deps?|\w*Dependency|Current[A-Z]\w*)$)"
 )
 _FASTAPI_PARAM_SOURCE: Entry = {
     "patterns": [
@@ -76,6 +79,9 @@ _FASTAPI_PARAM_SOURCE: Entry = {
         {"metavariable-regex": {"metavariable": "$ROUTE", "regex": r"^(/.*)?$"}},
         {"metavariable-regex": {"metavariable": "$T", "regex": _PARAM_TYPE}},
         {"metavariable-regex": {"metavariable": "$T", "regex": _NOT_FRAMEWORK_TYPE}},
+        # A type alias for an injected dependency defined in this file:
+        # `SettingsDep = Annotated[Settings, Depends(get_settings)]`.
+        {"pattern-not-inside": "$T = Annotated[..., Depends(...)]\n...\n"},
         {"pattern-not-inside": "def $F(..., $P = Depends(...), ...):\n  ...\n"},
         {"pattern-not-inside": "async def $F(..., $P = Depends(...), ...):\n  ...\n"},
         {"pattern-not-inside": "def $F(..., $P = Security(...), ...):\n  ...\n"},
