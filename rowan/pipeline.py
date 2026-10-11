@@ -632,7 +632,9 @@ class ScanPipeline:
         """
         # Low-urgency hygiene classes (log forging) are audit-only regardless of
         # severity or evidence: real, but not what a reviewer acts on now.
-        if any(c in self._AUDIT_ONLY_CWES for c in (finding.cwe_ids or ())):
+        # All CWEs, not any: a merged finding can inherit 117 from a
+        # log-forging duplicate of a real issue on the same line (#61).
+        if finding.cwe_ids and all(c in self._AUDIT_ONLY_CWES for c in finding.cwe_ids):
             return False
         rank = finding.severity_order  # 0 critical .. 4 info
         tier = (finding.metadata or {}).get("evidence_tier")

@@ -268,11 +268,13 @@ _SEVERITY_RANK = {
 
 # Strength of a finding's evidence (see _cap_unverified_severity), strongest
 # first. Used to pick which of several findings on one sink survives a merge.
-#: CWEs that different rules use for one issue on one line, so the same-sink
-#: merge treats them as a match: eval/exec as OS command or code injection,
-#: and debug mode left on.
+#: CWEs that let findings on one line merge across categories, because rules
+#: file one issue under different categories: code injection (eval/exec as
+#: CWE-94 or 95), OS command injection, and debug mode left on. Code and
+#: command injection stay apart: `eval(x); os.system(y)` is two issues (#61).
 _RELATED_CWES: tuple[frozenset[int], ...] = (
-    frozenset({78, 94, 95}),
+    frozenset({94, 95}),
+    frozenset({78}),
     frozenset({215, 489}),
 )
 
@@ -1163,12 +1165,17 @@ class EnrichmentPass:
             # A proven flow first, preferring one that can show its trace.
             # Without one, the most severe report represents the issue: an
             # INFO inventory match must not stand in for a MEDIUM injection.
-            proven = f.metadata.get("evidence_tier") in ("taint-flow", "engine")
-            return (not proven, f.taint_flow is None, _SEVERITY_RANK[f.severity], tier, f.rule_id)
+            # A flow whose source could not be traced to external input
+            # (taint_unconfirmed) is not proven (#61).
+            proven = (
+                f.metadata.get("evidence_tier") in ("taint-flow", "engine")
+                and not f.metadata.get("taint_unconfirmed")
+            )
+            return (not proven, proven and f.taint_flow is None, _SEVERITY_RANK[f.severity], tier, f.rule_id)
 
         def same_issue(a: Finding, b: Finding) -> bool:
             # Same category and a shared CWE; or, in any category, CWEs from
-            # one related family (rules tag one eval() as CWE-78, 94 or 95).
+            # one related family (rules tag one eval() as CWE-94 or 95).
             if a.category == b.category and set(a.cwe_ids) & set(b.cwe_ids):
                 return True
             return bool(_cwe_families(a.cwe_ids) & _cwe_families(b.cwe_ids))
@@ -1206,7 +1213,7 @@ class EnrichmentPass:
         # there is a second sink.
         for taint in candidates:
             flow = taint.taint_flow
-            if flow is None or id(taint) in merged_away:
+            if flow is None or id(taint) in merged_away or taint.metadata.get("taint_unconfirmed"):
                 continue
             trace = {n.line for n in (flow.source, *flow.intermediate) if n and n.file_path == taint.file_path}
             trace.discard(taint.start_line)

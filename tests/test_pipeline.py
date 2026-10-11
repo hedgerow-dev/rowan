@@ -838,6 +838,11 @@ def test_log_forging_is_audit_only_in_views(tmp_path):
     keep = _finding(Severity.MEDIUM, Category.INJECTION, tier="taint-flow")
     keep.cwe_ids = [89]
     assert pipe._in_actionable_view(keep)
+    # A merged finding that also inherited 117 from a log-forging duplicate
+    # is still the real issue (#61).
+    merged = _finding(Severity.MEDIUM, Category.INJECTION, tier="taint-flow")
+    merged.cwe_ids = [89, 117]
+    assert pipe._in_actionable_view(merged)
 
 
 def test_unreadable_manifest_is_a_warning(tmp_path, monkeypatch, caplog):

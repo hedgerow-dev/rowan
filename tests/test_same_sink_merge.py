@@ -91,18 +91,17 @@ def test_disabled_rule_takes_no_part_in_the_merge():
 
 
 
-# Different rules tag one eval/exec call as CWE-78, 94 or 95, under different
+# Different rules tag one eval/exec call as CWE-94 or 95, under different
 # categories; on RealVuln that was the most common unmerged duplicate.
 def test_related_code_execution_cwes_merge_across_categories():
-    cmdi = _finding("TNT-CMDI-001", category=Category.COMMAND_INJECTION, cwe=(78,), tier="taint-flow", flow=True)
     inject = _finding("TNT-INJECT-004", category=Category.INJECTION, cwe=(94,), tier="taint-flow", flow=True)
     route = _finding("HTTP-ROUTE-001", category=Category.INJECTION, cwe=(95,), tier="taint-flow")
     aiml = _finding("ns-aiml-137", category=Category.AI_ML, cwe=(94, 693), tier="pattern-only")
 
-    result = _merge([cmdi, inject, route, aiml])
+    result = _merge([inject, route, aiml])
 
     assert len(result) == 1
-    assert len(result[0].metadata["duplicate_rule_ids"]) == 4
+    assert len(result[0].metadata["duplicate_rule_ids"]) == 3
 
 
 def test_debug_mode_cwes_merge():
@@ -161,14 +160,13 @@ def test_merged_finding_keeps_every_cwe_its_duplicates_had():
     # Rules label one issue with related but different CWEs; the merged
     # finding reports all of them rather than whichever rule survived.
     cmdi = _finding("TNT-CMDI-001", category=Category.COMMAND_INJECTION, cwe=(78,), tier="taint-flow", flow=True)
-    inject = _finding("TNT-INJECT-004", category=Category.INJECTION, cwe=(94,), tier="pattern-only")
-    route = _finding("HTTP-ROUTE-001", category=Category.INJECTION, cwe=(95,), tier="pattern-only")
+    aiml = _finding("ns-aiml-168", category=Category.AI_ML, cwe=(94, 78), tier="pattern-only")
 
-    [merged] = _merge([cmdi, inject, route])
+    [merged] = _merge([cmdi, aiml])
 
     assert merged.rule_id == "TNT-CMDI-001"
     assert merged.cwe_ids[0] == 78
-    assert sorted(merged.cwe_ids) == [78, 94, 95]
+    assert sorted(merged.cwe_ids) == [78, 94]
 
 
 def test_merged_finding_is_as_severe_and_confident_as_its_strongest_member():
@@ -186,3 +184,41 @@ def test_merged_finding_is_as_severe_and_confident_as_its_strongest_member():
     assert merged.rule_id == "NS-INJECT-004"
     assert merged.severity == Severity.MEDIUM
     assert merged.confidence == 0.7
+
+
+# #61: a taint finding that enrichment marked taint_unconfirmed (its source
+# could not be traced to external input) is not a proven flow.
+def test_unconfirmed_taint_finding_does_not_outrank_a_pattern_finding():
+    unconfirmed = _finding("TNT-CMDI-001", category=Category.COMMAND_INJECTION, cwe=(78,),
+                           severity=Severity.INFO, tier="taint-flow", flow=True)
+    unconfirmed.metadata["taint_unconfirmed"] = True
+    pattern = _finding("NS-CMDI-002", category=Category.COMMAND_INJECTION, cwe=(78,),
+                       severity=Severity.MEDIUM)
+
+    [merged] = _merge([unconfirmed, pattern])
+
+    assert merged.rule_id == "NS-CMDI-002"
+    assert not merged.metadata.get("taint_unconfirmed")
+
+
+def test_unconfirmed_taint_finding_does_not_absorb_along_its_trace():
+    taint = _flow(88, through=[87])
+    taint.metadata["taint_unconfirmed"] = True
+    pattern = _finding("NS-XSS-001", line=87, category=Category.XSS, cwe=(79,))
+
+    assert len(_merge([pattern, taint])) == 2
+
+
+def test_code_and_command_injection_on_one_line_stay_separate():
+    # `eval(x); os.system(y)`: CWE-95 and CWE-78 are two different issues.
+    code = _finding("TNT-INJECT-001", category=Category.INJECTION, cwe=(95,), tier="taint-flow", flow=True)
+    cmd = _finding("TNT-CMDI-001", category=Category.COMMAND_INJECTION, cwe=(78,), tier="taint-flow", flow=True)
+
+    assert len(_merge([code, cmd])) == 2
+
+
+def test_command_injection_merges_across_categories_on_cwe_78():
+    cmd = _finding("TNT-CMDI-001", category=Category.COMMAND_INJECTION, cwe=(78,), tier="taint-flow", flow=True)
+    aiml = _finding("ns-aiml-168", category=Category.AI_ML, cwe=(94, 78), tier="pattern-only")
+
+    assert len(_merge([cmd, aiml])) == 1
