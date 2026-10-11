@@ -184,6 +184,13 @@ _SOURCE_KIND_ORIGINS: dict[str, tuple[str, float]] = {
     "operator_input": ("cli_input", 0.9),
 }
 
+#: Rules whose findings may trace to operator input (argv, env, input()): the
+#: SQL and command rules that take the `operator_input` source fragment, and
+#: TNT-DESER-001, which caught env-sourced model paths before #73. The
+#: operator is not a remote attacker, so such a finding is reported at MEDIUM.
+#: Rules where env is the point (secret logging, MCP rug-pull) are not listed.
+_OPERATOR_SOURCE_RULES = frozenset({"TNT-SQLI-001", "TNT-SQLI-002", "TNT-CMDI-001", "TNT-DESER-001"})
+
 _SAFE_ORIGINS_BY_CATEGORY: dict[Category, float] = {
     Category.INJECTION: 0.3,
     Category.NOSQL_INJECTION: 0.3,
@@ -2527,7 +2534,7 @@ class EnrichmentPass:
                 continue
             f.metadata["source_confidence"] = conf
             f.metadata["source_origin"] = origin
-            if f.rule_id == "TNT-DESER-001" and origin in {"cli_input", "env_variable"}:
+            if f.rule_id in _OPERATOR_SOURCE_RULES and origin in {"cli_input", "env_variable"}:
                 _cap_severity(f, Severity.MEDIUM)
                 f.confidence = min(f.confidence, 0.5)
                 f.metadata["operator_controlled_source"] = True

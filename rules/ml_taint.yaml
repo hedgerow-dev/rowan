@@ -40,10 +40,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
-              - pattern: sys.argv
-              - pattern: os.environ[...]
-              - pattern: os.getenv(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -147,7 +143,7 @@ rules:
       category: prompt_injection
       fix: "Treat pipeline/model output as untrusted before using it in any downstream decision or rendering; do not feed it back into another prompt without validation."
     pattern-sources:
-      # rowan-registry:begin source=user_input
+      # rowan-registry:begin source=web_request
       - patterns:
           - pattern-either:
               - pattern: request.args.get(...)
@@ -169,7 +165,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -225,7 +220,7 @@ rules:
                         ...
 
                   - pattern: $P
-      # rowan-registry:end source=user_input
+      # rowan-registry:end source=web_request
     pattern-sinks:
       - patterns:
           - pattern-either:
@@ -247,7 +242,7 @@ rules:
       category: ai_ml
       fix: "Validate merged config values before use, or restrict OmegaConf.merge() to trusted sources; use OmegaConf.structured() for a typed schema instead of accepting arbitrary keys."
     pattern-sources:
-      # rowan-registry:begin source=user_input
+      # rowan-registry:begin source=web_request
       - patterns:
           - pattern-either:
               - pattern: request.args.get(...)
@@ -269,7 +264,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -325,7 +319,7 @@ rules:
                         ...
 
                   - pattern: $P
-      # rowan-registry:end source=user_input
+      # rowan-registry:end source=web_request
     pattern-sinks:
       - patterns:
           - pattern-either:
@@ -351,7 +345,7 @@ rules:
       category: prompt_injection
       fix: "Treat retrieved vector-store documents as untrusted content in the prompt, not as instructions; keep them in a clearly delimited context section."
     pattern-sources:
-      # rowan-registry:begin source=user_input
+      # rowan-registry:begin source=web_request
       - patterns:
           - pattern-either:
               - pattern: request.args.get(...)
@@ -373,7 +367,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -429,7 +422,7 @@ rules:
                         ...
 
                   - pattern: $P
-      # rowan-registry:end source=user_input
+      # rowan-registry:end source=web_request
     pattern-sinks:
       - patterns:
           - pattern-either:
@@ -489,7 +482,7 @@ rules:
     # gap as TNT-ML-018's Letta note and ns-aiml-111's mem0 hint-word
     # note elsewhere in this corpus.
     pattern-sources:
-      # rowan-registry:begin source=user_input
+      # rowan-registry:begin source=web_request
       - patterns:
           - pattern-either:
               - pattern: request.args.get(...)
@@ -511,7 +504,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -567,7 +559,7 @@ rules:
                         ...
 
                   - pattern: $P
-      # rowan-registry:end source=user_input
+      # rowan-registry:end source=web_request
     pattern-sinks:
       - patterns:
           - pattern-either:
@@ -627,7 +619,7 @@ rules:
       category: injection
       fix: "Never interpolate request data directly into a raw GraphQL query string or a with_where() filter. Use Weaviate's parameterized query builder (.with_near_text()/.with_where() with a server-constructed, schema-validated filter dict) and scope every query to the caller's tenant via multi-tenancy (.with_tenant()), not string concatenation."
     pattern-sources:
-      # rowan-registry:begin source=user_input
+      # rowan-registry:begin source=web_request
       - patterns:
           - pattern-either:
               - pattern: request.args.get(...)
@@ -649,7 +641,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -705,7 +696,7 @@ rules:
                         ...
 
                   - pattern: $P
-      # rowan-registry:end source=user_input
+      # rowan-registry:end source=web_request
     pattern-sinks:
       - patterns:
           - pattern-either:
@@ -899,7 +890,7 @@ rules:
       category: nosql_injection
       fix: "Never build a vector-store metadata filter by string concatenation/f-string from request data. Pass a structured filter dict with bound values (filter={\"tenant\": {\"$eq\": g.tenant_id}}), validated through a Pydantic model with an allowed-field schema, and scope it to the caller's tenant server-side."
     pattern-sources:
-      # rowan-registry:begin source=user_input
+      # rowan-registry:begin source=web_request
       - patterns:
           - pattern-either:
               - pattern: request.args.get(...)
@@ -921,7 +912,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -977,7 +967,7 @@ rules:
                         ...
 
                   - pattern: $P
-      # rowan-registry:end source=user_input
+      # rowan-registry:end source=web_request
     # The filter arg must be a string-DSL expression, either written inline at
     # the call OR held in a variable assigned such an expression above. A
     # structured dict (`filter={...}` or a dict-valued variable) matches none of
@@ -1086,7 +1076,7 @@ rules:
     pattern-sources:
       - patterns:
           - pattern-either:
-              # rowan-registry:begin source=user_input
+              # rowan-registry:begin source=web_request
               - patterns:
                   - pattern-either:
                       - pattern: request.args.get(...)
@@ -1108,7 +1098,6 @@ rules:
                       - pattern: request.POST[...]
                       - pattern: request.body
                       - pattern: request.query_params
-                      - pattern: input(...)
                       - pattern: await request.json(...)
                       - pattern: await request.form(...)
                       - pattern: await request.body(...)
@@ -1164,7 +1153,7 @@ rules:
                                 ...
 
                           - pattern: $P
-              # rowan-registry:end source=user_input
+              # rowan-registry:end source=web_request
               - pattern: request.files[...]
     pattern-sinks:
       - patterns:
@@ -1188,7 +1177,7 @@ rules:
       category: supply_chain
       fix: "Pin torch.hub.load() to a vetted, explicit allowlist of repositories rather than a user-influenced path."
     pattern-sources:
-      # rowan-registry:begin source=user_input
+      # rowan-registry:begin source=web_request
       - patterns:
           - pattern-either:
               - pattern: request.args.get(...)
@@ -1210,7 +1199,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -1266,7 +1254,7 @@ rules:
                         ...
 
                   - pattern: $P
-      # rowan-registry:end source=user_input
+      # rowan-registry:end source=web_request
     pattern-sinks:
       - patterns:
           - pattern-either:
@@ -1329,7 +1317,7 @@ rules:
       category: prompt_injection
       fix: "Keep user input in a clearly delimited variable slot of the prompt template, not concatenated into the template string itself."
     pattern-sources:
-      # rowan-registry:begin source=user_input
+      # rowan-registry:begin source=web_request
       - patterns:
           - pattern-either:
               - pattern: request.args.get(...)
@@ -1351,7 +1339,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -1407,7 +1394,7 @@ rules:
                         ...
 
                   - pattern: $P
-      # rowan-registry:end source=user_input
+      # rowan-registry:end source=web_request
     pattern-sinks:
       - patterns:
           - pattern-either:
@@ -1487,7 +1474,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
               - pattern: kwargs.get(...)
               - pattern: $VAR = json.loads(...)
               - pattern: await request.json(...)
@@ -1609,10 +1595,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
-              - pattern: sys.argv
-              - pattern: os.environ[...]
-              - pattern: os.getenv(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -1810,7 +1792,7 @@ rules:
       category: supply_chain
       fix: "Validate every record against an explicit schema (a pydantic model's model_validate() or equivalent) before it reaches Dataset.from_*, a Trainer's train_dataset, or a fine-tune file upload -- never assume request/upload data is already well-formed training data."
     pattern-sources:
-      # rowan-registry:begin source=user_input
+      # rowan-registry:begin source=web_request
       - patterns:
           - pattern-either:
               - pattern: request.args.get(...)
@@ -1832,7 +1814,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -1888,7 +1869,7 @@ rules:
                         ...
 
                   - pattern: $P
-      # rowan-registry:end source=user_input
+      # rowan-registry:end source=web_request
     pattern-sinks:
       - patterns:
           - pattern-either:
@@ -1957,7 +1938,7 @@ rules:
     # which plain intraprocedural taint (no propagator needed) already
     # covers when $KEY is directly source-derived.
     pattern-sources:
-      # rowan-registry:begin source=user_input
+      # rowan-registry:begin source=web_request
       - patterns:
           - pattern-either:
               - pattern: request.args.get(...)
@@ -1979,7 +1960,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -2035,7 +2015,7 @@ rules:
                         ...
 
                   - pattern: $P
-      # rowan-registry:end source=user_input
+      # rowan-registry:end source=web_request
     pattern-sinks:
       - patterns:
           - pattern: $CACHE.get($KEY)
@@ -2244,10 +2224,6 @@ rules:
                       - pattern: request.POST[...]
                       - pattern: request.body
                       - pattern: request.query_params
-                      - pattern: input(...)
-                      - pattern: sys.argv
-                      - pattern: os.environ[...]
-                      - pattern: os.getenv(...)
                       - pattern: await request.json(...)
                       - pattern: await request.form(...)
                       - pattern: await request.body(...)

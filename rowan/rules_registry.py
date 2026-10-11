@@ -114,10 +114,6 @@ _WEB_REQUEST_SOURCES: list[Entry] = [
     "request.POST[...]",
     "request.body",
     "request.query_params",
-    "input(...)",
-    "sys.argv",
-    "os.environ[...]",
-    "os.getenv(...)",
     "await request.json(...)",
     "await request.form(...)",
     "await request.body(...)",
@@ -131,17 +127,16 @@ _WEB_REQUEST_SOURCES: list[Entry] = [
     _FASTAPI_PARAM_SOURCE,
 ]
 
-# Parsed CLI arguments are an additional operator-controlled source. JSON
-# parsing and kwargs lookups propagate existing taint; neither creates it.
-_WEB_REQUEST_ARGPARSE_SOURCES: list[Entry] = [*_WEB_REQUEST_SOURCES, "args.$PARAM"]
-
-# End-user input: everything in web_request except operator-controlled CLI
-# args and environment. `open(sys.argv[1])` in a CLI tool or
-# `requests.get(os.environ["API_URL"])` is configuration, not an attack
-# surface, so rules that never treated argv/env as a source (SSRF, path
-# traversal, prompt/tool-arg injection) take this fragment instead.
-_USER_INPUT_SOURCES: list[Entry] = [
-    p for p in _WEB_REQUEST_SOURCES if p not in ("sys.argv", "os.environ[...]", "os.getenv(...)")
+# Operator input: set by whoever runs the program, not by a remote attacker.
+# `torch.load(sys.argv[1])` in a CLI or `requests.get(os.environ["API_URL"])`
+# is configuration, so only SQL and command injection take this fragment, and
+# enrichment reports those findings at MEDIUM (#73).
+_OPERATOR_INPUT_SOURCES: list[Entry] = [
+    "input(...)",
+    "sys.argv",
+    "os.environ[...]",
+    "os.getenv(...)",
+    "args.$PARAM",
 ]
 
 # Some rules need HTTP-only sources rather than operator input (CLI/env)
@@ -724,8 +719,7 @@ _WEB_REQUEST_JS_FRAMEWORK_SOURCES: list[Entry] = [
 #: name -> ordered list of opengrep source entries.
 SOURCES: dict[str, list[Entry]] = {
     "web_request": _WEB_REQUEST_SOURCES,
-    "web_request_argparse": _WEB_REQUEST_ARGPARSE_SOURCES,
-    "user_input": _USER_INPUT_SOURCES,
+    "operator_input": _OPERATOR_INPUT_SOURCES,
     "http_request": _HTTP_REQUEST_SOURCES,
     "model_metadata": _MODEL_METADATA_SOURCES,
     "document_ingest": _DOCUMENT_INGEST_SOURCES,

@@ -40,10 +40,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
-              - pattern: sys.argv
-              - pattern: os.environ[...]
-              - pattern: os.getenv(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -143,7 +139,7 @@ rules:
     pattern-sources:
       - patterns:
           - pattern-either:
-              # rowan-registry:begin source=user_input
+              # rowan-registry:begin source=web_request
               - patterns:
                   - pattern-either:
                       - pattern: request.args.get(...)
@@ -165,7 +161,6 @@ rules:
                       - pattern: request.POST[...]
                       - pattern: request.body
                       - pattern: request.query_params
-                      - pattern: input(...)
                       - pattern: await request.json(...)
                       - pattern: await request.form(...)
                       - pattern: await request.body(...)
@@ -221,7 +216,7 @@ rules:
                                 ...
 
                           - pattern: $P
-              # rowan-registry:end source=user_input
+              # rowan-registry:end source=web_request
               - pattern: request.files[...]
     pattern-sinks:
       - patterns:
@@ -248,7 +243,7 @@ rules:
     pattern-sources:
       - patterns:
           - pattern-either:
-              # rowan-registry:begin source=user_input
+              # rowan-registry:begin source=web_request
               - patterns:
                   - pattern-either:
                       - pattern: request.args.get(...)
@@ -270,7 +265,6 @@ rules:
                       - pattern: request.POST[...]
                       - pattern: request.body
                       - pattern: request.query_params
-                      - pattern: input(...)
                       - pattern: await request.json(...)
                       - pattern: await request.form(...)
                       - pattern: await request.body(...)
@@ -326,7 +320,7 @@ rules:
                                 ...
 
                           - pattern: $P
-              # rowan-registry:end source=user_input
+              # rowan-registry:end source=web_request
               - pattern: request.files[...]
     pattern-sinks:
       - patterns:
@@ -384,10 +378,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
-              - pattern: sys.argv
-              - pattern: os.environ[...]
-              - pattern: os.getenv(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -471,7 +461,7 @@ rules:
       category: command_injection
       fix: "Use subprocess with a list of arguments and shell=False instead of a shell-interpolated command string."
     pattern-sources:
-      # rowan-registry:begin source=user_input
+      # rowan-registry:begin source=web_request
       - patterns:
           - pattern-either:
               - pattern: request.args.get(...)
@@ -493,7 +483,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -549,7 +538,7 @@ rules:
                         ...
 
                   - pattern: $P
-      # rowan-registry:end source=user_input
+      # rowan-registry:end source=web_request
     pattern-sinks:
       - patterns:
           - pattern-either:
@@ -576,7 +565,7 @@ rules:
       category: ssrf
       fix: "Validate the destination host against an explicit allowlist of permitted domains/IPs before making the request; do not rely on URL parsing alone."
     pattern-sources:
-      # rowan-registry:begin source=user_input
+      # rowan-registry:begin source=web_request
       - patterns:
           - pattern-either:
               - pattern: request.args.get(...)
@@ -598,7 +587,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -654,7 +642,7 @@ rules:
                         ...
 
                   - pattern: $P
-      # rowan-registry:end source=user_input
+      # rowan-registry:end source=web_request
     # Engine note (DEF-40, re-verified empirically 2026-07-13): a bare
     # `pattern-sanitizers` entry of `$URL in $ALLOWLIST` does NOT clear taint
     # in this Opengrep engine version, regardless of whether the real code
@@ -728,7 +716,7 @@ rules:
       category: ssti
       fix: "Render user-controlled content as data (e.g. autoescaped Jinja2 variables), not as a template string; if templates must be dynamic, use jinja2.sandbox.SandboxedEnvironment."
     pattern-sources:
-      # rowan-registry:begin source=user_input
+      # rowan-registry:begin source=web_request
       - patterns:
           - pattern-either:
               - pattern: request.args.get(...)
@@ -750,7 +738,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -806,7 +793,7 @@ rules:
                         ...
 
                   - pattern: $P
-      # rowan-registry:end source=user_input
+      # rowan-registry:end source=web_request
     pattern-sinks:
       # The template STRING is the sink: a tainted render() context is data
       # that Jinja escapes, and stdlib string.Template runs no code (#72).
@@ -848,7 +835,7 @@ rules:
       category: ai_ml
       fix: "Never set trust_remote_code=True on a user-influenced model path; pin to an explicit, vetted allowlist of model repos instead."
     pattern-sources:
-      # rowan-registry:begin source=user_input
+      # rowan-registry:begin source=web_request
       - patterns:
           - pattern-either:
               - pattern: request.args.get(...)
@@ -870,7 +857,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -926,7 +912,7 @@ rules:
                         ...
 
                   - pattern: $P
-      # rowan-registry:end source=user_input
+      # rowan-registry:end source=web_request
     # Engine note (DEF-40, re-verified empirically 2026-07-13): see
     # TNT-SSRF-001's identical engine note above -- same non-functional
     # `pattern-sanitizers: $PATH in $ALLOWED_MODELS` bug, same
@@ -958,7 +944,7 @@ rules:
       category: prompt_injection
       fix: "Keep user input in a separate message role (e.g. the `user` turn) rather than concatenating it into the system prompt; treat model output as untrusted for any downstream action."
     pattern-sources:
-      # rowan-registry:begin source=user_input
+      # rowan-registry:begin source=web_request
       - patterns:
           - pattern-either:
               - pattern: request.args.get(...)
@@ -980,7 +966,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -1036,7 +1021,7 @@ rules:
                         ...
 
                   - pattern: $P
-      # rowan-registry:end source=user_input
+      # rowan-registry:end source=web_request
     pattern-sinks:
       - patterns:
           - pattern-either:
@@ -1122,10 +1107,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
-              - pattern: sys.argv
-              - pattern: os.environ[...]
-              - pattern: os.getenv(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)

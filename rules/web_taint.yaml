@@ -35,10 +35,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
-              - pattern: sys.argv
-              - pattern: os.environ[...]
-              - pattern: os.getenv(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -95,6 +91,15 @@ rules:
 
                   - pattern: $P
       # rowan-registry:end source=web_request
+      # rowan-registry:begin source=operator_input
+      - patterns:
+          - pattern-either:
+              - pattern: input(...)
+              - pattern: sys.argv
+              - pattern: os.environ[...]
+              - pattern: os.getenv(...)
+              - pattern: args.$PARAM
+      # rowan-registry:end source=operator_input
 
     pattern-sinks:
       - patterns:
@@ -125,7 +130,7 @@ rules:
       category: xss
       fix: "HTML-escape user input before writing it into the response, or use the framework's auto-escaping template engine instead of raw string interpolation."
     pattern-sources:
-      # rowan-registry:begin source=user_input
+      # rowan-registry:begin source=web_request
       - patterns:
           - pattern-either:
               - pattern: request.args.get(...)
@@ -147,7 +152,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -203,7 +207,7 @@ rules:
                         ...
 
                   - pattern: $P
-      # rowan-registry:end source=user_input
+      # rowan-registry:end source=web_request
     pattern-sinks:
       - patterns:
           - pattern-either:
@@ -289,7 +293,7 @@ rules:
       category: path_traversal
       fix: "Resolve the path and verify the result is still under the intended base directory (os.path.realpath + os.path.commonpath check) before use, or use os.path.basename() to discard directory components entirely."
     pattern-sources:
-      # rowan-registry:begin source=user_input
+      # rowan-registry:begin source=web_request
       - patterns:
           - pattern-either:
               - pattern: request.args.get(...)
@@ -311,7 +315,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -367,7 +370,7 @@ rules:
                         ...
 
                   - pattern: $P
-      # rowan-registry:end source=user_input
+      # rowan-registry:end source=web_request
     pattern-sinks:
       - patterns:
           - pattern-either:

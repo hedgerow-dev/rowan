@@ -1593,10 +1593,10 @@ class TestSupplyChainRuleNeedsTheHub:
 
     def test_user_repo_id_to_from_pretrained_is_reported(self, tmp_path):
         source = (
-            "import os\n"
+            "from flask import request\n"
             "from transformers import AutoModel\n"
             "def load():\n"
-            "    return AutoModel.from_pretrained(os.environ['MODEL_REPO'])\n"
+            "    return AutoModel.from_pretrained(request.args.get('repo'))\n"
         )
         assert self._hits(tmp_path, source)
 

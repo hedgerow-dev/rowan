@@ -20,7 +20,7 @@ rules:
       category: injection
       fix: "Use parameterized queries (cursor.execute(sql, params)) instead of concatenating input into SQL text."
     pattern-sources:
-      # rowan-registry:begin source=web_request_argparse
+      # rowan-registry:begin source=web_request
       - patterns:
           - pattern-either:
               - pattern: request.args.get(...)
@@ -42,10 +42,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
-              - pattern: sys.argv
-              - pattern: os.environ[...]
-              - pattern: os.getenv(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -101,8 +97,16 @@ rules:
                         ...
 
                   - pattern: $P
+      # rowan-registry:end source=web_request
+      # rowan-registry:begin source=operator_input
+      - patterns:
+          - pattern-either:
+              - pattern: input(...)
+              - pattern: sys.argv
+              - pattern: os.environ[...]
+              - pattern: os.getenv(...)
               - pattern: args.$PARAM
-      # rowan-registry:end source=web_request_argparse
+      # rowan-registry:end source=operator_input
 
     pattern-sinks:
       # Only the query argument is the sink. Matching the whole call also
@@ -173,10 +177,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
-              - pattern: sys.argv
-              - pattern: os.environ[...]
-              - pattern: os.getenv(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -233,6 +233,15 @@ rules:
 
                   - pattern: $P
       # rowan-registry:end source=web_request
+      # rowan-registry:begin source=operator_input
+      - patterns:
+          - pattern-either:
+              - pattern: input(...)
+              - pattern: sys.argv
+              - pattern: os.environ[...]
+              - pattern: os.getenv(...)
+              - pattern: args.$PARAM
+      # rowan-registry:end source=operator_input
     # The command argument is the sink, and only a shell STRING is
     # injectable: `subprocess.run(["ls", "-l", name])` passes argv without a
     # shell. The old whole-call sink fired on list form at ERROR, and the
@@ -273,7 +282,7 @@ rules:
       category: ssrf
       fix: "Validate the destination host against an explicit allowlist of permitted domains/IPs before making the request."
     pattern-sources:
-      # rowan-registry:begin source=user_input
+      # rowan-registry:begin source=web_request
       - patterns:
           - pattern-either:
               - pattern: request.args.get(...)
@@ -295,7 +304,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -351,7 +359,7 @@ rules:
                         ...
 
                   - pattern: $P
-      # rowan-registry:end source=user_input
+      # rowan-registry:end source=web_request
     pattern-sinks:
       - patterns:
           - pattern-either:
@@ -411,7 +419,7 @@ rules:
       category: ssti
       fix: "Never call Template()/from_string() on a string built from user input; use jinja2.sandbox.SandboxedEnvironment if dynamic templates are required."
     pattern-sources:
-      # rowan-registry:begin source=user_input
+      # rowan-registry:begin source=web_request
       - patterns:
           - pattern-either:
               - pattern: request.args.get(...)
@@ -433,7 +441,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -489,7 +496,7 @@ rules:
                         ...
 
                   - pattern: $P
-      # rowan-registry:end source=user_input
+      # rowan-registry:end source=web_request
     pattern-sinks:
       # The template STRING is the sink: a tainted render() context is data
       # that Jinja escapes, and stdlib string.Template runs no code (#72).
@@ -555,10 +562,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
-              - pattern: sys.argv
-              - pattern: os.environ[...]
-              - pattern: os.getenv(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -650,7 +653,7 @@ rules:
       category: path_traversal
       fix: "Resolve the path and verify the result is still under the intended base directory (os.path.realpath + os.path.commonpath check) before use, or use os.path.basename()/werkzeug's secure_filename() to discard directory components entirely."
     pattern-sources:
-      # rowan-registry:begin source=user_input
+      # rowan-registry:begin source=web_request
       - patterns:
           - pattern-either:
               - pattern: request.args.get(...)
@@ -672,7 +675,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -728,7 +730,7 @@ rules:
                         ...
 
                   - pattern: $P
-      # rowan-registry:end source=user_input
+      # rowan-registry:end source=web_request
     pattern-sinks:
       - patterns:
           - pattern-either:
@@ -811,7 +813,7 @@ rules:
       category: prompt_injection
       fix: "Validate LLM-chosen tool arguments against an explicit allowlist before execution; don't trust an agent executor's parameters as if they came from the calling code."
     pattern-sources:
-      # rowan-registry:begin source=user_input
+      # rowan-registry:begin source=web_request
       - patterns:
           - pattern-either:
               - pattern: request.args.get(...)
@@ -833,7 +835,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -889,7 +890,7 @@ rules:
                         ...
 
                   - pattern: $P
-      # rowan-registry:end source=user_input
+      # rowan-registry:end source=web_request
     # `$AGENT.run(...)` with no receiver constraint matched subprocess.run,
     # asyncio.run and Flask's app.run (RT-03). Same receiver regex as
     # TNT-ML-016 in agent_taint.yaml.

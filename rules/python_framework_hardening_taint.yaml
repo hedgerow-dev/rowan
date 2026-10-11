@@ -20,7 +20,7 @@ rules:
     pattern-sources:
       - patterns:
           - pattern-either:
-              # rowan-registry:begin source=user_input
+              # rowan-registry:begin source=web_request
               - patterns:
                   - pattern-either:
                       - pattern: request.args.get(...)
@@ -42,7 +42,6 @@ rules:
                       - pattern: request.POST[...]
                       - pattern: request.body
                       - pattern: request.query_params
-                      - pattern: input(...)
                       - pattern: await request.json(...)
                       - pattern: await request.form(...)
                       - pattern: await request.body(...)
@@ -98,7 +97,7 @@ rules:
                                 ...
 
                           - pattern: $P
-              # rowan-registry:end source=user_input
+              # rowan-registry:end source=web_request
       - pattern: request.get_json(...)
     pattern-sinks:
       - patterns:
@@ -139,7 +138,7 @@ rules:
     pattern-sources:
       - patterns:
           - pattern-either:
-              # rowan-registry:begin source=user_input
+              # rowan-registry:begin source=web_request
               - patterns:
                   - pattern-either:
                       - pattern: request.args.get(...)
@@ -161,7 +160,6 @@ rules:
                       - pattern: request.POST[...]
                       - pattern: request.body
                       - pattern: request.query_params
-                      - pattern: input(...)
                       - pattern: await request.json(...)
                       - pattern: await request.form(...)
                       - pattern: await request.body(...)
@@ -217,7 +215,7 @@ rules:
                                 ...
 
                           - pattern: $P
-              # rowan-registry:end source=user_input
+              # rowan-registry:end source=web_request
       - pattern: request.get_json(...)
     pattern-sinks:
       - patterns:
@@ -260,7 +258,7 @@ rules:
     pattern-sources:
       - patterns:
           - pattern-either:
-              # rowan-registry:begin source=user_input
+              # rowan-registry:begin source=web_request
               - patterns:
                   - pattern-either:
                       - pattern: request.args.get(...)
@@ -282,7 +280,6 @@ rules:
                       - pattern: request.POST[...]
                       - pattern: request.body
                       - pattern: request.query_params
-                      - pattern: input(...)
                       - pattern: await request.json(...)
                       - pattern: await request.form(...)
                       - pattern: await request.body(...)
@@ -338,7 +335,7 @@ rules:
                                 ...
 
                           - pattern: $P
-              # rowan-registry:end source=user_input
+              # rowan-registry:end source=web_request
       - pattern: request.get_json(...)
     pattern-sinks:
       - patterns:
@@ -406,7 +403,7 @@ rules:
     pattern-sources:
       - patterns:
           - pattern-either:
-              # rowan-registry:begin source=user_input
+              # rowan-registry:begin source=web_request
               - patterns:
                   - pattern-either:
                       - pattern: request.args.get(...)
@@ -428,7 +425,6 @@ rules:
                       - pattern: request.POST[...]
                       - pattern: request.body
                       - pattern: request.query_params
-                      - pattern: input(...)
                       - pattern: await request.json(...)
                       - pattern: await request.form(...)
                       - pattern: await request.body(...)
@@ -484,7 +480,7 @@ rules:
                                 ...
 
                           - pattern: $P
-              # rowan-registry:end source=user_input
+              # rowan-registry:end source=web_request
       - pattern: request.get_json(...)
     pattern-sinks:
       - patterns:

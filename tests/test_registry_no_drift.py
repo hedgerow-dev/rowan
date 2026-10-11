@@ -90,12 +90,9 @@ def test_sanitizer_values_snapshot():
 _FIRST = SOURCES["web_request"][0]
 # The last plain pattern; the FastAPI parameter entry after it is a mapping.
 _LAST = [p for p in SOURCES["web_request"] if isinstance(p, str)][-1]
-# user_input is web_request minus argv/env and ends on the same last pattern;
-# web_request_argparse embeds the whole block. web_request_java / web_request_go
-# are different languages and share no pattern with it.
-_BEGIN_WEB_REQUEST = re.compile(
-    r"#\s*rowan-registry:begin\s+source=(web_request|web_request_argparse|user_input)(?!\w)"
-)
+# web_request_java / web_request_go are different languages and share no
+# pattern with it.
+_BEGIN_WEB_REQUEST = re.compile(r"#\s*rowan-registry:begin\s+source=web_request(?!\w)")
 
 
 def test_no_hand_copied_web_request_block():

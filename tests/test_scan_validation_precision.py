@@ -154,7 +154,8 @@ def test_operator_environment_pickle_is_not_high_but_request_pickle_is(tmp_path)
     env_hits = _hits(result, "TNT-DESER-001", "env_cache.py")
     request_hits = _hits(result, "TNT-DESER-001", "request_payload.py")
 
-    assert env_hits
+    # Since #73 env is not a deserialization source at all; either way it
+    # must never be reported as a remote HIGH.
     assert all(hit.severity not in {Severity.CRITICAL, Severity.HIGH} for hit in env_hits)
     assert request_hits
     assert any(hit.severity in {Severity.CRITICAL, Severity.HIGH} for hit in request_hits)

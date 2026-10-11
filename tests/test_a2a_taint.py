@@ -64,10 +64,10 @@ class TestA2ASsrfTNTA2A001:
         assert findings, "request.json.get(...) into A2AClient(url=...) must be flagged"
 
     def test_generalizes_to_card_url_and_resolver(self, tmp_path):
-        """Different shape than the first PoC: different var names, a
-        config-env source, an agent-card url source, and the A2ACardResolver
-        wrapper instead of A2AClient. Proves the rule keys off the A2A library
-        identifiers, not one PoC's names."""
+        """Different shape than the first PoC: different var names, an
+        agent-card url source, and the A2ACardResolver wrapper instead of
+        A2AClient. Proves the rule keys off the A2A library identifiers, not
+        one PoC's names. The env-configured peer is operator input (#73)."""
         src = (
             "import os\n"
             "from a2a.client import A2ACardResolver\n"
@@ -80,10 +80,9 @@ class TestA2ASsrfTNTA2A001:
             "        return A2ACardResolver(base_url=target)\n"
         )
         findings = _scan(tmp_path, "a2a_ssrf_general.py", src, "TNT-A2A-001")
-        assert len(findings) >= 2, (
-            "agent-card url and config-env sources into A2ACardResolver "
-            "must both be flagged (generalization case)"
-        )
+        lines = {f.start_line for f in findings}
+        assert 6 in lines, "agent-card url into A2ACardResolver must be flagged"
+        assert 9 not in lines, "an env-configured peer URL is operator input, not attacker input"
 
     def test_validated_url_not_flagged(self, tmp_path):
         src = (

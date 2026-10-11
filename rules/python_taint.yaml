@@ -41,10 +41,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
-              - pattern: sys.argv
-              - pattern: os.environ[...]
-              - pattern: os.getenv(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -175,7 +171,6 @@ rules:
               - pattern: request.POST.get(...)
               - pattern: request.cookies.get(...)
               - pattern: request.headers.get(...)
-              - pattern: input(...)
     pattern-sinks:
       - patterns:
           - pattern-either:
@@ -235,7 +230,6 @@ rules:
               - pattern: request.json.get(...)
               - pattern: request.GET.get(...)
               - pattern: request.POST.get(...)
-              - pattern: input(...)
     pattern-sinks:
       - patterns:
           - pattern-either:
@@ -291,10 +285,6 @@ rules:
               - pattern: request.POST[...]
               - pattern: request.body
               - pattern: request.query_params
-              - pattern: input(...)
-              - pattern: sys.argv
-              - pattern: os.environ[...]
-              - pattern: os.getenv(...)
               - pattern: await request.json(...)
               - pattern: await request.form(...)
               - pattern: await request.body(...)
@@ -445,7 +435,6 @@ rules:
               - pattern: request.json.get(...)
               - pattern: request.GET.get(...)
               - pattern: request.POST.get(...)
-              - pattern: input(...)
     pattern-sinks:
       # The template STRING is the sink: a tainted render() context is data
       # that Jinja escapes, and stdlib string.Template runs no code (#72).
@@ -516,10 +505,6 @@ rules:
                       - pattern: request.POST[...]
                       - pattern: request.body
                       - pattern: request.query_params
-                      - pattern: input(...)
-                      - pattern: sys.argv
-                      - pattern: os.environ[...]
-                      - pattern: os.getenv(...)
                       - pattern: await request.json(...)
                       - pattern: await request.form(...)
                       - pattern: await request.body(...)
