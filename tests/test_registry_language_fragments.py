@@ -52,7 +52,9 @@ def _rules_by_id(path: Path) -> dict[str, str]:
     return {c.split("\n", 1)[0].strip(): c for c in chunks}
 
 
-@pytest.mark.parametrize("name", sorted(SOURCES))
+# web_request_go_bind renders as top-level items (by-side-effect); see
+# tests/test_go_request_sources.py.
+@pytest.mark.parametrize("name", sorted(set(SOURCES) - {"web_request_go_bind"}))
 def test_every_fragment_renders_to_valid_yaml(name):
     rendered = render_pattern_either_block("source", name, 6)
     data = yaml.safe_load("pattern-sources:\n" + rendered)
@@ -71,7 +73,7 @@ def test_fragment_pattern_counts():
         "llm_output": 34,  # PY-01: 17 original + 17 agent-SDK shapes
         "web_request_java": 11,  # EXT-19: System.getenv moved to operator_input_java
         "operator_input_java": 5,
-        "web_request_go": 6,
+        "web_request_go": 16,  # #56: router/framework getters; binds moved to web_request_go_bind
         "operator_input_go": 7,  # EXT-19: + LookupEnv, flag.Arg, viper x2
     }
     for name, count in expected.items():

@@ -463,11 +463,46 @@ _OPERATOR_INPUT_JAVA_SOURCES: list[Entry] = [
 #: query its own source and sink.
 _WEB_REQUEST_GO_SOURCES: list[Entry] = [
     "$R.URL.Query()",
+    "$R.URL.Path",
+    "$R.URL.RawQuery",
     "$R.FormValue(...)",
+    "$R.PostFormValue(...)",
+    "$R.Header.Get(...)",
     "$R.Body",
     "$C.Param(...)",
     '"($C : *gin.Context).Query(...)"',
-    "$C.ShouldBindJSON(...)",
+    # gin, echo, fiber accessors; chi and gorilla/mux route params.
+    "$C.PostForm(...)",
+    "$C.DefaultQuery(...)",
+    "$C.GetHeader(...)",
+    "$C.QueryParam(...)",
+    "$C.Params(...)",
+    "chi.URLParam(...)",
+    "mux.Vars(...)",
+]
+
+# Bind calls return an error; the request lands in the bound variable (#56).
+# by-side-effect only works on a top-level source item, so this fragment is
+# rendered as one (see _TOP_LEVEL_FRAGMENTS). json.NewDecoder is scoped to a
+# request body so decoding a config file is not a source.
+_WEB_REQUEST_GO_BIND_SOURCES: list[Entry] = [
+    {
+        "patterns": [
+            {
+                "pattern-either": [
+                    "$C.ShouldBindJSON(&$X)",
+                    "$C.BindJSON(&$X)",
+                    "$C.ShouldBind(&$X)",
+                    "$C.Bind(&$X)",
+                    "$C.ShouldBindQuery(&$X)",
+                    "$C.BodyParser(&$X)",
+                    "json.NewDecoder($R.Body).Decode(&$X)",
+                ]
+            },
+            {"focus-metavariable": "$X"},
+        ],
+        "by-side-effect": "true",
+    },
 ]
 
 #: Go operator-controlled input (env, flags, argv, viper config). Split from
@@ -727,6 +762,7 @@ SOURCES: dict[str, list[Entry]] = {
     "web_request_java": _WEB_REQUEST_JAVA_SOURCES,
     "operator_input_java": _OPERATOR_INPUT_JAVA_SOURCES,
     "web_request_go": _WEB_REQUEST_GO_SOURCES,
+    "web_request_go_bind": _WEB_REQUEST_GO_BIND_SOURCES,
     "operator_input_go": _OPERATOR_INPUT_GO_SOURCES,
     "llm_output_java": _LLM_OUTPUT_JAVA_SOURCES,
     "llm_tool_param_java": _LLM_TOOL_PARAM_JAVA_SOURCES,
@@ -950,6 +986,12 @@ def fragment_patterns(kind: str, name: str) -> list[Entry]:
         ) from None
 
 
+#: Fragments whose entries are complete source/sink items, rendered as list
+#: items directly rather than inside one pattern-either (needed for keys such
+#: as by-side-effect that are only valid on a top-level item).
+_TOP_LEVEL_FRAGMENTS = frozenset({"web_request_go_bind"})
+
+
 def render_pattern_either_block(kind: str, name: str, base_indent: int) -> str:
     """Render a fragment as a `- patterns: / pattern-either:` YAML block.
 
@@ -959,6 +1001,8 @@ def render_pattern_either_block(kind: str, name: str, base_indent: int) -> str:
     +8), so an expansion of an already-correct block is byte-identical to what
     was there before.
     """
+    if name in _TOP_LEVEL_FRAGMENTS:
+        return "\n".join(_render_entries(fragment_patterns(kind, name), base_indent))
     pad = " " * base_indent
     lines = [
         f"{pad}- patterns:",
@@ -971,10 +1015,11 @@ def render_pattern_either_block(kind: str, name: str, base_indent: int) -> str:
 def _render_entries(entries: list[Entry], indent: int) -> list[str]:
     """Render fragment entries as YAML list items at column ``indent``.
 
-    A string is ``- pattern: <string>``. A single-key dict is ``- <key>:``
-    followed by its value: a nested entry list at +4, a scalar mapping
+    A string is ``- pattern: <string>``. A dict is ``- <key>:`` for its first
+    key, followed by its value: a nested entry list at +4, a scalar mapping
     (``metavariable-regex``) at +4, a multi-line string as a ``|`` block at
-    +4, or an inline scalar on the same line.
+    +4, or an inline scalar on the same line. Further keys must be scalars
+    and become siblings of the first (``by-side-effect: true``).
     """
     pad = " " * indent
     out: list[str] = []
@@ -982,9 +1027,9 @@ def _render_entries(entries: list[Entry], indent: int) -> list[str]:
         if isinstance(entry, str):
             out.append(f"{pad}- pattern: {entry}")
             continue
-        if len(entry) != 1:
-            raise ValueError(f"fragment entry must have exactly one key: {entry!r}")
-        ((key, value),) = entry.items()
+        (key, value), *extra = entry.items()
+        if any(not isinstance(v, str) for _, v in extra):
+            raise ValueError(f"fragment entry keys after the first must be scalars: {entry!r}")
         if isinstance(value, list):
             out.append(f"{pad}- {key}:")
             out.extend(_render_entries(value, indent + 4))
@@ -996,4 +1041,5 @@ def _render_entries(entries: list[Entry], indent: int) -> list[str]:
             out.extend(f"{pad}    {line}" if line else "" for line in value.split("\n"))
         else:
             out.append(f"{pad}- {key}: {value}")
+        out.extend(f"{pad}  {k}: {v}" for k, v in extra)
     return out
