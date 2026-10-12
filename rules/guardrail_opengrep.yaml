@@ -57,8 +57,17 @@ rules:
       # call node, while an assignment/return is a strictly larger node, and a
       # `pattern-not` whose range doesn't contain the match never excludes
       # anything (DEF-8).
-      - pattern-not-inside: $R = $GUARD(...)
-      - pattern-not-inside: return $GUARD(...)
+      - pattern-not-inside: $R = <... $GUARD(...) ...>
+      - pattern-not-inside: return <... $GUARD(...) ...>
+      - pattern-not-inside: assert <... $GUARD(...) ...>
+      # Passed straight to another call: llm(moderate(text)), all(check(t) for t in ts).
+      - pattern-not-inside: $F(..., <... $GUARD(...) ...>, ...)
+      # A guard decorator or a guardrails setup call is not a discarded verdict.
+      - pattern-not-inside: |
+          @$GUARD(...)
+          def $FN(...):
+              ...
+      - pattern-not: $G.register_action(...)
       - pattern-not-inside: |
           if <... $GUARD(...) ...>:
               ...
@@ -139,6 +148,20 @@ rules:
       - pattern-not: |
           try:
               ...
+              $X = $GUARD(...)
+              ...
+          except ...:
+              ...
+              $X = True
+      - pattern-not: |
+          try:
+              ...
+          except ...:
+              ...
+              continue
+      - pattern-not: |
+          try:
+              ...
           except ...:
               ...
               abort(...)
@@ -168,7 +191,7 @@ rules:
     languages: [python]
     patterns:
       - pattern: |
-          $R = $GUARD(...)
+          $R = <... $GUARD(...) ...>
           ...
           if <... $R ...>:
               ...
@@ -176,41 +199,48 @@ rules:
           metavariable: $GUARD
           regex: (?i).*(moderat|content_filter|\bguard\b|prompt_guard|llama_?guard|guardrail|llm_guard|scan_prompt|prompt_injection|jailbreak|toxicity|safety_check|check_safety)
       - pattern-not: |
-          $R = $GUARD(...)
+          $R = <... $GUARD(...) ...>
           ...
           if <... $R ...>:
               ...
               raise
       - pattern-not: |
-          $R = $GUARD(...)
+          $R = <... $GUARD(...) ...>
           ...
           if <... $R ...>:
               ...
               raise ...
       - pattern-not: |
-          $R = $GUARD(...)
+          $R = <... $GUARD(...) ...>
           ...
           if <... $R ...>:
               ...
               return
       - pattern-not: |
-          $R = $GUARD(...)
+          $R = <... $GUARD(...) ...>
           ...
           if <... $R ...>:
               ...
               return ...
       - pattern-not: |
-          $R = $GUARD(...)
+          $R = <... $GUARD(...) ...>
           ...
           if <... $R ...>:
               ...
               abort(...)
       - pattern-not: |
-          $R = $GUARD(...)
+          $R = <... $GUARD(...) ...>
           ...
           if <... $R ...>:
               ...
               sys.exit(...)
+      - pattern-not: |
+          $R = <... $GUARD(...) ...>
+          ...
+          if <... $R ...>:
+              ...
+          else:
+              ...
     metadata:
       mode: opengrep
       cwe: [754, 390]

@@ -344,3 +344,68 @@ class TestKnownResidualGaps:
             "if this now reports, the tuple-unpacking gap has been closed -- "
             "update ns-aiml-158's message and move this to a positive test"
         )
+
+
+class TestReviewProbes53:
+    """Shapes from the #53 review: result-consuming forms, fail-closed
+    handlers and if/else gating are not findings; the async forms are."""
+
+    @pytest.mark.parametrize(
+        "body",
+        [
+            "async def h(text):\n    result = await moderate(text)\n    return result\n",
+            "def h(text):\n    return llm(moderate(text))\n",
+            "def h(texts):\n    ok = all(check_safety(t) for t in texts)\n    return ok\n",
+            "def h(text):\n    assert moderate(text)\n",
+            "@guardrails.guard(name='x')\ndef h(text):\n    return text\n",
+            "def setup(x):\n    guardrails.register_action(x)\n",
+        ],
+    )
+    def test_156_result_consumed_or_not_a_check(self, tmp_path, body):
+        assert _scan(tmp_path, _PREAMBLE + body, "ns-aiml-156") == []
+
+    def test_156_awaited_bare_call_flagged(self, tmp_path):
+        src = _PREAMBLE + "async def h(text):\n    await moderate(text)\n    return llm(text)\n"
+        assert _scan(tmp_path, src, "ns-aiml-156")
+
+    @pytest.mark.parametrize(
+        "handler",
+        [
+            "    except Exception:\n        flagged = True\n",
+            "    except Exception:\n        continue\n",
+        ],
+    )
+    def test_157_fail_closed_handler_not_flagged(self, tmp_path, handler):
+        src = _PREAMBLE + (
+            "def h(texts):\n"
+            "    for text in texts:\n"
+            "        try:\n"
+            "            flagged = moderate(text)\n"
+            "        " + handler.replace("\n    ", "\n        ").lstrip() +
+            "        if flagged:\n"
+            "            continue\n"
+            "        llm(text)\n"
+        )
+        assert _scan(tmp_path, src, "ns-aiml-157") == []
+
+    def test_158_if_else_gating_not_flagged(self, tmp_path):
+        src = _PREAMBLE + (
+            "def h(text):\n"
+            "    verdict = guard(text)\n"
+            "    if verdict.ok:\n"
+            "        answer = llm(text)\n"
+            "    else:\n"
+            "        answer = 'refused'\n"
+            "    return answer\n"
+        )
+        assert _scan(tmp_path, src, "ns-aiml-158") == []
+
+    def test_158_async_log_only_branch_flagged(self, tmp_path):
+        src = _PREAMBLE + (
+            "async def h(text):\n"
+            "    r = await moderate(text)\n"
+            "    if r.flagged:\n"
+            "        logging.warning('flagged')\n"
+            "    return llm(text)\n"
+        )
+        assert _scan(tmp_path, src, "ns-aiml-158")
