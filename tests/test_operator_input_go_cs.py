@@ -51,7 +51,7 @@ GO_HTTP = '\tv := r.FormValue("x")\n'
 
 @pytest.mark.parametrize(
     "rule_id,sink",
-    [("tnt-go-log-001", '\tlog.Printf("%s", v)\n'), ("tnt-go-header-001", '\tw.Header().Set("X", v)\n')],
+    [("tnt-go-log-001", '\tlog.Printf("%s", v)\n'), ("tnt-go-header-001", '\tw.Header().Set("Set-Cookie", v)\n')],
 )
 def test_go_log_and_header_ignore_operator_input(tmp_path, rule_id, sink):
     env = _findings(tmp_path, "main.go", "go_taint.yaml", "go", _go(GO_ENV + sink))

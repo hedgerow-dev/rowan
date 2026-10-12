@@ -321,9 +321,11 @@ rules:
   - id: tnt-go-deser-001
     mode: taint
     languages: [go]
-    severity: ERROR
+    severity: WARNING
     message: >-
-      User input flows into a deserialization call, potentially enabling code execution or data corruption.
+      User input is decoded with gob or YAML. Go decodes into declared types, so
+      there is no gadget-chain code execution; the risk is unexpected fields
+      and resource use from an attacker-sized payload.
     metadata:
       cwe:
         - "CWE-502: Deserialization of Untrusted Data"
@@ -381,13 +383,14 @@ rules:
       # form is what reaches macaron-style contexts (gogs internal/route).
       - pattern: $C.Query(...)
     pattern-sinks:
-      - pattern: log.Printf(...)
-      - pattern: log.Println(...)
-      - pattern: slog.Info(...)
-      - pattern: slog.Warn(...)
-      - pattern: logrus.Warn(...)
-      - pattern: logrus.Info(...)
-      - pattern: logrus.Error(...)
+      # The standard log package writes the value as is. slog and logrus
+      # quote or escape newlines in values, and %q escapes them too.
+      - patterns:
+          - pattern: log.$F(...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: ^(Print|Printf|Println|Fatal|Fatalf|Fatalln|Panic|Panicf|Panicln)$
+          - pattern-not: log.$F("=~/%q/", ...)
     pattern-sanitizers:
       - pattern: url.QueryEscape(...)
       # NOT strings.ReplaceAll(...): its neutralizing effect depends
@@ -399,15 +402,18 @@ rules:
   - id: tnt-go-header-001
     mode: taint
     languages: [go]
-    severity: ERROR
+    severity: WARNING
     message: >-
-      User input flows into an HTTP response header, enabling header injection or response splitting.
+      User input is copied into a Set-Cookie or Content-Disposition response
+      header, so the caller controls cookie attributes or the download
+      filename. (net/http replaces CR/LF in header values, so this is not
+      response splitting.)
     metadata:
       cwe:
-        - "CWE-113: Improper Neutralization of CRLF Sequences in HTTP Headers ('HTTP Response Splitting')"
-      confidence: HIGH
+        - "CWE-74: Improper Neutralization of Special Elements in Output Used by a Downstream Component ('Injection')"
+      confidence: MEDIUM
       category: injection
-      fix: "Reject or strip CR/LF characters from values written into HTTP response headers before calling Header().Set/Add."
+      fix: "Build cookies with http.SetCookie and a fixed set of attributes, and quote or sanitize a download filename (mime.FormatMediaType) instead of concatenating request input."
     pattern-sources:
       # rowan-registry:begin source=web_request_go
       - patterns:
@@ -425,8 +431,15 @@ rules:
       # form is what reaches macaron-style contexts (gogs internal/route).
       - pattern: $C.Query(...)
     pattern-sinks:
-      - pattern: $W.Header().Set(...)
-      - pattern: $W.Header().Add(...)
+      # Location is the redirect rule's sink.
+      - patterns:
+          - pattern-either:
+              - pattern: $W.Header().Set($NAME, $V)
+              - pattern: $W.Header().Add($NAME, $V)
+          - metavariable-regex:
+              metavariable: $NAME
+              regex: (?i)^"(set-cookie|content-disposition)"$
+          - focus-metavariable: $V
     pattern-sanitizers:
       - pattern: url.QueryEscape(...)
       # NOT strings.ReplaceAll(...): its neutralizing effect depends
@@ -470,6 +483,14 @@ rules:
           - focus-metavariable: $URL
       - patterns:
           - pattern: $C.Redirect($CODE, $URL)
+          - focus-metavariable: $URL
+      - patterns:
+          - pattern-either:
+              - pattern: $W.Header().Set($NAME, $URL)
+              - pattern: $W.Header().Add($NAME, $URL)
+          - metavariable-regex:
+              metavariable: $NAME
+              regex: (?i)^"location"$
           - focus-metavariable: $URL
 
   # Request input used as the template SOURCE. Data passed to Execute is
