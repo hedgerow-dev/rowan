@@ -2,7 +2,7 @@ rules:
 - id: ns-aiml-130
   languages:
   - python
-  severity: ERROR
+  severity: WARNING
   message: 'fsspec''s ReferenceFileSystem renders six spec fields through Jinja2:
 
     refs[k][0], every value in templates, and gen''s key, url, offset and
@@ -139,7 +139,7 @@ rules:
   patterns:
   - pattern-either:
     - pattern-regex: H5Pset_external
-    - pattern-regex: (?:create_dataset|require_dataset)\(.{0,200}?\bexternal\s*=\s*\[
+    - pattern-regex: (?:create_dataset|require_dataset)\((?:[^()]|\([^()]*\))*?\bexternal\s*=\s*\[
     - pattern-regex: h5py\.ExternalLink\(
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)

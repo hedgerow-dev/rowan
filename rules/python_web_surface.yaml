@@ -253,30 +253,6 @@ rules:
   # literal check cannot distinguish "this string is compiled as a regex"
   # from "this string is prose that happens to quote a regex example" --
   # found exactly once across the entire 11412-file corpus.
-  - id: ns-websec-1333-001
-    message: >
-      Regex contains a nested quantifier -- a quantified group whose entire
-      content is itself a single quantified atom (e.g. `(a+)+`, `([a-z0-9]+
-      )*`, `(\d*)+`), or a repeated group with two identical alternation
-      branches (e.g. `(a|a)*`). Both shapes admit exponentially many ways to
-      partition a matching prefix across the outer repetition, so a
-      catastrophic-backtracking (ReDoS) input can make a single match call
-      take seconds to hours. If this pattern is ever matched against
-      request-derived input (a form field, header, or query parameter), one
-      request can pin a worker thread.
-    severity: WARNING
-    languages: [python]
-    patterns:
-      - \((?:\?:)?(?:\[[^\]\n]*\]|\\[dwsDWS]|\\.|\.)[+*]\)[+*]
-      - \((\\[dwsDWS]|\[[^\]\n]*\]|\w+)\|\1\)[+*]
-    pattern-not:
-      - '(?m)^\s*#'
-      - '(?:def test_|conftest|unittest)'
-    metadata:
-      cwe: [1333]
-      category: general
-      fix: "Rewrite the group so repetitions cannot overlap: require a literal or disjoint separator between repeated atoms (e.g. `[a-z0-9]+(?:[._-][a-z0-9]+)*` instead of `([a-z0-9_]+)*`), use an atomic/possessive group if your regex engine supports one, or validate with a bounded, linear-time check (a single non-nested character class with a length cap) instead of a general-purpose pattern."
-
   # =========================================================================
   # CWE-915: mass assignment via constructor dict-splat
   # =========================================================================

@@ -1,11 +1,11 @@
 {
   "meta": {
-    "total_rules": 371,
-    "ok": 371,
+    "total_rules": 370,
+    "ok": 370,
     "warning": 0,
     "error": 0,
     "secrets_residual": 5,
-    "sanitizer_residual": 221,
+    "sanitizer_residual": 220,
     "converter_version": "1.0"
   },
   "rules": [
@@ -3964,7 +3964,7 @@
         1336,
         918
       ],
-      "original_severity": "ERROR",
+      "original_severity": "WARNING",
       "original_engine": "neuroscan",
       "residual": [],
       "status": "ok",
@@ -6045,25 +6045,6 @@
       "status": "ok",
       "warnings": [],
       "fix": "Do not set resolve_entities=True or no_network=False on an XMLParser used for untrusted input. Use the default XMLParser() (or explicitly resolve_entities=False, no_network=True, load_dtd=False), or switch to defusedxml.lxml.parse()/fromstring().",
-      "pattern_not": [
-        "(?m)^\\s*#",
-        "(?:def test_|conftest|unittest)"
-      ]
-    },
-    {
-      "id": "ns-websec-1333-001",
-      "category": "general",
-      "cwe": [
-        1333
-      ],
-      "original_severity": "WARNING",
-      "original_engine": "neuroscan",
-      "residual": [
-        "sanitizer"
-      ],
-      "status": "ok",
-      "warnings": [],
-      "fix": "Rewrite the group so repetitions cannot overlap: require a literal or disjoint separator between repeated atoms (e.g. `[a-z0-9]+(?:[._-][a-z0-9]+)*` instead of `([a-z0-9_]+)*`), use an atomic/possessive group if your regex engine supports one, or validate with a bounded, linear-time check (a single non-nested character class with a length cap) instead of a general-purpose pattern.",
       "pattern_not": [
         "(?m)^\\s*#",
         "(?:def test_|conftest|unittest)"

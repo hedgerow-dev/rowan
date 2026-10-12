@@ -82,3 +82,45 @@ rules:
           - metavariable-regex:
               metavariable: $NAME
               regex: ^["']?(SESSION_COOKIE_SECURE|CSRF_COOKIE_SECURE)["']?$
+
+  - id: ns-websec-1333-001
+    message: >
+      Regex contains a nested quantifier -- a quantified group whose
+      entire content is itself a single quantified atom (e.g. `(a+)+`,
+      `([a-z0-9]+ )*`, `(\d*)+`), or a repeated group with two identical
+      alternation branches (e.g. `(a|a)*`). Both shapes admit
+      exponentially many ways to partition a matching prefix across the
+      outer repetition, so a catastrophic-backtracking (ReDoS) input can
+      make a single match call take seconds to hours. If this pattern is
+      ever matched against request-derived input (a form field, header,
+      or query parameter), one request can pin a worker thread.
+    severity: WARNING
+    languages: [python]
+    paths:
+      exclude:
+        - "**/tests/**"
+        - "**/test_*.py"
+        - "**/conftest.py"
+    metadata:
+      cwe: [1333]
+      category: general
+      fix: "Rewrite the group so repetitions cannot overlap: require a literal or disjoint separator between repeated atoms (e.g. `[a-z0-9]+(?:[._-][a-z0-9]+)*` instead of `([a-z0-9_]+)*`), use an atomic/possessive group if your regex engine supports one, or validate with a bounded, linear-time check (a single non-nested character class with a length cap) instead of a general-purpose pattern."
+    # Only a string literal passed to a regex call is a regex: prose,
+    # docstrings and comments about ReDoS are not (#53, #71).
+    patterns:
+      - pattern-either:
+          - pattern: re.$F($PAT, ...)
+          - pattern: regex.$F($PAT, ...)
+      - metavariable-regex:
+          metavariable: $F
+          regex: ^(compile|match|search|fullmatch|sub|subn|split|findall|finditer)$
+      - metavariable-pattern:
+          metavariable: $PAT
+          patterns:
+            - pattern: |
+                "..."
+      # A quantified group whose single atom is itself quantified, (\w+)* or
+      # (a+)+, or an overlapping alternation under repetition, (a|a)*.
+      - metavariable-regex:
+          metavariable: $PAT
+          regex: '.*(?:\((?:\?:)?(?:\[[^\]\n]*\]|\\[dwsDWS]|\\.|\.|[A-Za-z0-9])[+*]\)[+*]|\((\\[dwsDWS]|\[[^\]\n]*\]|\w+)\|\1\)[+*])'

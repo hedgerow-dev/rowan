@@ -8,8 +8,8 @@ model-file scanner, which Rowan installs as a dependency.
 
 | Engine | Speed | Precision | Rules |
 |--------|-------|-----------|-------|
-| NeuroScan (regex) | Fast (<1ms/file) | Surface-level | 371 |
-| Taint/structural (Opengrep) | Slower | Evidence varies by rule | 210 |
+| NeuroScan (regex) | Fast (<1ms/file) | Surface-level | 370 |
+| Taint/structural (Opengrep) | Slower | Evidence varies by rule | 211 |
 | Hayward (model files) | Fast | Format-aware, structural | [Hayward rules](https://github.com/hedgerow-dev/hayward/blob/main/docs/rules.md) |
 
 ## Selected taint rule files
@@ -39,10 +39,10 @@ model-file scanner, which Rowan installs as a dependency.
 | `guardrail_opengrep.yaml` | 3 | Python | Guardrail enforcement: result discarded, fail-open handler, verdict checked but not enforced |
 | `langchain_hardening_opengrep.yaml` | 4 | Python | LangChain hardening, search mode: unsafe vector-store deserialization, Jinja few-shot injection, vector-filter injection, dangerous Cypher construction |
 | `framework_opengrep.yaml` | 7 | Python, JS/TS, Java, C# | Search mode: Django `MIDDLEWARE` without CsrfViewMiddleware, Express app without `helmet()` in the same file, login key stored in a session that is never rotated (fixation), Spring CSRF disabled and `permitAll()` on every request, ASP.NET credentialed any-origin CORS and an unguarded developer exception page |
-| `python_web_surface_opengrep.yaml` | 2 | Python | Search mode: `set_cookie` without `httponly` / without `secure`, Django and Flask `SESSION_COOKIE_SECURE = False` |
+| `python_web_surface_opengrep.yaml` | 3 | Python | Search mode: `set_cookie` without `httponly` / without `secure`, Django and Flask `SESSION_COOKIE_SECURE = False`, ReDoS-prone regex literals passed to `re.*` |
 | `go_ai_opengrep.yaml` | 1 | Go | Search mode, inventory: SSE / streamable-HTTP MCP server bound on all interfaces (`0.0.0.0:port` or `:port`) with no auth middleware in view |
 
-**Total: 210 taint/Opengrep rules**
+**Total: 211 taint/Opengrep rules**
 
 `guardrail_opengrep.yaml`, `langchain_hardening_opengrep.yaml`,
 `go_ai_opengrep.yaml`, `java_llm_opengrep.yaml`, `framework_opengrep.yaml` and `python_web_surface_opengrep.yaml` are the Opengrep files
@@ -75,7 +75,7 @@ rulepack's pattern-only checks; its taint-mode siblings live in
 | `terraform.yaml` | 12 | IaC: security groups, S3, IAM, RDS, CloudFront, EKS, KMS |
 | `dockerfile.yaml` | 12 | Container: latest tag, root user, capabilities |
 | `github_actions.yaml` | 7 | CI/CD: hardcoded secrets, pull_request_target, unpinned actions, context-expression injection, workflow-input and PR-head-ref injection into `run:` |
-| `python_web_surface.yaml` | 4 | Bug-bounty-style web surface checks: sensitive data in query strings, XXE, ReDoS, default permissions |
+| `python_web_surface.yaml` | 3 | Bug-bounty-style web surface checks: sensitive data in query strings, XXE, default permissions |
 | `ingest_surface.yaml` | 5 | Ingest-time RCE: fsspec ReferenceFileSystem unsandboxed Jinja rendering, HDF5/zarr/kerchunk artifact-internal path following |
 | `inference_plane.yaml` | 5 | Inference-plane parameter and cache-key leaks: KV/routing control params on the public request schema, unkeyed or truncated cache-key derivation |
 

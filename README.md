@@ -98,7 +98,7 @@ dataflow. Ruby, PHP and Rust get limited pattern checks. The report lists what i
 could not analyze.
 
 The rule catalog has **581 rules across 50 YAML files**.
-That is 371 regex rules and 210 taint rules (Opengrep). See the [rule catalog](docs/rules.md).
+That is 370 regex rules and 211 taint rules (Opengrep). See the [rule catalog](docs/rules.md).
 
 ## Privacy
 

@@ -45,32 +45,6 @@ rules:
       (or explicitly resolve_entities=False, no_network=True, load_dtd=False), or switch to defusedxml.lxml.parse()/fromstring().
     residual:
     - sanitizer
-- id: ns-websec-1333-001
-  languages:
-  - python
-  severity: WARNING
-  message: Regex contains a nested quantifier -- a quantified group whose entire content is itself a single quantified atom
-    (e.g. `(a+)+`, `([a-z0-9]+ )*`, `(\d*)+`), or a repeated group with two identical alternation branches (e.g. `(a|a)*`).
-    Both shapes admit exponentially many ways to partition a matching prefix across the outer repetition, so a catastrophic-backtracking
-    (ReDoS) input can make a single match call take seconds to hours. If this pattern is ever matched against request-derived
-    input (a form field, header, or query parameter), one request can pin a worker thread.
-  patterns:
-  - pattern-either:
-    - pattern-regex: \((?:\?:)?(?:\[[^\]\n]*\]|\\[dwsDWS]|\\.|\.)[+*]\)[+*]
-    - pattern-regex: \((\\[dwsDWS]|\[[^\]\n]*\]|\w+)\|\1\)[+*]
-  - pattern-not-regex: (?m)^\s*#
-  - pattern-not-regex: (?:def test_|conftest|unittest)
-  metadata:
-    category: general
-    cwe:
-    - 1333
-    original_engine: neuroscan
-    fix: 'Rewrite the group so repetitions cannot overlap: require a literal or disjoint separator between repeated atoms
-      (e.g. `[a-z0-9]+(?:[._-][a-z0-9]+)*` instead of `([a-z0-9_]+)*`), use an atomic/possessive group if your regex engine
-      supports one, or validate with a bounded, linear-time check (a single non-nested character class with a length cap)
-      instead of a general-purpose pattern.'
-    residual:
-    - sanitizer
 - id: ns-websec-276-001
   languages:
   - python
