@@ -187,7 +187,7 @@ rules:
       DNS rebinding or a redirect to a private address after validation. Use a
       guarded transport that connects to the validated address and revalidates
       every redirect.
-    severity: WARNING
+    severity: INFO
     languages: [python]
     paths:
       exclude:
@@ -275,6 +275,10 @@ rules:
               - metavariable-regex:
                   metavariable: $VALIDATOR
                   regex: ^(is_safe_url|is_allowed_url|host_allowed|url_allowed)$
+      # Report the fetch call, not the whole function.
+      - pattern-either:
+          - pattern: requests.get($URL, ...)
+          - pattern: httpx.get($URL, ...)
 
   - id: PY-FWK-URL-PARAM-FETCH-001
     message: >
@@ -282,7 +286,7 @@ rules:
       When any caller can influence that argument, the helper becomes an SSRF
       primitive. Route the request through a guarded transport that validates
       and pins the destination and revalidates redirects.
-    severity: WARNING
+    severity: INFO
     languages: [python]
     paths:
       exclude:
@@ -297,17 +301,21 @@ rules:
       category: ssrf
       fix: "Replace the direct HTTP call with a guarded fetch operation that validates and pins a public destination address."
     patterns:
+      - pattern-inside: |
+          def $FUNC(..., $URL, ...):
+            ...
       - pattern-either:
-          - patterns:
-              - pattern-inside: |
-                  def $FUNC(..., $URL, ...):
-                    ...
-              - pattern: requests.get($URL, ...)
-          - patterns:
-              - pattern-inside: |
-                  def $FUNC(..., $URL, ...):
-                    ...
-              - pattern: httpx.get($URL, ...)
+          - pattern: requests.$VERB($URL, ...)
+          - pattern: httpx.$VERB($URL, ...)
+          - pattern: requests.request($METHOD, $URL, ...)
+          - pattern: httpx.request($METHOD, $URL, ...)
+      - metavariable-regex:
+          metavariable: $VERB
+          regex: ^(get|post|put|patch|delete|head|options)$
+      # A parameter named for a URL, not any parameter of every HTTP helper.
+      - metavariable-regex:
+          metavariable: $URL
+          regex: (?i)^(\w+_)?(url|uri|link)$
       - pattern-not-inside: |
           def $FUNC(..., $URL, ...):
             ...
@@ -370,11 +378,22 @@ rules:
       category: path_traversal
       fix: "Reject parent/absolute glob patterns and check every resolved match with Path.is_relative_to on the resolved root."
     patterns:
-      - pattern: |
-          for $MATCH in $BASE.glob($PATTERN):
-            ...
-            if $MATCH.is_file():
-              ...
+      - pattern-either:
+          - pattern: |
+              for $MATCH in $BASE.glob($PATTERN):
+                ...
+                if $MATCH.is_file():
+                  ...
+          - pattern: |
+              for $MATCH in $BASE.rglob($PATTERN):
+                ...
+                if $MATCH.is_file():
+                  ...
+      - metavariable-pattern:
+          metavariable: $PATTERN
+          patterns:
+            - pattern-not: |
+                "..."
 
   - id: PY-FWK-RAW-PATH-PREFIX-001
     message: >
@@ -405,3 +424,12 @@ rules:
               - metavariable-regex:
                   metavariable: $PREFIXES
                   regex: ^(?:self\.)?allowed_prefixes$
+          # /srv/app-evil passes realpath(p).startswith("/srv/app").
+          - patterns:
+              - pattern-either:
+                  - pattern: os.path.realpath(...).startswith($BASE)
+                  - pattern: os.path.abspath(...).startswith($BASE)
+                  - pattern: str($P.resolve(...)).startswith($BASE)
+              - pattern-not: $X.startswith($B + os.sep)
+              - pattern-not: $X.startswith($B + "/")
+              - pattern-not: $X.startswith(os.path.join($B, ""))

@@ -389,3 +389,87 @@ def extract_fields(pattern):
     return sorted(fields)
 """
         assert not _scan(tmp_path, source, SEARCH_RULES, "PY-FWK-DISCARDED-FORMAT-SPEC-001")
+
+
+class TestReviewProbes53:
+    """Shapes from the #53 review of the structural framework rules."""
+
+    def test_non_url_parameter_is_not_a_url_fetch(self, tmp_path):
+        source = """
+def api_client_get(self, endpoint):
+    return requests.get(endpoint)
+"""
+        assert not _scan(tmp_path, source, SEARCH_RULES, "PY-FWK-URL-PARAM-FETCH-001")
+
+    def test_url_parameter_post_is_a_url_fetch(self, tmp_path):
+        source = """
+def push(webhook_url, body):
+    return requests.post(webhook_url, json=body)
+"""
+        assert _scan(tmp_path, source, SEARCH_RULES, "PY-FWK-URL-PARAM-FETCH-001")
+
+    def test_toctou_is_reported_on_the_fetch_line(self, tmp_path):
+        source = """
+def fetch(url):
+    validate_safe_url(url)
+    r = requests.get(url, timeout=3)
+    return r
+"""
+        findings = _scan(tmp_path, source, SEARCH_RULES, "PY-FWK-SSRF-TOCTOU-001")
+        assert [f.start_line for f in findings] == [4]
+
+    def test_constant_glob_pattern_is_not_flagged(self, tmp_path):
+        source = """
+def load(root):
+    for p in root.glob("*.json"):
+        if p.is_file():
+            yield p.read_text()
+"""
+        assert not _scan(tmp_path, source, SEARCH_RULES, "PY-FWK-GLOB-UNCONFINED-MATCH-001")
+
+    def test_rglob_with_variable_pattern_is_flagged(self, tmp_path):
+        source = """
+def find_files(root, pattern):
+    for match in root.rglob(pattern):
+        if match.is_file():
+            yield match.read_text()
+"""
+        assert _scan(tmp_path, source, SEARCH_RULES, "PY-FWK-GLOB-UNCONFINED-MATCH-001")
+
+    @pytest.mark.parametrize(
+        "check",
+        [
+            "os.path.realpath(path).startswith(BASE_DIR)",
+            "os.path.abspath(path).startswith(BASE_DIR)",
+            "str(Path(path).resolve()).startswith(BASE_DIR)",
+        ],
+    )
+    def test_resolved_path_raw_prefix_is_flagged(self, tmp_path, check):
+        source = f"""
+import os
+from pathlib import Path
+
+def read(path):
+    if not {check}:
+        raise ValueError("outside")
+    return open(path).read()
+"""
+        assert _scan(tmp_path, source, SEARCH_RULES, "PY-FWK-RAW-PATH-PREFIX-001")
+
+    @pytest.mark.parametrize(
+        "check",
+        [
+            "os.path.realpath(path).startswith(BASE_DIR + os.sep)",
+            "os.path.realpath(path).startswith(os.path.join(BASE_DIR, ''))",
+        ],
+    )
+    def test_separator_bounded_prefix_is_clean(self, tmp_path, check):
+        source = f"""
+import os
+
+def read(path):
+    if not {check}:
+        raise ValueError("outside")
+    return open(path).read()
+"""
+        assert not _scan(tmp_path, source, SEARCH_RULES, "PY-FWK-RAW-PATH-PREFIX-001")
