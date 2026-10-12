@@ -12,11 +12,11 @@ rules:
     bucket policies with least-privilege access.'
   patterns:
   - pattern-either:
-    - pattern-regex: ACL.*public-read
-    - pattern-regex: public-read-write
-    - pattern-regex: put_bucket_acl.*public
+    - pattern-regex: ACL['"]?\s*[=:]\s*['"]public-read(?:-write)?['"]
     - pattern-regex: BlockPublicAccess.*false
-    - pattern-regex: s3\.putBucketAcl.*public
+    - pattern-regex: publicReadAccess\s*:\s*true
+    - pattern-regex: CannedAccessControlList\.PublicRead(?:Write)?\b
+    - pattern-regex: (?:Bucket|Object)CannedACLPublicRead(?:Write)?\b
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?m)^\s*//.*
   - pattern-not-regex: (?:def test_|conftest|unittest)
@@ -34,16 +34,14 @@ rules:
   - json
   - python
   - typescript
-  severity: ERROR
+  severity: WARNING
   message: 'IAM policy with wildcard Action or Resource grants unrestricted access.
 
     Scope to specific actions and resources per least-privilege principle.'
   patterns:
   - pattern-either:
-    - pattern-regex: '"Action"\s*:\s*"\*"'
-    - pattern-regex: '"Resource"\s*:\s*"\*"'
-    - pattern-regex: '"Effect"\s*:\s*"Allow".*"\*"'
-    - pattern-regex: iam\.put_role_policy.*\*
+    - pattern-regex: '"Action"\s*:\s*"(?:[a-z0-9-]+:)?\*"'
+    - pattern-regex: '"Action"\s*:\s*\[\s*"(?:[a-z0-9-]+:)?\*"'
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?m)^\s*//.*
   - pattern-not-regex: (?:def test_|conftest|unittest)

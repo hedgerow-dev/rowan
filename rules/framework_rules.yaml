@@ -1,28 +1,12 @@
 # Framework Security Rules: neuroscan format
 # Ported from Rowan FW-* rules
-# Covers Express.js, Spring, ASP.NET, Gin/Echo, Flask/Django
+# Covers Spring and Gin/Echo. Rules that need more than one line
+# (Express, Django, ASP.NET, Spring Security) are in framework_opengrep.yaml.
 
 rules:
 
-  # ── Express.js ────────────────────────────────────────────────────
-
-  - id: ns-fw-js-002
-    name: CORS wildcard origin
-    severity: WARNING
-    category: config
-    cwe: [942]
-    languages: [javascript, typescript]
-    patterns:
-      - 'cors\(.*origin.*\*'
-      - 'Access-Control-Allow-Origin.*\*'
-    pattern-not:
-      - '(?m)^\s*#'
-      - '(?m)^\s*//.*'
-      - '(?:def test_|conftest|unittest)'
-    message: |
-      CORS configured with wildcard origin (*). Restrict to specific trusted domains.
-
   # ── Spring (Java) ─────────────────────────────────────────────────
+
   - id: ns-fw-java-003
     name: Spring Actuator endpoints exposed
     severity: ERROR

@@ -320,7 +320,6 @@ _DUPLICATE_RULE_GROUPS: tuple[frozenset[str], ...] = (
     frozenset({"NS-AIML-005", "ns-grd-003"}),  # Gradio file upload w/o restriction
     frozenset({"GO-CONFIG-001", "ns-bb-004"}),  # TLS verification disabled
     frozenset({"NS-PATH-005", "ns-aiml-063"}),  # tarfile extractall zip-slip
-    frozenset({"NS-CACHE-001", "ns-fw-js-002"}),  # CORS wildcard origin
     frozenset({"NS-DESER-010", "ns-aiml-043"}),  # Keras model_from_json code exec
     frozenset({"NS-REDIRECT-001", "TNT-REDIR-001"}),
     frozenset({"NS-INJECT-001", "NS-INJECT-002", "ns-aiml-046"}),

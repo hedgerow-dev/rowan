@@ -915,6 +915,8 @@ rules:
       - cors\(.*origin.*\*
       - CORS\(.*origins.*\*
       - allow_origins\s*=\s*\[.*\*\]
+      # cors({ origin: true }) reflects whatever Origin the browser sends.
+      - cors\(.*origin\s*:\s*true
     pattern-not:
       - '(?m)^\s*#'
       - '(?m)^\s*//.*'

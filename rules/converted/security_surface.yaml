@@ -886,6 +886,7 @@ rules:
     - pattern-regex: cors\(.*origin.*\*
     - pattern-regex: CORS\(.*origins.*\*
     - pattern-regex: allow_origins\s*=\s*\[.*\*\]
+    - pattern-regex: cors\(.*origin\s*:\s*true
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?m)^\s*//.*
   - pattern-not-regex: (?:def test_|conftest|unittest)

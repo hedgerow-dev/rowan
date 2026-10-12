@@ -12,11 +12,13 @@ rules:
     cwe: [284]
     languages: [python, javascript, typescript, java, go]
     patterns:
-      - 'ACL.*public-read'
-      - 'public-read-write'
-      - 'put_bucket_acl.*public'
+      # The ACL value, not a bucket that happens to be named public-*.
+      - 'ACL[''"]?\s*[=:]\s*[''"]public-read(?:-write)?[''"]'
       - 'BlockPublicAccess.*false'
-      - 's3\.putBucketAcl.*public'
+      # CDK, AWS SDK for Java, AWS SDK for Go.
+      - 'publicReadAccess\s*:\s*true'
+      - 'CannedAccessControlList\.PublicRead(?:Write)?\b'
+      - '(?:Bucket|Object)CannedACLPublicRead(?:Write)?\b'
     pattern-not:
       - '(?m)^\s*#'
       - '(?m)^\s*//.*'
@@ -29,15 +31,16 @@ rules:
 
   - id: ns-cloud-002
     name: IAM policy with wildcard action or resource
-    severity: ERROR
+    severity: WARNING
     category: auth
     cwe: [285]
     languages: [python, javascript, typescript, java, go, json]
     patterns:
-      - '"Action"\s*:\s*"\*"'
-      - '"Resource"\s*:\s*"\*"'
-      - '"Effect"\s*:\s*"Allow".*"\*"'
-      - 'iam\.put_role_policy.*\*'
+      # Resource "*" alone is required for many actions
+      # (ecr:GetAuthorizationToken, sts:GetCallerIdentity), so only a
+      # wildcard Action is flagged: everything, or every action of a service.
+      - '"Action"\s*:\s*"(?:[a-z0-9-]+:)?\*"'
+      - '"Action"\s*:\s*\[\s*"(?:[a-z0-9-]+:)?\*"'
     pattern-not:
       - '(?m)^\s*#'
       - '(?m)^\s*//.*'

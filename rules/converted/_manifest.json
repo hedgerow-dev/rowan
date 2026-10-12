@@ -1,7 +1,7 @@
 {
   "meta": {
-    "total_rules": 370,
-    "ok": 370,
+    "total_rules": 369,
+    "ok": 369,
     "warning": 0,
     "error": 0,
     "secrets_residual": 5,
@@ -2910,7 +2910,7 @@
       "cwe": [
         285
       ],
-      "original_severity": "ERROR",
+      "original_severity": "WARNING",
       "original_engine": "neuroscan",
       "residual": [],
       "status": "ok",
@@ -3421,24 +3421,6 @@
       "name": "Setuid/setgid bit set with chmod",
       "pattern_not": [
         "(?m)^\\s*#"
-      ]
-    },
-    {
-      "id": "ns-fw-js-002",
-      "category": "config",
-      "cwe": [
-        942
-      ],
-      "original_severity": "WARNING",
-      "original_engine": "neuroscan",
-      "residual": [],
-      "status": "ok",
-      "warnings": [],
-      "name": "CORS wildcard origin",
-      "pattern_not": [
-        "(?m)^\\s*#",
-        "(?m)^\\s*//.*",
-        "(?:def test_|conftest|unittest)"
       ]
     },
     {

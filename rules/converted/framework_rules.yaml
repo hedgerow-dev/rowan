@@ -1,23 +1,4 @@
 rules:
-- id: ns-fw-js-002
-  languages:
-  - javascript
-  - typescript
-  severity: WARNING
-  message: CORS configured with wildcard origin (*). Restrict to specific trusted domains.
-  patterns:
-  - pattern-either:
-    - pattern-regex: cors\(.*origin.*\*
-    - pattern-regex: Access-Control-Allow-Origin.*\*
-  - pattern-not-regex: (?m)^\s*#
-  - pattern-not-regex: (?m)^\s*//.*
-  - pattern-not-regex: (?:def test_|conftest|unittest)
-  metadata:
-    category: config
-    cwe:
-    - 942
-    original_engine: neuroscan
-    rule_name: CORS wildcard origin
 - id: ns-fw-java-003
   languages:
   - java
