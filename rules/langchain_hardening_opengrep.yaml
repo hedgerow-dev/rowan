@@ -39,7 +39,7 @@ rules:
       template_format="jinja2" renders {{...}} in its input as template code.
       When user-controlled text (a question, or fewshot example content) is
       spliced into the template, an attacker can inject jinja2 that executes at
-      render time, leaking data or reaching Python internals. Use the default
+      render time and read data from the template context. Use the default
       f-string format, or strictly validate and escape any user data before it
       reaches a jinja2 template.
     # Precision: WARNING, not ERROR. This search rule fires on the construct
@@ -71,7 +71,7 @@ rules:
     # Precision: WARNING, not ERROR. Cross-tenant read depends on how the var
     # was built; a non-literal filter is not always attacker-controlled. The
     # taint story (a request value into the filter) is the confirmer.
-    severity: WARNING
+    severity: INFO
     languages: [python]
     metadata:
       cwe: [943]
@@ -81,18 +81,22 @@ rules:
         - https://hedgerow.dev/blog/langchain-threat-model
       fix: "Build the filter as a scoped literal dict from validated fields; never assemble it from concatenated request params."
     patterns:
-      - pattern: $STORE.similarity_search(..., filter=$F, ...)
-      - pattern-not: $STORE.similarity_search(..., filter={...}, ...)
+      - pattern: $STORE.$SEARCH(..., filter=$F, ...)
+      - metavariable-regex:
+          metavariable: $SEARCH
+          regex: ^(similarity_search|similarity_search_with_score|similarity_search_with_relevance_scores|similarity_search_by_vector|max_marginal_relevance_search)$
+      - pattern-not: $STORE.$SEARCH(..., filter={...}, ...)
+      - pattern-not: $STORE.$SEARCH(..., filter=None, ...)
 
   # allow_dangerous_requests=True lets a GraphCypherQAChain run model-generated
   # Cypher with no restriction. This is a config smell (no data flow needed):
   # real recall in the wild comes from the flag, not from single-file taint.
   - id: LC-HARDEN-CYPHER-DANGEROUS-001
-    name: GraphCypherQAChain with allow_dangerous_requests=True
+    name: Graph QA chain with allow_dangerous_requests=True
     message: >
-      GraphCypherQAChain.from_llm(..., allow_dangerous_requests=True) lets the
-      chain execute the Cypher it generates from a question with no read-only
-      restriction. On any user-facing endpoint a crafted question can emit
+      A LangChain graph QA chain (GraphCypherQAChain, GraphSparqlQAChain,
+      FalkorDBQAChain, ...) built with allow_dangerous_requests=True executes
+      the query it generates from a question with no read-only restriction. On any user-facing endpoint a crafted question can emit
       MERGE/DELETE/CREATE and mutate or destroy the graph. Constrain the chain
       to a read-only Neo4j role, or validate the generated Cypher, instead of
       enabling this flag.
@@ -106,4 +110,11 @@ rules:
         - https://hedgerow.dev/blog/langchain-threat-model
       fix: "Do not set allow_dangerous_requests=True on a user-facing chain; use a read-only graph role or validate the generated Cypher."
     patterns:
-      - pattern: GraphCypherQAChain.from_llm(..., allow_dangerous_requests=True, ...)
+      - pattern-either:
+          - pattern: $CHAIN.from_llm(..., allow_dangerous_requests=True, ...)
+          - pattern: $CHAIN(..., allow_dangerous_requests=True, ...)
+      # Graph QA chains only; the requests toolkits take the same flag but
+      # are an SSRF surface, not a query-mutation one.
+      - metavariable-regex:
+          metavariable: $CHAIN
+          regex: ^\w*(?:Graph|Sparql|Arango|FalkorDB|Kuzu|Nebula|Neptune|Memgraph|HugeGraph)\w*Chain$

@@ -97,7 +97,7 @@ rules:
     dataset descriptor. Presence signal: confirm who authors this spec.'
   patterns:
   - pattern-either:
-    - pattern-regex: '"(?:url|key|offset|length)"\s*:\s*"[^"]*\{\{'
+    - pattern-regex: '"(?:offset|length)"\s*:\s*"[^"]*\{\{'
     - pattern-regex: '"templates"\s*:\s*\{[^}]*"[^"]*\{\{'
     - pattern-regex: \[\s*"[^"]*\{\{[^"]*"\s*,\s*\d+\s*,\s*\d+\s*\]
   metadata:

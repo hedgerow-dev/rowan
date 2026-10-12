@@ -93,7 +93,8 @@ rules:
     severity: WARNING
     languages: [json]
     patterns:
-      - '"(?:url|key|offset|length)"\s*:\s*"[^"]*\{\{'
+      # Not url/key: Postman, n8n and Grafana JSON template those routinely.
+      - '"(?:offset|length)"\s*:\s*"[^"]*\{\{'
       - '"templates"\s*:\s*\{[^}]*"[^"]*\{\{'
       - '\[\s*"[^"]*\{\{[^"]*"\s*,\s*\d+\s*,\s*\d+\s*\]'
     fix: "Strip Jinja delimiters from reference specs and only load specs you generated yourself."

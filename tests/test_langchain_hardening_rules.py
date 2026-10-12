@@ -238,3 +238,40 @@ class TestJinjaSSTI:
         assert findings == [], (
             "a param into a default (f-string) PromptTemplate is not SSTI and must not be flagged"
         )
+
+
+# ---------------------------------------------------------------------------
+# #53 review probes for the search-mode rules
+# ---------------------------------------------------------------------------
+class TestReviewProbes53:
+    @pytest.mark.parametrize(
+        "call",
+        [
+            "store.similarity_search_with_score(q, filter=user_filter)",
+            "store.max_marginal_relevance_search(q, filter=user_filter)",
+            "store.similarity_search_by_vector(v, filter=user_filter)",
+        ],
+    )
+    def test_vector_filter_sibling_methods_flagged(self, tmp_path, call):
+        src = f"def search(store, q, v, user_filter):\n    return {call}\n"
+        assert _scan(tmp_path, "vf.py", src, SEARCH_RULES, "LC-HARDEN-VECTORFILTER-001")
+
+    def test_vector_filter_none_not_flagged(self, tmp_path):
+        src = "def search(store, q):\n    return store.similarity_search(q, filter=None)\n"
+        assert _scan(tmp_path, "vf.py", src, SEARCH_RULES, "LC-HARDEN-VECTORFILTER-001") == []
+
+    @pytest.mark.parametrize(
+        "line",
+        [
+            "chain = GraphSparqlQAChain.from_llm(llm, graph=g, allow_dangerous_requests=True)",
+            "chain = FalkorDBQAChain.from_llm(llm, graph=g, allow_dangerous_requests=True)",
+            "chain = GraphCypherQAChain(llm=llm, graph=g, allow_dangerous_requests=True)",
+        ],
+    )
+    def test_other_graph_chains_flagged(self, tmp_path, line):
+        src = f"def build(llm, g):\n    {line}\n    return chain\n"
+        assert _scan(tmp_path, "g.py", src, SEARCH_RULES, "LC-HARDEN-CYPHER-DANGEROUS-001")
+
+    def test_requests_toolkit_is_not_a_graph_chain(self, tmp_path):
+        src = "def build(w):\n    return RequestsToolkit(requests_wrapper=w, allow_dangerous_requests=True)\n"
+        assert _scan(tmp_path, "g.py", src, SEARCH_RULES, "LC-HARDEN-CYPHER-DANGEROUS-001") == []

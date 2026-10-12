@@ -354,3 +354,16 @@ class TestReferenceFileSystemSanitizerRegression:
             '    return fs.open("data/0").read()\n'
         )
         assert len(_rule("ns-aiml-130").check(f)) >= 1
+
+
+class TestKerchunkVersusTemplatedJson:
+    """ns-aiml-132 must not fire on ordinary templated JSON (#53)."""
+
+    def test_postman_collection_not_flagged(self, tmp_path):
+        f = tmp_path / "collection.json"
+        f.write_text(
+            "{\n"
+            '  "request": {"url": "{{base_url}}/v1/users", "header": [{"key": "{{token}}"}]}\n'
+            "}\n"
+        )
+        assert _rule("ns-aiml-132").check(f) == []
