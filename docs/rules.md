@@ -1,6 +1,6 @@
 # Rule Catalog
 
-Rowan ships 576 source-code rules across 50 YAML files. Model files are
+Rowan ships 572 source-code rules across 50 YAML files. Model files are
 scanned by [Hayward](https://github.com/hedgerow-dev/hayward), Hedgerow's
 model-file scanner, which Rowan installs as a dependency.
 
@@ -8,7 +8,7 @@ model-file scanner, which Rowan installs as a dependency.
 
 | Engine | Speed | Precision | Rules |
 |--------|-------|-----------|-------|
-| NeuroScan (regex) | Fast (<1ms/file) | Surface-level | 364 |
+| NeuroScan (regex) | Fast (<1ms/file) | Surface-level | 360 |
 | Taint/structural (Opengrep) | Slower | Evidence varies by rule | 212 |
 | Hayward (model files) | Fast | Format-aware, structural | [Hayward rules](https://github.com/hedgerow-dev/hayward/blob/main/docs/rules.md) |
 
@@ -64,10 +64,10 @@ rulepack's pattern-only checks; its taint-mode siblings live in
 | `misc_rules.yaml` | 32 | Bug bounty patterns, auth, logging, Gradio, Streamlit, container isolation, identity disclosure |
 | `cloud_rules.yaml` | 7 | S3, IAM, encryption, database, logging, security groups |
 | `javascript.yaml` | 9 | JS-specific: eval, child_process, XSS, deserialization |
-| `java.yaml` | 10 | Java-specific: Runtime.exec, ProcessBuilder, SQL, deserialization |
+| `java.yaml` | 8 | Java-specific: Runtime.exec, ProcessBuilder, XXE, cookies, deserialization |
 | `java_ai_surface.yaml` | 5 | Java AI/MCP surface: public HTTP bind, literal provider keys, mutable tool descriptions, remote DJL model URLs, non-literal model paths |
 | `go.yaml` | 6 | Go-specific: exec, template.HTML, SQL, crypto, TLS verification |
-| `csharp.yaml` | 11 | C#-specific: Process.Start, SqlCommand, deserialization, XSS |
+| `csharp.yaml` | 9 | C#-specific: SqlCommand, deserialization, XmlDocument, path, XSS |
 | `php.yaml` | 12 | PHP-specific: eval, shell, include, SQL, deserialization |
 | `ruby.yaml` | 11 | Ruby-specific: eval, YAML.load, ERB, send, SQL |
 | `templates.yaml` | 2 | Server-rendered templates (.html/.jinja/.j2): autoescape disabled, `\|safe` rendering. Pattern-only -- there is no template dataflow engine |
@@ -152,7 +152,7 @@ message, not in the rule id) and the structural trust-boundary findings
 `AGENT-TOOL-001` (agent-tool sink detection), `TASK-QUEUE-001` (Celery/RQ
 task handlers), `GRPC-001` (gRPC servicer methods), `GRAPHQL-001` (GraphQL
 resolvers), and `WEBHOOK-001` (webhook/callback handlers) are not YAML rules
-and aren't counted in the 576 total above: they're emitted directly by
+and aren't counted in the 572 total above: they're emitted directly by
 `CrossFilePass`'s AST analysis rather than loaded from `rules/*.yaml`. See
 `ARCHITECTURE.md`'s "Pass 4: CrossFilePass" section for how they're
 generated.

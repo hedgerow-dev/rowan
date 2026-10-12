@@ -679,7 +679,7 @@ def test_c_family_rules_use_correct_comment_syntax(tmp_path):
     cases = [
         ("go.yaml", "GO-INJECT-001", "main.go", 'exec.Command("sh", "-c", userInput)'),
         ("java.yaml", "JA-INJECT-001", "Handler.java", "Runtime.getRuntime().exec(userInput);"),
-        ("csharp.yaml", "CS-INJECT-001", "Handler.cs", "Process.Start(userInput);"),
+        ("csharp.yaml", "CS-DESER-001", "Handler.cs", "new BinaryFormatter().Deserialize(stream);"),
         ("javascript.yaml", "JS-INJECT-001", "handler.js", "eval(userInput)"),
     ]
     for fname, rule_id, filename, dangerous_line in cases:

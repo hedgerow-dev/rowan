@@ -30,24 +30,6 @@ rules:
       ProcessBuilder with string concatenation allows command injection.
       Prefer array form: new ProcessBuilder(["cmd", "arg1", "arg2"]).
 
-  - id: JA-INJECT-003
-    name: SQL injection via string concatenation
-    severity: high
-    category: injection
-    cwe: [89]
-    languages: [java]
-    patterns:
-      - 'Statement.*\.execute(Update|Query)?\s*\(.*\+'
-      - '\.execute(Update|Query)?\s*\(.*\+'
-    pattern-not:
-      - '\.setString\s*\('
-      - '\.setInt\s*\('
-      - 'PreparedStatement'
-      - '(?m)^\s*//.*'
-    message: |
-      SQL query built via string concatenation is injectable. Use
-      PreparedStatement with ? placeholders and .setString()/.setInt().
-
   - id: JA-DESER-001
     name: Unsafe ObjectInputStream deserialization
     severity: critical
@@ -63,22 +45,6 @@ rules:
     message: |
       ObjectInputStream.readObject() deserializes arbitrary classes.
       RCE possible via gadget chains. Use a whitelist-based ObjectInputFilter.
-
-  - id: JA-SSRF-001
-    name: User-controlled URL connection
-    severity: high
-    category: ssrf
-    cwe: [918]
-    languages: [java]
-    patterns:
-      - 'new\s+URL\s*\([^)]*\+'
-      - 'HttpURLConnection'
-    pattern-not:
-      - '\.startsWith\s*\([''"]https?:\/\/'
-      - '(?m)^\s*//.*'
-    message: |
-      User-controlled URL enables SSRF to internal services. Validate URLs
-      against an allowlist before making connections.
 
   - id: JA-CRYPTO-002
     name: java.util.Random for security

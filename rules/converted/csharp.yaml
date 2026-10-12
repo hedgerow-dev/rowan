@@ -1,23 +1,4 @@
 rules:
-- id: CS-INJECT-001
-  languages:
-  - csharp
-  severity: ERROR
-  message: 'Process.Start() with shell execution is a command injection sink.
-
-    Use ProcessStartInfo with UseShellExecute=false and argument array.'
-  patterns:
-  - pattern-regex: Process\.Start\s*\(
-  - pattern-not-regex: UseShellExecute\s*=\s*false
-  - pattern-not-regex: (?m)^\s*//.*
-  metadata:
-    category: command_injection
-    cwe:
-    - 78
-    original_engine: neuroscan
-    rule_name: Process.Start command injection
-    residual:
-    - sanitizer
 - id: CS-INJECT-002
   languages:
   - csharp
@@ -158,26 +139,6 @@ rules:
     - 22
     original_engine: neuroscan
     rule_name: User-controlled file path
-    residual:
-    - sanitizer
-- id: CS-SSRF-001
-  languages:
-  - csharp
-  severity: ERROR
-  message: 'Outbound HTTP with user-controlled URL enables SSRF. Validate
-
-    destination against allowlist before making requests.'
-  patterns:
-  - pattern-either:
-    - pattern-regex: HttpClient\.(Get|Post|Put)\w*\s*\(
-    - pattern-regex: WebRequest\.Create\s*\(
-  - pattern-not-regex: (?m)^\s*//.*
-  metadata:
-    category: ssrf
-    cwe:
-    - 918
-    original_engine: neuroscan
-    rule_name: Unvalidated outbound HTTP
     residual:
     - sanitizer
 - id: CS-CONFIG-001

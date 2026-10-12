@@ -1,21 +1,6 @@
 # C# / .NET Security Rules
 rules:
 
-  - id: CS-INJECT-001
-    name: Process.Start command injection
-    severity: high
-    category: command_injection
-    cwe: [78]
-    languages: [csharp]
-    patterns:
-      - 'Process\.Start\s*\('
-    pattern-not:
-      - 'UseShellExecute\s*=\s*false'
-      - '(?m)^\s*//.*'
-    message: |
-      Process.Start() with shell execution is a command injection sink.
-      Use ProcessStartInfo with UseShellExecute=false and argument array.
-
   - id: CS-INJECT-002
     name: SQL injection via string concat
     severity: high
@@ -143,21 +128,6 @@ rules:
     message: |
       User-controlled filesystem path. Sanitize with Path.GetFullPath()
       and validate root directory.
-
-  - id: CS-SSRF-001
-    name: Unvalidated outbound HTTP
-    severity: high
-    category: ssrf
-    cwe: [918]
-    languages: [csharp]
-    patterns:
-      - 'HttpClient\.(Get|Post|Put)\w*\s*\('
-      - 'WebRequest\.Create\s*\('
-    pattern-not:
-      - '(?m)^\s*//.*'
-    message: |
-      Outbound HTTP with user-controlled URL enables SSRF. Validate
-      destination against allowlist before making requests.
 
   - id: CS-CONFIG-001
     name: HttpClient without timeout

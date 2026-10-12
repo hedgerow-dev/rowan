@@ -1,11 +1,11 @@
 {
   "meta": {
-    "total_rules": 364,
-    "ok": 364,
+    "total_rules": 360,
+    "ok": 360,
     "warning": 0,
     "error": 0,
     "secrets_residual": 5,
-    "sanitizer_residual": 217,
+    "sanitizer_residual": 213,
     "converter_version": "1.0"
   },
   "rules": [
@@ -3013,25 +3013,6 @@
       ]
     },
     {
-      "id": "CS-INJECT-001",
-      "category": "command_injection",
-      "cwe": [
-        78
-      ],
-      "original_severity": "high",
-      "original_engine": "neuroscan",
-      "residual": [
-        "sanitizer"
-      ],
-      "status": "ok",
-      "warnings": [],
-      "name": "Process.Start command injection",
-      "pattern_not": [
-        "UseShellExecute\\s*=\\s*false",
-        "(?m)^\\s*//.*"
-      ]
-    },
-    {
       "id": "CS-INJECT-002",
       "category": "injection",
       "cwe": [
@@ -3157,24 +3138,6 @@
       "status": "ok",
       "warnings": [],
       "name": "User-controlled file path",
-      "pattern_not": [
-        "(?m)^\\s*//.*"
-      ]
-    },
-    {
-      "id": "CS-SSRF-001",
-      "category": "ssrf",
-      "cwe": [
-        918
-      ],
-      "original_severity": "high",
-      "original_engine": "neuroscan",
-      "residual": [
-        "sanitizer"
-      ],
-      "status": "ok",
-      "warnings": [],
-      "name": "Unvalidated outbound HTTP",
       "pattern_not": [
         "(?m)^\\s*//.*"
       ]
@@ -3981,27 +3944,6 @@
       ]
     },
     {
-      "id": "JA-INJECT-003",
-      "category": "injection",
-      "cwe": [
-        89
-      ],
-      "original_severity": "high",
-      "original_engine": "neuroscan",
-      "residual": [
-        "sanitizer"
-      ],
-      "status": "ok",
-      "warnings": [],
-      "name": "SQL injection via string concatenation",
-      "pattern_not": [
-        "\\.setString\\s*\\(",
-        "\\.setInt\\s*\\(",
-        "PreparedStatement",
-        "(?m)^\\s*//.*"
-      ]
-    },
-    {
       "id": "JA-DESER-001",
       "category": "deserialization",
       "cwe": [
@@ -4018,25 +3960,6 @@
       "fix": "Avoid Java native deserialization (ObjectInputStream) on untrusted data; use a JSON library with a known target type, or an allowlisting ObjectInputFilter.",
       "pattern_not": [
         "\\.readObject\\s*\\(\\s*\\)\\s*\\{",
-        "(?m)^\\s*//.*"
-      ]
-    },
-    {
-      "id": "JA-SSRF-001",
-      "category": "ssrf",
-      "cwe": [
-        918
-      ],
-      "original_severity": "high",
-      "original_engine": "neuroscan",
-      "residual": [
-        "sanitizer"
-      ],
-      "status": "ok",
-      "warnings": [],
-      "name": "User-controlled URL connection",
-      "pattern_not": [
-        "\\.startsWith\\s*\\(['\"]https?:\\/\\/",
         "(?m)^\\s*//.*"
       ]
     },
