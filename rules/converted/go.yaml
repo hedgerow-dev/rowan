@@ -3,11 +3,13 @@ rules:
   languages:
   - go
   severity: ERROR
-  message: 'exec.Command() with user-controlled arguments leads to arbitrary command
+  message: 'A shell runs a command string that is not a constant. If any part of it
 
-    execution. Use .arg() with separate arguments, never shell strings.'
+    can come from input, the caller can run arbitrary commands. Pass the
+
+    program and its arguments to exec.Command separately, without a shell.'
   patterns:
-  - pattern-regex: exec\.Command\s*\(
+  - pattern-regex: exec\.Command(?:Context\s*\(\s*[^,]+,|\s*\()\s*"(?:sh|bash|zsh|/bin/sh|/bin/bash|cmd|cmd\.exe|powershell|pwsh)"\s*,\s*"(?:-c|/c|/C|-Command)"\s*,(?!\s*"(?:[^"\\]|\\.)*"\s*[,)])
   - pattern-not-regex: (?m)^\s*//.*
   metadata:
     category: command_injection
@@ -21,13 +23,16 @@ rules:
   languages:
   - go
   severity: ERROR
-  message: 'SQL query built with fmt.Sprintf() is vulnerable to SQL injection.
+  message: 'SQL text is assembled with string formatting or concatenation. If any
 
-    Use $1, $2 placeholders with parameterized queries.'
+    formatted value can come from input, that is SQL injection. Use $1 / ?
+
+    placeholders and pass the values as query arguments.'
   patterns:
   - pattern-either:
-    - pattern-regex: \.(Query|Exec)\(\s*fmt\.Sprintf\s*\(
-    - pattern-regex: \.(Query|Exec)\(\s*[`"](?:SELECT|INSERT|UPDATE|DELETE)\b[^)]*\+
+    - pattern-regex: (?i)\.(?:Query|QueryRow|Exec|Prepare|Raw|Where)(?:Context|x)?\s*\(\s*(?:\w+\s*,\s*)?fmt\.Sprintf\s*\(
+    - pattern-regex: (?i)\.(?:Query|QueryRow|Exec|Prepare|Raw|Where)(?:Context|x)?\s*\(\s*(?:\w+\s*,\s*)?[`"](?:select|insert|update|delete|with)\b[^`"]*[`"]\s*\+
+    - pattern-regex: (?i)\bfmt\.Sprintf\s*\(\s*[`"]\s*(?:select|insert|update|delete)\b
   - pattern-not-regex: (?m)^\s*//.*
   metadata:
     category: injection
@@ -45,7 +50,7 @@ rules:
 
     user-controlled. Use html/template automatic escaping.'
   patterns:
-  - pattern-regex: template\.(HTML|JS|CSS|URL|HTMLAttr)\s*\(
+  - pattern-regex: template\.(?:HTML|JS|CSS|URL|HTMLAttr)\s*\((?!\s*"(?:[^"\\]|\\.)*"\s*\))
   - pattern-not-regex: (?m)^\s*//.*
   metadata:
     category: xss
@@ -58,21 +63,28 @@ rules:
 - id: GO-CRYPTO-001
   languages:
   - go
-  severity: WARNING
-  message: 'Deprecated/weak crypto package imported. Use crypto/sha256 or
+  severity: INFO
+  message: 'A weak hash or cipher package is imported. sha1 and md5 are fine for
 
-    crypto/aes (GCM mode) instead.'
+    checksums and git object IDs, so this is an inventory signal: confirm it
+
+    is not used for passwords, signatures or encryption. Use crypto/sha256
+
+    or crypto/aes (GCM) for those.'
   patterns:
   - pattern-either:
     - pattern-regex: '"crypto/md5"'
     - pattern-regex: '"crypto/sha1"'
     - pattern-regex: '"crypto/des"'
+    - pattern-regex: '"crypto/rc4"'
+    - pattern-regex: '"golang.org/x/crypto/md4"'
   - pattern-not-regex: (?m)^\s*//.*
   metadata:
     category: crypto
     cwe:
     - 328
     original_engine: neuroscan
+    original_severity: low
     rule_name: Weak crypto import
 - id: GO-CRYPTO-002
   languages:
@@ -82,8 +94,8 @@ rules:
 
     tokens, keys, and security-sensitive random values.'
   patterns:
-  - pattern-regex: '"math/rand"'
-  - pattern-not-regex: '"crypto/rand"'
+  - pattern-regex: (?i)\b\w*(?:token|secret|passw|nonce|salt|session|otp|apikey|api_key|csrf)\w*\s*:?=\s*[^\n]*\brand\.(?:Int|Intn|Int31|Int31n|Int63|Int63n|Uint32|Uint64|IntN|Int64|N)\b
+  - pattern-not-regex: rand\.Reader
   - pattern-not-regex: (?m)^\s*//.*
   metadata:
     category: crypto
@@ -99,7 +111,7 @@ rules:
 
     attacks in production. Remove InsecureSkipVerify.'
   patterns:
-  - pattern-regex: InsecureSkipVerify\s*:\s*true
+  - pattern-regex: InsecureSkipVerify\s*(?::|=)\s*true
   - pattern-not-regex: (?m)^\s*//.*
   metadata:
     category: config
@@ -107,3 +119,6 @@ rules:
     - 295
     original_engine: neuroscan
     rule_name: TLS verification disabled
+  paths:
+    exclude:
+    - '*_test.go'

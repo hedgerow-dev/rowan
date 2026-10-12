@@ -3641,7 +3641,7 @@
       "cwe": [
         328
       ],
-      "original_severity": "medium",
+      "original_severity": "low",
       "original_engine": "neuroscan",
       "residual": [],
       "status": "ok",
@@ -3664,7 +3664,7 @@
       "warnings": [],
       "name": "math/rand for security",
       "pattern_not": [
-        "\"crypto/rand\"",
+        "rand\\.Reader",
         "(?m)^\\s*//.*"
       ]
     },

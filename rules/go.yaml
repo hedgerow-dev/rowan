@@ -7,13 +7,17 @@ rules:
     category: command_injection
     cwe: [78]
     languages: [go]
+    # A shell run with a command string that is not a single literal (#56).
+    # exec.Command("git", "status") runs no shell; tnt-go-cmdi-001 covers
+    # request input reaching the program itself.
     patterns:
-      - 'exec\.Command\s*\('
+      - 'exec\.Command(?:Context\s*\(\s*[^,]+,|\s*\()\s*"(?:sh|bash|zsh|/bin/sh|/bin/bash|cmd|cmd\.exe|powershell|pwsh)"\s*,\s*"(?:-c|/c|/C|-Command)"\s*,(?!\s*"(?:[^"\\]|\\.)*"\s*[,)])'
     pattern-not:
       - '(?m)^\s*//.*'
     message: |
-      exec.Command() with user-controlled arguments leads to arbitrary command
-      execution. Use .arg() with separate arguments, never shell strings.
+      A shell runs a command string that is not a constant. If any part of it
+      can come from input, the caller can run arbitrary commands. Pass the
+      program and its arguments to exec.Command separately, without a shell.
 
   - id: GO-INJECT-002
     name: SQL injection via fmt.Sprintf
@@ -21,14 +25,18 @@ rules:
     category: injection
     cwe: [89]
     languages: [go]
+    # Any case, QueryRow/Prepare/gorm Raw and Where, *Context and sqlx x
+    # variants, and SQL text assembled with Sprintf before the call (#56).
     patterns:
-      - '\.(Query|Exec)\(\s*fmt\.Sprintf\s*\('
-      - '\.(Query|Exec)\(\s*[`"](?:SELECT|INSERT|UPDATE|DELETE)\b[^)]*\+'
+      - '(?i)\.(?:Query|QueryRow|Exec|Prepare|Raw|Where)(?:Context|x)?\s*\(\s*(?:\w+\s*,\s*)?fmt\.Sprintf\s*\('
+      - '(?i)\.(?:Query|QueryRow|Exec|Prepare|Raw|Where)(?:Context|x)?\s*\(\s*(?:\w+\s*,\s*)?[`"](?:select|insert|update|delete|with)\b[^`"]*[`"]\s*\+'
+      - '(?i)\bfmt\.Sprintf\s*\(\s*[`"]\s*(?:select|insert|update|delete)\b'
     pattern-not:
       - '(?m)^\s*//.*'
     message: |
-      SQL query built with fmt.Sprintf() is vulnerable to SQL injection.
-      Use $1, $2 placeholders with parameterized queries.
+      SQL text is assembled with string formatting or concatenation. If any
+      formatted value can come from input, that is SQL injection. Use $1 / ?
+      placeholders and pass the values as query arguments.
 
   - id: GO-XSS-001
     name: Unescaped template type
@@ -36,8 +44,10 @@ rules:
     category: xss
     cwe: [79]
     languages: [go]
+    # A constant argument is trusted markup; only a non-literal one can carry
+    # input past html/template's escaping (#56).
     patterns:
-      - 'template\.(HTML|JS|CSS|URL|HTMLAttr)\s*\('
+      - 'template\.(?:HTML|JS|CSS|URL|HTMLAttr)\s*\((?!\s*"(?:[^"\\]|\\.)*"\s*\))'
     pattern-not:
       - '(?m)^\s*//.*'
     message: |
@@ -46,7 +56,7 @@ rules:
 
   - id: GO-CRYPTO-001
     name: Weak crypto import
-    severity: medium
+    severity: low
     category: crypto
     cwe: [328]
     languages: [go]
@@ -54,11 +64,15 @@ rules:
       - '"crypto/md5"'
       - '"crypto/sha1"'
       - '"crypto/des"'
+      - '"crypto/rc4"'
+      - '"golang.org/x/crypto/md4"'
     pattern-not:
       - '(?m)^\s*//.*'
     message: |
-      Deprecated/weak crypto package imported. Use crypto/sha256 or
-      crypto/aes (GCM mode) instead.
+      A weak hash or cipher package is imported. sha1 and md5 are fine for
+      checksums and git object IDs, so this is an inventory signal: confirm it
+      is not used for passwords, signatures or encryption. Use crypto/sha256
+      or crypto/aes (GCM) for those.
 
   - id: GO-CRYPTO-002
     name: math/rand for security
@@ -66,10 +80,13 @@ rules:
     category: crypto
     cwe: [330]
     languages: [go]
+    # A security-named value drawn from math/rand (v1 or v2), not every
+    # import: simulations, jitter and shuffles are fine (#56). crypto/rand is
+    # also imported as `rand`; its Int takes rand.Reader.
     patterns:
-      - '"math/rand"'
+      - '(?i)\b\w*(?:token|secret|passw|nonce|salt|session|otp|apikey|api_key|csrf)\w*\s*:?=\s*[^\n]*\brand\.(?:Int|Intn|Int31|Int31n|Int63|Int63n|Uint32|Uint64|IntN|Int64|N)\b'
     pattern-not:
-      - '"crypto/rand"'
+      - 'rand\.Reader'
       - '(?m)^\s*//.*'
     message: |
       math/rand is not cryptographically secure. Use crypto/rand for
@@ -81,8 +98,10 @@ rules:
     category: config
     cwe: [295]
     languages: [go]
+    exclude_paths:
+      - "*_test.go"
     patterns:
-      - 'InsecureSkipVerify\s*:\s*true'
+      - 'InsecureSkipVerify\s*(?::|=)\s*true'
     pattern-not:
       - '(?m)^\s*//.*'
     message: |
