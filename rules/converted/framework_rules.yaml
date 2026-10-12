@@ -50,6 +50,7 @@ rules:
   - pattern-either:
     - pattern-regex: AllowAllOrigins\s*:\s*true
     - pattern-regex: AllowOrigins\s*:\s*\[.*\*
+    - pattern-regex: \bcors\.(?:Default|AllowAll)\(\)
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?m)^\s*//.*
   - pattern-not-regex: (?:def test_|conftest|unittest)
@@ -59,26 +60,6 @@ rules:
     - 942
     original_engine: neuroscan
     rule_name: Go CORS wildcard
-- id: ns-fw-go-003
-  languages:
-  - go
-  severity: ERROR
-  message: 'User input from Query/Param injected directly into HTML template rendering.
-
-    Sanitize input before passing to template context.'
-  patterns:
-  - pattern-regex: c\.HTML\(.*c\.(?:Query|Param)\(
-  - pattern-not-regex: (?m)^\s*#
-  - pattern-not-regex: (?m)^\s*//.*
-  - pattern-not-regex: (?:def test_|conftest|unittest)
-  metadata:
-    category: xss
-    cwe:
-    - 79
-    original_engine: neuroscan
-    rule_name: Go HTML template injection
-    residual:
-    - sanitizer
 - id: ns-fw-go-005
   languages:
   - go
@@ -87,7 +68,7 @@ rules:
 
     Validate redirect URLs against an allowlist of trusted destinations.'
   patterns:
-  - pattern-regex: c\.Redirect\(.*c\.(?:Query|Param)\(
+  - pattern-regex: c\.Redirect\(.*c\.(?:Query|Param|QueryParam|FormValue|PostForm)\(
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?m)^\s*//.*
   - pattern-not-regex: (?:def test_|conftest|unittest)

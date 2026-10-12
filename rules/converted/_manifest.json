@@ -1,11 +1,11 @@
 {
   "meta": {
-    "total_rules": 372,
-    "ok": 372,
+    "total_rules": 371,
+    "ok": 371,
     "warning": 0,
     "error": 0,
     "secrets_residual": 5,
-    "sanitizer_residual": 222,
+    "sanitizer_residual": 221,
     "converter_version": "1.0"
   },
   "rules": [
@@ -3471,26 +3471,6 @@
       "status": "ok",
       "warnings": [],
       "name": "Go CORS wildcard",
-      "pattern_not": [
-        "(?m)^\\s*#",
-        "(?m)^\\s*//.*",
-        "(?:def test_|conftest|unittest)"
-      ]
-    },
-    {
-      "id": "ns-fw-go-003",
-      "category": "xss",
-      "cwe": [
-        79
-      ],
-      "original_severity": "ERROR",
-      "original_engine": "neuroscan",
-      "residual": [
-        "sanitizer"
-      ],
-      "status": "ok",
-      "warnings": [],
-      "name": "Go HTML template injection",
       "pattern_not": [
         "(?m)^\\s*#",
         "(?m)^\\s*//.*",

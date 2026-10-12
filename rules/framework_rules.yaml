@@ -59,28 +59,14 @@ rules:
     patterns:
       - 'AllowAllOrigins\s*:\s*true'
       - 'AllowOrigins\s*:\s*\[.*\*'
+      # gin-contrib/cors Default() and rs/cors AllowAll() allow every origin.
+      - '\bcors\.(?:Default|AllowAll)\(\)'
     pattern-not:
       - '(?m)^\s*#'
       - '(?m)^\s*//.*'
       - '(?:def test_|conftest|unittest)'
     message: |
       CORS allows all origins. Restrict AllowOrigins to specific trusted domains.
-
-  - id: ns-fw-go-003
-    name: Go HTML template injection
-    severity: ERROR
-    category: xss
-    cwe: [79]
-    languages: [go]
-    patterns:
-      - 'c\.HTML\(.*c\.(?:Query|Param)\('
-    pattern-not:
-      - '(?m)^\s*#'
-      - '(?m)^\s*//.*'
-      - '(?:def test_|conftest|unittest)'
-    message: |
-      User input from Query/Param injected directly into HTML template rendering.
-      Sanitize input before passing to template context.
 
   - id: ns-fw-go-005
     name: Go open redirect
@@ -89,7 +75,7 @@ rules:
     cwe: [601]
     languages: [go]
     patterns:
-      - 'c\.Redirect\(.*c\.(?:Query|Param)\('
+      - 'c\.Redirect\(.*c\.(?:Query|Param|QueryParam|FormValue|PostForm)\('
     pattern-not:
       - '(?m)^\s*#'
       - '(?m)^\s*//.*'
