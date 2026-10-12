@@ -56,12 +56,31 @@ rules:
                       }
       # rowan-registry:end source=mcp_tool_arg_go
     pattern-sinks:
-      - pattern: exec.Command(...)
-      - pattern: exec.CommandContext(...)
-      - pattern: syscall.Exec(...)
-      - pattern: os.StartProcess(...)
-    pattern-sanitizers:
-      - pattern: filepath.Base(...)
+      # rowan-registry:begin sink=exec_go
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - pattern: exec.Command($BIN, ...)
+                      - pattern: exec.CommandContext($CTX, $BIN, ...)
+                  - focus-metavariable: $BIN
+              - patterns:
+                  - pattern-either:
+                      - pattern: exec.Command($SH, $FLAG, $CMD, ...)
+                      - pattern: exec.CommandContext($CTX, $SH, $FLAG, $CMD, ...)
+                  - metavariable-regex:
+                      metavariable: $SH
+                      regex: ^\"(sh|bash|zsh|ash|dash|/bin/sh|/bin/bash|/usr/bin/env|cmd|cmd\.exe|powershell|pwsh)\"$
+                  - metavariable-regex:
+                      metavariable: $FLAG
+                      regex: ^\"(-c|/c|/C|-Command)\"$
+                  - focus-metavariable: $CMD
+              - patterns:
+                  - pattern-either:
+                      - pattern: syscall.Exec($BIN, ...)
+                      - pattern: os.StartProcess($BIN, ...)
+                  - focus-metavariable: $BIN
+      # rowan-registry:end sink=exec_go
 
   - id: tnt-go-ai-mcptool-path-001
     mode: taint
@@ -106,24 +125,42 @@ rules:
     # Path argument only for the multi-argument sinks: file content flowing
     # into os.WriteFile is not traversal (mcp-filesystem-server write_file.go).
     pattern-sinks:
-      - pattern: os.Open(...)
-      - pattern: os.ReadFile(...)
+      # rowan-registry:begin sink=file_path_go
       - patterns:
-          - pattern: os.WriteFile($P, ...)
-          - focus-metavariable: $P
-      - pattern: os.Create(...)
-      - pattern: os.Remove(...)
-      - patterns:
-          - pattern: os.MkdirAll($P, ...)
-          - focus-metavariable: $P
-      - pattern: ioutil.ReadFile(...)
-      - pattern: filepath.Join(...)
-      - patterns:
-          - pattern: http.ServeFile($W, $R, $P)
-          - focus-metavariable: $P
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - pattern: os.Open($P)
+                      - pattern: os.OpenFile($P, ...)
+                      - pattern: os.ReadFile($P)
+                      - pattern: os.ReadDir($P)
+                      - pattern: os.Create($P)
+                      - pattern: os.WriteFile($P, ...)
+                      - pattern: os.Remove($P)
+                      - pattern: os.RemoveAll($P)
+                      - pattern: os.Mkdir($P, ...)
+                      - pattern: os.MkdirAll($P, ...)
+                      - pattern: os.Rename($P, $Q)
+                      - pattern: os.Rename($Q, $P)
+                      - pattern: ioutil.ReadFile($P)
+                      - pattern: ioutil.WriteFile($P, ...)
+                      - pattern: http.ServeFile($W, $R, $P)
+                  - focus-metavariable: $P
+              - patterns:
+                  - pattern-either:
+                      - pattern: $C.File($P)
+                      - pattern: $C.FileAttachment($P, ...)
+                      - pattern: $C.Attachment($P, ...)
+                      - pattern: $C.SendFile($P, ...)
+                      - pattern: $C.Download($P, ...)
+                  - metavariable-regex:
+                      metavariable: $C
+                      regex: (?i)^(c|ctx|e|context)$
+                  - focus-metavariable: $P
+      # rowan-registry:end sink=file_path_go
     pattern-sanitizers:
       - pattern: filepath.Base(...)
-      - pattern: strings.Contains($PATH, "..")
+      - pattern: securejoin.SecureJoin(...)
       - pattern: validatePath(...)
       - pattern: $S.validatePath(...)
 
@@ -400,12 +437,31 @@ rules:
               - pattern: "($RESP : *ai.ModelResponse).Text()"
       # rowan-registry:end source=llm_output_go
     pattern-sinks:
-      - pattern: exec.Command(...)
-      - pattern: exec.CommandContext(...)
-      - pattern: syscall.Exec(...)
-      - pattern: os.StartProcess(...)
-    pattern-sanitizers:
-      - pattern: filepath.Base(...)
+      # rowan-registry:begin sink=exec_go
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - pattern: exec.Command($BIN, ...)
+                      - pattern: exec.CommandContext($CTX, $BIN, ...)
+                  - focus-metavariable: $BIN
+              - patterns:
+                  - pattern-either:
+                      - pattern: exec.Command($SH, $FLAG, $CMD, ...)
+                      - pattern: exec.CommandContext($CTX, $SH, $FLAG, $CMD, ...)
+                  - metavariable-regex:
+                      metavariable: $SH
+                      regex: ^\"(sh|bash|zsh|ash|dash|/bin/sh|/bin/bash|/usr/bin/env|cmd|cmd\.exe|powershell|pwsh)\"$
+                  - metavariable-regex:
+                      metavariable: $FLAG
+                      regex: ^\"(-c|/c|/C|-Command)\"$
+                  - focus-metavariable: $CMD
+              - patterns:
+                  - pattern-either:
+                      - pattern: syscall.Exec($BIN, ...)
+                      - pattern: os.StartProcess($BIN, ...)
+                  - focus-metavariable: $BIN
+      # rowan-registry:end sink=exec_go
 
   - id: tnt-go-ai-llmout-ssrf-001
     mode: taint
@@ -496,23 +552,41 @@ rules:
     # Path argument only for the multi-argument sinks: file content flowing
     # into os.WriteFile is not traversal (mcp-filesystem-server write_file.go).
     pattern-sinks:
-      - pattern: os.Open(...)
-      - pattern: os.ReadFile(...)
+      # rowan-registry:begin sink=file_path_go
       - patterns:
-          - pattern: os.WriteFile($P, ...)
-          - focus-metavariable: $P
-      - pattern: os.Create(...)
-      - pattern: os.Remove(...)
-      - patterns:
-          - pattern: os.MkdirAll($P, ...)
-          - focus-metavariable: $P
-      - pattern: ioutil.ReadFile(...)
-      - pattern: filepath.Join(...)
-      - patterns:
-          - pattern: http.ServeFile($W, $R, $P)
-          - focus-metavariable: $P
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - pattern: os.Open($P)
+                      - pattern: os.OpenFile($P, ...)
+                      - pattern: os.ReadFile($P)
+                      - pattern: os.ReadDir($P)
+                      - pattern: os.Create($P)
+                      - pattern: os.WriteFile($P, ...)
+                      - pattern: os.Remove($P)
+                      - pattern: os.RemoveAll($P)
+                      - pattern: os.Mkdir($P, ...)
+                      - pattern: os.MkdirAll($P, ...)
+                      - pattern: os.Rename($P, $Q)
+                      - pattern: os.Rename($Q, $P)
+                      - pattern: ioutil.ReadFile($P)
+                      - pattern: ioutil.WriteFile($P, ...)
+                      - pattern: http.ServeFile($W, $R, $P)
+                  - focus-metavariable: $P
+              - patterns:
+                  - pattern-either:
+                      - pattern: $C.File($P)
+                      - pattern: $C.FileAttachment($P, ...)
+                      - pattern: $C.Attachment($P, ...)
+                      - pattern: $C.SendFile($P, ...)
+                      - pattern: $C.Download($P, ...)
+                  - metavariable-regex:
+                      metavariable: $C
+                      regex: (?i)^(c|ctx|e|context)$
+                  - focus-metavariable: $P
+      # rowan-registry:end sink=file_path_go
     pattern-sanitizers:
       - pattern: filepath.Base(...)
-      - pattern: strings.Contains($PATH, "..")
+      - pattern: securejoin.SecureJoin(...)
       - pattern: validatePath(...)
       - pattern: $S.validatePath(...)

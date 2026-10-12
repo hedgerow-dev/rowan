@@ -945,7 +945,7 @@ Rules defined in YAML with `mode: taint`, using Opengrep's DSL:
     - pattern: urlparse($URL)
 ```
 
-214 taint/Opengrep rules across 29 YAML files.
+215 taint/Opengrep rules across 29 YAML files.
 
 ### Rule ID conventions
 

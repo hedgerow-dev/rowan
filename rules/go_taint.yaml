@@ -236,16 +236,105 @@ rules:
       # form is what reaches macaron-style contexts (gogs internal/route).
       - pattern: $C.Query(...)
     pattern-sinks:
-      - pattern: exec.Command(...)
-      - pattern: syscall.Exec(...)
-      - pattern: os.StartProcess(...)
-    pattern-sanitizers:
-      - pattern: filepath.Base(...)
+      # rowan-registry:begin sink=exec_go
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - pattern: exec.Command($BIN, ...)
+                      - pattern: exec.CommandContext($CTX, $BIN, ...)
+                  - focus-metavariable: $BIN
+              - patterns:
+                  - pattern-either:
+                      - pattern: exec.Command($SH, $FLAG, $CMD, ...)
+                      - pattern: exec.CommandContext($CTX, $SH, $FLAG, $CMD, ...)
+                  - metavariable-regex:
+                      metavariable: $SH
+                      regex: ^\"(sh|bash|zsh|ash|dash|/bin/sh|/bin/bash|/usr/bin/env|cmd|cmd\.exe|powershell|pwsh)\"$
+                  - metavariable-regex:
+                      metavariable: $FLAG
+                      regex: ^\"(-c|/c|/C|-Command)\"$
+                  - focus-metavariable: $CMD
+              - patterns:
+                  - pattern-either:
+                      - pattern: syscall.Exec($BIN, ...)
+                      - pattern: os.StartProcess($BIN, ...)
+                  - focus-metavariable: $BIN
+      # rowan-registry:end sink=exec_go
 
   # EXT-19: operator-controlled sources (env, flags, argv, viper) split out
   # of the -001 rule the EXT-08 way (tnt-go-sqli-002). gogs' 134 env-sourced
   # path hits (GOGS_CUSTOM) and kubernetes-mcp-server's startup flags were
   # the FP set in ADR-0005. Same sinks and sanitizers as the -001.
+  # Request input as an extra argument to a fixed program (#56). No shell
+  # parses it, so it is argument injection (an attacker-chosen flag such as
+  # git's --upload-pack), not command injection.
+  - id: tnt-go-argi-001
+    mode: taint
+    languages: [go]
+    severity: WARNING
+    message: >-
+      User input is passed as an argument to a fixed program. No shell runs it,
+      but a value starting with '-' can be read as an option and change what
+      the program does.
+    metadata:
+      cwe:
+        - "CWE-88: Improper Neutralization of Argument Delimiters in a Command ('Argument Injection')"
+      confidence: MEDIUM
+      category: command_injection
+      source_kind: http_input
+      fix: "Put '--' before user-supplied arguments, or reject values that start with '-', so they cannot be read as options."
+    pattern-sources:
+      # rowan-registry:begin source=web_request_go
+      - patterns:
+          - pattern-either:
+              - pattern: $R.URL.Query()
+              - pattern: $R.URL.Path
+              - pattern: $R.URL.RawQuery
+              - pattern: $R.FormValue(...)
+              - pattern: $R.PostFormValue(...)
+              - pattern: $R.Header.Get(...)
+              - pattern: $R.Body
+              - pattern: $C.Param(...)
+              - pattern: "($C : *gin.Context).Query(...)"
+              - pattern: $C.PostForm(...)
+              - pattern: $C.DefaultQuery(...)
+              - pattern: $C.GetHeader(...)
+              - pattern: $C.QueryParam(...)
+              - pattern: $C.Params(...)
+              - pattern: chi.URLParam(...)
+              - pattern: mux.Vars(...)
+      # rowan-registry:end source=web_request_go
+      # rowan-registry:begin source=web_request_go_bind
+      - patterns:
+          - pattern-either:
+              - pattern: $C.ShouldBindJSON(&$X)
+              - pattern: $C.BindJSON(&$X)
+              - pattern: $C.ShouldBind(&$X)
+              - pattern: $C.Bind(&$X)
+              - pattern: $C.ShouldBindQuery(&$X)
+              - pattern: $C.BodyParser(&$X)
+              - pattern: json.NewDecoder($R.Body).Decode(&$X)
+          - focus-metavariable: $X
+        by-side-effect: true
+      # rowan-registry:end source=web_request_go_bind
+      # Bare `$C.Query(...)` on purpose here, unlike the SQL rules: the
+      # fragment types it to *gin.Context because the bare form collides with
+      # the `$DB.Query(...)` SQL sink. These sinks do not collide, and the bare
+      # form is what reaches macaron-style contexts (gogs internal/route).
+      - pattern: $C.Query(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: exec.Command("$BIN", ..., $ARG, ...)
+              - pattern: exec.CommandContext($CTX, "$BIN", ..., $ARG, ...)
+          # A shell's -c string is command injection (tnt-go-cmdi-001).
+          - pattern-not: exec.Command($SH, "-c", ...)
+          - pattern-not: exec.Command($SH, "/c", ...)
+          - pattern-not: exec.CommandContext($CTX, $SH, "-c", ...)
+          - pattern-not: exec.CommandContext($CTX, $SH, "/c", ...)
+          - focus-metavariable: $ARG
+
   - id: tnt-go-cmdi-002
     mode: taint
     languages: [go]
@@ -274,11 +363,31 @@ rules:
               - pattern: viper.Get(...)
       # rowan-registry:end source=operator_input_go
     pattern-sinks:
-      - pattern: exec.Command(...)
-      - pattern: syscall.Exec(...)
-      - pattern: os.StartProcess(...)
-    pattern-sanitizers:
-      - pattern: filepath.Base(...)
+      # rowan-registry:begin sink=exec_go
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - pattern: exec.Command($BIN, ...)
+                      - pattern: exec.CommandContext($CTX, $BIN, ...)
+                  - focus-metavariable: $BIN
+              - patterns:
+                  - pattern-either:
+                      - pattern: exec.Command($SH, $FLAG, $CMD, ...)
+                      - pattern: exec.CommandContext($CTX, $SH, $FLAG, $CMD, ...)
+                  - metavariable-regex:
+                      metavariable: $SH
+                      regex: ^\"(sh|bash|zsh|ash|dash|/bin/sh|/bin/bash|/usr/bin/env|cmd|cmd\.exe|powershell|pwsh)\"$
+                  - metavariable-regex:
+                      metavariable: $FLAG
+                      regex: ^\"(-c|/c|/C|-Command)\"$
+                  - focus-metavariable: $CMD
+              - patterns:
+                  - pattern-either:
+                      - pattern: syscall.Exec($BIN, ...)
+                      - pattern: os.StartProcess($BIN, ...)
+                  - focus-metavariable: $BIN
+      # rowan-registry:end sink=exec_go
 
   - id: tnt-go-path-001
     mode: taint
@@ -332,13 +441,42 @@ rules:
       # form is what reaches macaron-style contexts (gogs internal/route).
       - pattern: $C.Query(...)
     pattern-sinks:
-      - pattern: os.Open(...)
-      - pattern: os.ReadFile(...)
-      - pattern: filepath.Join(...)
-      - pattern: http.ServeFile(...)
+      # rowan-registry:begin sink=file_path_go
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - pattern: os.Open($P)
+                      - pattern: os.OpenFile($P, ...)
+                      - pattern: os.ReadFile($P)
+                      - pattern: os.ReadDir($P)
+                      - pattern: os.Create($P)
+                      - pattern: os.WriteFile($P, ...)
+                      - pattern: os.Remove($P)
+                      - pattern: os.RemoveAll($P)
+                      - pattern: os.Mkdir($P, ...)
+                      - pattern: os.MkdirAll($P, ...)
+                      - pattern: os.Rename($P, $Q)
+                      - pattern: os.Rename($Q, $P)
+                      - pattern: ioutil.ReadFile($P)
+                      - pattern: ioutil.WriteFile($P, ...)
+                      - pattern: http.ServeFile($W, $R, $P)
+                  - focus-metavariable: $P
+              - patterns:
+                  - pattern-either:
+                      - pattern: $C.File($P)
+                      - pattern: $C.FileAttachment($P, ...)
+                      - pattern: $C.Attachment($P, ...)
+                      - pattern: $C.SendFile($P, ...)
+                      - pattern: $C.Download($P, ...)
+                  - metavariable-regex:
+                      metavariable: $C
+                      regex: (?i)^(c|ctx|e|context)$
+                  - focus-metavariable: $P
+      # rowan-registry:end sink=file_path_go
     pattern-sanitizers:
       - pattern: filepath.Base(...)
-      - pattern: strings.Contains($PATH, "..")
+      - pattern: securejoin.SecureJoin(...)
 
   # EXT-19 operator-input sibling; see tnt-go-cmdi-002.
   - id: tnt-go-path-002
@@ -369,13 +507,42 @@ rules:
               - pattern: viper.Get(...)
       # rowan-registry:end source=operator_input_go
     pattern-sinks:
-      - pattern: os.Open(...)
-      - pattern: os.ReadFile(...)
-      - pattern: filepath.Join(...)
-      - pattern: http.ServeFile(...)
+      # rowan-registry:begin sink=file_path_go
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - pattern: os.Open($P)
+                      - pattern: os.OpenFile($P, ...)
+                      - pattern: os.ReadFile($P)
+                      - pattern: os.ReadDir($P)
+                      - pattern: os.Create($P)
+                      - pattern: os.WriteFile($P, ...)
+                      - pattern: os.Remove($P)
+                      - pattern: os.RemoveAll($P)
+                      - pattern: os.Mkdir($P, ...)
+                      - pattern: os.MkdirAll($P, ...)
+                      - pattern: os.Rename($P, $Q)
+                      - pattern: os.Rename($Q, $P)
+                      - pattern: ioutil.ReadFile($P)
+                      - pattern: ioutil.WriteFile($P, ...)
+                      - pattern: http.ServeFile($W, $R, $P)
+                  - focus-metavariable: $P
+              - patterns:
+                  - pattern-either:
+                      - pattern: $C.File($P)
+                      - pattern: $C.FileAttachment($P, ...)
+                      - pattern: $C.Attachment($P, ...)
+                      - pattern: $C.SendFile($P, ...)
+                      - pattern: $C.Download($P, ...)
+                  - metavariable-regex:
+                      metavariable: $C
+                      regex: (?i)^(c|ctx|e|context)$
+                  - focus-metavariable: $P
+      # rowan-registry:end sink=file_path_go
     pattern-sanitizers:
       - pattern: filepath.Base(...)
-      - pattern: strings.Contains($PATH, "..")
+      - pattern: securejoin.SecureJoin(...)
 
   - id: tnt-go-ssrf-001
     mode: taint

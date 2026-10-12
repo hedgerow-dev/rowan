@@ -865,10 +865,91 @@ _GO_HTTP_URL_SINKS: list[Entry] = [
     },
 ]
 
+# Go command execution (#56): the program, or the string a shell runs.
+# An extra argument to a fixed program is argument injection (CWE-88), a
+# separate rule (tnt-go-argi-001).
+_GO_SHELL = r"^\"(sh|bash|zsh|ash|dash|/bin/sh|/bin/bash|/usr/bin/env|cmd|cmd\.exe|powershell|pwsh)\"$"
+_GO_SHELL_FLAG = r"^\"(-c|/c|/C|-Command)\"$"
+_GO_EXEC_SINKS: list[Entry] = [
+    {
+        "patterns": [
+            {"pattern-either": ["exec.Command($BIN, ...)", "exec.CommandContext($CTX, $BIN, ...)"]},
+            {"focus-metavariable": "$BIN"},
+        ]
+    },
+    {
+        "patterns": [
+            {
+                "pattern-either": [
+                    "exec.Command($SH, $FLAG, $CMD, ...)",
+                    "exec.CommandContext($CTX, $SH, $FLAG, $CMD, ...)",
+                ]
+            },
+            {"metavariable-regex": {"metavariable": "$SH", "regex": _GO_SHELL}},
+            {"metavariable-regex": {"metavariable": "$FLAG", "regex": _GO_SHELL_FLAG}},
+            {"focus-metavariable": "$CMD"},
+        ]
+    },
+    {
+        "patterns": [
+            {"pattern-either": ["syscall.Exec($BIN, ...)", "os.StartProcess($BIN, ...)"]},
+            {"focus-metavariable": "$BIN"},
+        ]
+    },
+]
+
+# Go filesystem sinks (#56): the path argument of a call that uses it.
+# filepath.Join only builds a path, so it propagates taint instead of
+# being a sink.
+_GO_FILE_PATH_SINKS: list[Entry] = [
+    {
+        "patterns": [
+            {
+                "pattern-either": [
+                    "os.Open($P)",
+                    "os.OpenFile($P, ...)",
+                    "os.ReadFile($P)",
+                    "os.ReadDir($P)",
+                    "os.Create($P)",
+                    "os.WriteFile($P, ...)",
+                    "os.Remove($P)",
+                    "os.RemoveAll($P)",
+                    "os.Mkdir($P, ...)",
+                    "os.MkdirAll($P, ...)",
+                    "os.Rename($P, $Q)",
+                    "os.Rename($Q, $P)",
+                    "ioutil.ReadFile($P)",
+                    "ioutil.WriteFile($P, ...)",
+                    "http.ServeFile($W, $R, $P)",
+                ]
+            },
+            {"focus-metavariable": "$P"},
+        ]
+    },
+    # gin/echo c.File, c.FileAttachment; fiber c.SendFile, c.Download.
+    {
+        "patterns": [
+            {
+                "pattern-either": [
+                    "$C.File($P)",
+                    "$C.FileAttachment($P, ...)",
+                    "$C.Attachment($P, ...)",
+                    "$C.SendFile($P, ...)",
+                    "$C.Download($P, ...)",
+                ]
+            },
+            {"metavariable-regex": {"metavariable": "$C", "regex": r"(?i)^(c|ctx|e|context)$"}},
+            {"focus-metavariable": "$P"},
+        ]
+    },
+]
+
 #: name -> ordered list of opengrep sink entries.
 SINKS: dict[str, list[Entry]] = {
     "sql_go": _GO_SQL_SINKS,
     "http_url_go": _GO_HTTP_URL_SINKS,
+    "exec_go": _GO_EXEC_SINKS,
+    "file_path_go": _GO_FILE_PATH_SINKS,
 }
 
 

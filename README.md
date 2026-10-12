@@ -97,8 +97,8 @@ Python and JS/TS get the deepest analysis. Java, Kotlin and C# get within-file
 dataflow. Ruby, PHP and Rust get limited pattern checks. The report lists what it
 could not analyze.
 
-The rule catalog has **572 rules across 51 YAML files**.
-That is 358 regex rules and 214 taint rules (Opengrep). See the [rule catalog](docs/rules.md).
+The rule catalog has **573 rules across 51 YAML files**.
+That is 358 regex rules and 215 taint rules (Opengrep). See the [rule catalog](docs/rules.md).
 
 ## Privacy
 
