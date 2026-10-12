@@ -172,21 +172,53 @@ rules:
     # the fix, not the bug. The URL/gin exclusions are copied from
     # tnt-go-sqli-001.
     pattern-sinks:
+      # rowan-registry:begin sink=sql_go
       - patterns:
           - pattern-either:
-              - pattern: $DB.Query($Q, ...)
-              - pattern: $DB.QueryRow($Q, ...)
-              - pattern: $DB.QueryContext($CTX, $Q, ...)
-              - pattern: $DB.QueryRowContext($CTX, $Q, ...)
-              - pattern: $DB.Exec($Q, ...)
-              - pattern: $DB.ExecContext($CTX, $Q, ...)
-              - pattern: $DB.Select(&$DEST, $Q, ...)
-              - pattern: $DB.Get(&$DEST, $Q, ...)
-          - pattern-not: $X.URL.Query(...)
-          - pattern-not: "($X : *gin.Context).Query(...)"
-          - focus-metavariable: $Q
+              - patterns:
+                  - pattern: $DB.$M($SQL, ...)
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(Query|QueryRow|Exec|Prepare|Preparex|Queryx|QueryRowx|MustExec|NamedQuery|NamedExec|Raw|Where|Or|Not|Order|Having|Joins|Group)$
+                  - pattern-not-inside: |
+                      $DB, $E := $X.Prepare(...)
+                      ...
+                  - pattern-not-inside: |
+                      $DB, $E = $X.Prepare(...)
+                      ...
+                  - pattern-not-inside: |
+                      $DB, $E := $X.Preparex(...)
+                      ...
+                  - pattern-not-inside: |
+                      $DB, $E = $X.Preparex(...)
+                      ...
+                  - pattern-not: "($DB : *sql.Stmt).$M(...)"
+                  - pattern-not: $X.URL.Query(...)
+                  - pattern-not: "($X : *gin.Context).Query(...)"
+                  - focus-metavariable: $SQL
+              - patterns:
+                  - pattern: $DB.$M($CTX, $SQL, ...)
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(QueryContext|QueryRowContext|ExecContext|PrepareContext|QueryxContext|QueryRowxContext)$
+                  - focus-metavariable: $SQL
+              - patterns:
+                  - pattern: $DB.$M($CTX, $SQL, ...)
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(Query|QueryRow|Exec)$
+                  - metavariable-regex:
+                      metavariable: $CTX
+                      regex: (?i).*(ctx|context)
+                  - focus-metavariable: $SQL
+              - patterns:
+                  - pattern-either:
+                      - pattern: $DB.Select(&$DEST, $SQL, ...)
+                      - pattern: $DB.Get(&$DEST, $SQL, ...)
+                  - focus-metavariable: $SQL
+      # rowan-registry:end sink=sql_go
+
     pattern-sanitizers:
-      - pattern: $DB.Prepare(...)
       - pattern: strconv.Atoi(...)
       - pattern: strconv.ParseInt(...)
 
@@ -231,16 +263,32 @@ rules:
                       }
       # rowan-registry:end source=mcp_tool_arg_go
     pattern-sinks:
-      - pattern: http.Get(...)
-      - pattern: http.Post(...)
-      - pattern: $CLIENT.Do(...)
-      - pattern: url.Parse(...)
+      # rowan-registry:begin sink=http_url_go
       - patterns:
-          - pattern: http.NewRequest($M, $U, ...)
-          - focus-metavariable: $U
-      - patterns:
-          - pattern: http.NewRequestWithContext($CTX, $M, $U, ...)
-          - focus-metavariable: $U
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - pattern: http.Get($U)
+                      - pattern: http.Head($U)
+                      - pattern: http.Post($U, ...)
+                      - pattern: http.PostForm($U, ...)
+                  - focus-metavariable: $U
+              - patterns:
+                  - pattern-either:
+                      - pattern: $C.Get($U)
+                      - pattern: $C.Head($U)
+                      - pattern: $C.Post($U, ...)
+                      - pattern: $C.PostForm($U, ...)
+                  - metavariable-regex:
+                      metavariable: $C
+                      regex: (?i).*(client|http)
+                  - focus-metavariable: $U
+              - patterns:
+                  - pattern-either:
+                      - pattern: http.NewRequest($M, $U, ...)
+                      - pattern: http.NewRequestWithContext($CTX, $M, $U, ...)
+                  - focus-metavariable: $U
+      # rowan-registry:end sink=http_url_go
 
   - id: tnt-go-ai-llmout-sql-001
     mode: taint
@@ -272,21 +320,53 @@ rules:
               - pattern: "($RESP : *ai.ModelResponse).Text()"
       # rowan-registry:end source=llm_output_go
     pattern-sinks:
+      # rowan-registry:begin sink=sql_go
       - patterns:
           - pattern-either:
-              - pattern: $DB.Query($Q, ...)
-              - pattern: $DB.QueryRow($Q, ...)
-              - pattern: $DB.QueryContext($CTX, $Q, ...)
-              - pattern: $DB.QueryRowContext($CTX, $Q, ...)
-              - pattern: $DB.Exec($Q, ...)
-              - pattern: $DB.ExecContext($CTX, $Q, ...)
-              - pattern: $DB.Select(&$DEST, $Q, ...)
-              - pattern: $DB.Get(&$DEST, $Q, ...)
-          - pattern-not: $X.URL.Query(...)
-          - pattern-not: "($X : *gin.Context).Query(...)"
-          - focus-metavariable: $Q
+              - patterns:
+                  - pattern: $DB.$M($SQL, ...)
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(Query|QueryRow|Exec|Prepare|Preparex|Queryx|QueryRowx|MustExec|NamedQuery|NamedExec|Raw|Where|Or|Not|Order|Having|Joins|Group)$
+                  - pattern-not-inside: |
+                      $DB, $E := $X.Prepare(...)
+                      ...
+                  - pattern-not-inside: |
+                      $DB, $E = $X.Prepare(...)
+                      ...
+                  - pattern-not-inside: |
+                      $DB, $E := $X.Preparex(...)
+                      ...
+                  - pattern-not-inside: |
+                      $DB, $E = $X.Preparex(...)
+                      ...
+                  - pattern-not: "($DB : *sql.Stmt).$M(...)"
+                  - pattern-not: $X.URL.Query(...)
+                  - pattern-not: "($X : *gin.Context).Query(...)"
+                  - focus-metavariable: $SQL
+              - patterns:
+                  - pattern: $DB.$M($CTX, $SQL, ...)
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(QueryContext|QueryRowContext|ExecContext|PrepareContext|QueryxContext|QueryRowxContext)$
+                  - focus-metavariable: $SQL
+              - patterns:
+                  - pattern: $DB.$M($CTX, $SQL, ...)
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(Query|QueryRow|Exec)$
+                  - metavariable-regex:
+                      metavariable: $CTX
+                      regex: (?i).*(ctx|context)
+                  - focus-metavariable: $SQL
+              - patterns:
+                  - pattern-either:
+                      - pattern: $DB.Select(&$DEST, $SQL, ...)
+                      - pattern: $DB.Get(&$DEST, $SQL, ...)
+                  - focus-metavariable: $SQL
+      # rowan-registry:end sink=sql_go
+
     pattern-sanitizers:
-      - pattern: $DB.Prepare(...)
       - pattern: strconv.Atoi(...)
       - pattern: strconv.ParseInt(...)
 
@@ -357,16 +437,32 @@ rules:
               - pattern: "($RESP : *ai.ModelResponse).Text()"
       # rowan-registry:end source=llm_output_go
     pattern-sinks:
-      - pattern: http.Get(...)
-      - pattern: http.Post(...)
-      - pattern: $CLIENT.Do(...)
-      - pattern: url.Parse(...)
+      # rowan-registry:begin sink=http_url_go
       - patterns:
-          - pattern: http.NewRequest($M, $U, ...)
-          - focus-metavariable: $U
-      - patterns:
-          - pattern: http.NewRequestWithContext($CTX, $M, $U, ...)
-          - focus-metavariable: $U
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - pattern: http.Get($U)
+                      - pattern: http.Head($U)
+                      - pattern: http.Post($U, ...)
+                      - pattern: http.PostForm($U, ...)
+                  - focus-metavariable: $U
+              - patterns:
+                  - pattern-either:
+                      - pattern: $C.Get($U)
+                      - pattern: $C.Head($U)
+                      - pattern: $C.Post($U, ...)
+                      - pattern: $C.PostForm($U, ...)
+                  - metavariable-regex:
+                      metavariable: $C
+                      regex: (?i).*(client|http)
+                  - focus-metavariable: $U
+              - patterns:
+                  - pattern-either:
+                      - pattern: http.NewRequest($M, $U, ...)
+                      - pattern: http.NewRequestWithContext($CTX, $M, $U, ...)
+                  - focus-metavariable: $U
+      # rowan-registry:end sink=http_url_go
 
   - id: tnt-go-ai-llmout-path-001
     mode: taint

@@ -28,25 +28,53 @@ rules:
     # binding/query.go:16, context.go:581). Exclude the URL/query-getter
     # shapes and gin's context by type, not by receiver name.
     pattern-sinks:
+      # rowan-registry:begin sink=sql_go
       - patterns:
           - pattern-either:
-              - pattern: $DB.Query($SQL, ...)
-              - pattern: $DB.QueryRow($SQL, ...)
-              - pattern: $DB.QueryContext($CTX, $SQL, ...)
-              - pattern: $DB.QueryRowContext($CTX, $SQL, ...)
-              - pattern: $DB.Exec($SQL, ...)
-              - pattern: $DB.ExecContext($CTX, $SQL, ...)
-              # sqlx shape: Get/Select(dest, query, args...). A bare
-              # `$DB.Get(...)` also matched HTTP clients (`httplib.Get(url)`).
-              - pattern: $DB.Select(&$DEST, $SQL, ...)
-              - pattern: $DB.Get(&$DEST, $SQL, ...)
-          - pattern-not: $X.URL.Query(...)
-          - pattern-not: "($X : *gin.Context).Query(...)"
-          # Only the SQL text argument is the sink; a tainted placeholder
-          # value (`db.Query("... $1", id)`) is parameterized (RT-01).
-          - focus-metavariable: $SQL
+              - patterns:
+                  - pattern: $DB.$M($SQL, ...)
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(Query|QueryRow|Exec|Prepare|Preparex|Queryx|QueryRowx|MustExec|NamedQuery|NamedExec|Raw|Where|Or|Not|Order|Having|Joins|Group)$
+                  - pattern-not-inside: |
+                      $DB, $E := $X.Prepare(...)
+                      ...
+                  - pattern-not-inside: |
+                      $DB, $E = $X.Prepare(...)
+                      ...
+                  - pattern-not-inside: |
+                      $DB, $E := $X.Preparex(...)
+                      ...
+                  - pattern-not-inside: |
+                      $DB, $E = $X.Preparex(...)
+                      ...
+                  - pattern-not: "($DB : *sql.Stmt).$M(...)"
+                  - pattern-not: $X.URL.Query(...)
+                  - pattern-not: "($X : *gin.Context).Query(...)"
+                  - focus-metavariable: $SQL
+              - patterns:
+                  - pattern: $DB.$M($CTX, $SQL, ...)
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(QueryContext|QueryRowContext|ExecContext|PrepareContext|QueryxContext|QueryRowxContext)$
+                  - focus-metavariable: $SQL
+              - patterns:
+                  - pattern: $DB.$M($CTX, $SQL, ...)
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(Query|QueryRow|Exec)$
+                  - metavariable-regex:
+                      metavariable: $CTX
+                      regex: (?i).*(ctx|context)
+                  - focus-metavariable: $SQL
+              - patterns:
+                  - pattern-either:
+                      - pattern: $DB.Select(&$DEST, $SQL, ...)
+                      - pattern: $DB.Get(&$DEST, $SQL, ...)
+                  - focus-metavariable: $SQL
+      # rowan-registry:end sink=sql_go
+
     pattern-sanitizers:
-      - pattern: $DB.Prepare(...)
       - pattern: strconv.Atoi(...)
       - pattern: strconv.ParseInt(...)
 
@@ -83,23 +111,53 @@ rules:
               - pattern: viper.Get(...)
       # rowan-registry:end source=operator_input_go
     pattern-sinks:
+      # rowan-registry:begin sink=sql_go
       - patterns:
           - pattern-either:
-              - pattern: $DB.Query($SQL, ...)
-              - pattern: $DB.QueryRow($SQL, ...)
-              - pattern: $DB.QueryContext($CTX, $SQL, ...)
-              - pattern: $DB.QueryRowContext($CTX, $SQL, ...)
-              - pattern: $DB.Exec($SQL, ...)
-              - pattern: $DB.ExecContext($CTX, $SQL, ...)
-              - pattern: $DB.Select(&$DEST, $SQL, ...)
-              - pattern: $DB.Get(&$DEST, $SQL, ...)
-          - pattern-not: $X.URL.Query(...)
-          - pattern-not: "($X : *gin.Context).Query(...)"
-          # Only the SQL text argument is the sink; a tainted placeholder
-          # value (`db.Query("... $1", id)`) is parameterized (RT-01).
-          - focus-metavariable: $SQL
+              - patterns:
+                  - pattern: $DB.$M($SQL, ...)
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(Query|QueryRow|Exec|Prepare|Preparex|Queryx|QueryRowx|MustExec|NamedQuery|NamedExec|Raw|Where|Or|Not|Order|Having|Joins|Group)$
+                  - pattern-not-inside: |
+                      $DB, $E := $X.Prepare(...)
+                      ...
+                  - pattern-not-inside: |
+                      $DB, $E = $X.Prepare(...)
+                      ...
+                  - pattern-not-inside: |
+                      $DB, $E := $X.Preparex(...)
+                      ...
+                  - pattern-not-inside: |
+                      $DB, $E = $X.Preparex(...)
+                      ...
+                  - pattern-not: "($DB : *sql.Stmt).$M(...)"
+                  - pattern-not: $X.URL.Query(...)
+                  - pattern-not: "($X : *gin.Context).Query(...)"
+                  - focus-metavariable: $SQL
+              - patterns:
+                  - pattern: $DB.$M($CTX, $SQL, ...)
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(QueryContext|QueryRowContext|ExecContext|PrepareContext|QueryxContext|QueryRowxContext)$
+                  - focus-metavariable: $SQL
+              - patterns:
+                  - pattern: $DB.$M($CTX, $SQL, ...)
+                  - metavariable-regex:
+                      metavariable: $M
+                      regex: ^(Query|QueryRow|Exec)$
+                  - metavariable-regex:
+                      metavariable: $CTX
+                      regex: (?i).*(ctx|context)
+                  - focus-metavariable: $SQL
+              - patterns:
+                  - pattern-either:
+                      - pattern: $DB.Select(&$DEST, $SQL, ...)
+                      - pattern: $DB.Get(&$DEST, $SQL, ...)
+                  - focus-metavariable: $SQL
+      # rowan-registry:end sink=sql_go
+
     pattern-sanitizers:
-      - pattern: $DB.Prepare(...)
       - pattern: strconv.Atoi(...)
       - pattern: strconv.ParseInt(...)
 
@@ -279,10 +337,32 @@ rules:
       # form is what reaches macaron-style contexts (gogs internal/route).
       - pattern: $C.Query(...)
     pattern-sinks:
-      - pattern: http.Get(...)
-      - pattern: http.Post(...)
-      - pattern: $CLIENT.Do(...)
-      - pattern: url.Parse(...)
+      # rowan-registry:begin sink=http_url_go
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - pattern: http.Get($U)
+                      - pattern: http.Head($U)
+                      - pattern: http.Post($U, ...)
+                      - pattern: http.PostForm($U, ...)
+                  - focus-metavariable: $U
+              - patterns:
+                  - pattern-either:
+                      - pattern: $C.Get($U)
+                      - pattern: $C.Head($U)
+                      - pattern: $C.Post($U, ...)
+                      - pattern: $C.PostForm($U, ...)
+                  - metavariable-regex:
+                      metavariable: $C
+                      regex: (?i).*(client|http)
+                  - focus-metavariable: $U
+              - patterns:
+                  - pattern-either:
+                      - pattern: http.NewRequest($M, $U, ...)
+                      - pattern: http.NewRequestWithContext($CTX, $M, $U, ...)
+                  - focus-metavariable: $U
+      # rowan-registry:end sink=http_url_go
 
   # EXT-19 operator-input sibling; see tnt-go-cmdi-002.
   - id: tnt-go-ssrf-002
@@ -313,10 +393,32 @@ rules:
               - pattern: viper.Get(...)
       # rowan-registry:end source=operator_input_go
     pattern-sinks:
-      - pattern: http.Get(...)
-      - pattern: http.Post(...)
-      - pattern: $CLIENT.Do(...)
-      - pattern: url.Parse(...)
+      # rowan-registry:begin sink=http_url_go
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern-either:
+                      - pattern: http.Get($U)
+                      - pattern: http.Head($U)
+                      - pattern: http.Post($U, ...)
+                      - pattern: http.PostForm($U, ...)
+                  - focus-metavariable: $U
+              - patterns:
+                  - pattern-either:
+                      - pattern: $C.Get($U)
+                      - pattern: $C.Head($U)
+                      - pattern: $C.Post($U, ...)
+                      - pattern: $C.PostForm($U, ...)
+                  - metavariable-regex:
+                      metavariable: $C
+                      regex: (?i).*(client|http)
+                  - focus-metavariable: $U
+              - patterns:
+                  - pattern-either:
+                      - pattern: http.NewRequest($M, $U, ...)
+                      - pattern: http.NewRequestWithContext($CTX, $M, $U, ...)
+                  - focus-metavariable: $U
+      # rowan-registry:end sink=http_url_go
 
   - id: tnt-go-deser-001
     mode: taint

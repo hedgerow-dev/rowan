@@ -739,9 +739,101 @@ SOURCES: dict[str, list[Entry]] = {
     "web_request_fastapi_params": [_FASTAPI_PARAM_SOURCE],
 }
 
+# Go SQL text sinks (#56). Only the SQL text argument is the sink: a tainted
+# bind value (`db.Query("... $1", id)`) is parameterized. A prepared
+# statement's own Query/Exec takes bind values, so it is not a sink; the
+# Prepare call that builds it is.
+_GO_SQL_METHOD = (
+    r"^(Query|QueryRow|Exec|Prepare|Preparex|Queryx|QueryRowx|MustExec|NamedQuery|NamedExec"
+    r"|Raw|Where|Or|Not|Order|Having|Joins|Group)$"
+)
+_GO_SQL_SINKS: list[Entry] = [
+    {
+        "patterns": [
+            "$DB.$M($SQL, ...)",
+            {"metavariable-regex": {"metavariable": "$M", "regex": _GO_SQL_METHOD}},
+            {"pattern-not-inside": "$DB, $E := $X.Prepare(...)\n..."},
+            {"pattern-not-inside": "$DB, $E = $X.Prepare(...)\n..."},
+            {"pattern-not-inside": "$DB, $E := $X.Preparex(...)\n..."},
+            {"pattern-not-inside": "$DB, $E = $X.Preparex(...)\n..."},
+            {"pattern-not": '"($DB : *sql.Stmt).$M(...)"'},
+            {"pattern-not": "$X.URL.Query(...)"},
+            {"pattern-not": '"($X : *gin.Context).Query(...)"'},
+            {"focus-metavariable": "$SQL"},
+        ]
+    },
+    {
+        "patterns": [
+            "$DB.$M($CTX, $SQL, ...)",
+            {
+                "metavariable-regex": {
+                    "metavariable": "$M",
+                    "regex": r"^(QueryContext|QueryRowContext|ExecContext|PrepareContext|QueryxContext|QueryRowxContext)$",
+                }
+            },
+            {"focus-metavariable": "$SQL"},
+        ]
+    },
+    # pgx puts the context first: conn.Query(ctx, sql, args...).
+    {
+        "patterns": [
+            "$DB.$M($CTX, $SQL, ...)",
+            {"metavariable-regex": {"metavariable": "$M", "regex": r"^(Query|QueryRow|Exec)$"}},
+            {"metavariable-regex": {"metavariable": "$CTX", "regex": r"(?i).*(ctx|context)"}},
+            {"focus-metavariable": "$SQL"},
+        ]
+    },
+    # sqlx Get/Select(dest, query, args...).
+    {
+        "patterns": [
+            {"pattern-either": ["$DB.Select(&$DEST, $SQL, ...)", "$DB.Get(&$DEST, $SQL, ...)"]},
+            {"focus-metavariable": "$SQL"},
+        ]
+    },
+]
+
+# Go SSRF sinks (#56): the URL argument only. A tainted request body sent to
+# a fixed URL is not SSRF, `$CLIENT.Do(...)` matched any `.Do`, and
+# url.Parse does not make a request.
+_GO_HTTP_URL_SINKS: list[Entry] = [
+    {
+        "patterns": [
+            {
+                "pattern-either": [
+                    "http.Get($U)",
+                    "http.Head($U)",
+                    "http.Post($U, ...)",
+                    "http.PostForm($U, ...)",
+                ]
+            },
+            {"focus-metavariable": "$U"},
+        ]
+    },
+    {
+        "patterns": [
+            {"pattern-either": ["$C.Get($U)", "$C.Head($U)", "$C.Post($U, ...)", "$C.PostForm($U, ...)"]},
+            {"metavariable-regex": {"metavariable": "$C", "regex": r"(?i).*(client|http)"}},
+            {"focus-metavariable": "$U"},
+        ]
+    },
+    {
+        "patterns": [
+            {
+                "pattern-either": [
+                    "http.NewRequest($M, $U, ...)",
+                    "http.NewRequestWithContext($CTX, $M, $U, ...)",
+                ]
+            },
+            {"focus-metavariable": "$U"},
+        ]
+    },
+]
+
 #: name -> ordered list of opengrep sink entries.
-#: (Populated incrementally as sink blocks are migrated; see issue #159.)
-SINKS: dict[str, list[Entry]] = {}
+SINKS: dict[str, list[Entry]] = {
+    "sql_go": _GO_SQL_SINKS,
+    "http_url_go": _GO_HTTP_URL_SINKS,
+}
 
 
 # --------------------------------------------------------------------------- #

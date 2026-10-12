@@ -279,13 +279,22 @@ class TestMcpToolSql:
 class TestMcpToolSsrf:
     RULE = "tnt-go-ai-mcptool-ssrf-001"
 
+    def test_url_parse_alone_is_not_a_request(self, tmp_path):
+        # Parsing makes no request; only a fetch of the URL is SSRF (#56).
+        src = _mcp_go(
+            '\tu := request.GetString("url", "")\n'
+            "\tp, _ := url.Parse(u)\n"
+            "\t_ = p\n",
+            '\t"net/url"\n',
+        )
+        assert not _scan(tmp_path, "h.go", TAINT_RULES, src, self.RULE, "go")
+
     @pytest.mark.parametrize(
         "sink",
         [
             "http.Get(u)",
             'http.NewRequest("GET", u, nil)',
             'http.NewRequestWithContext(ctx, "GET", u, nil)',
-            "url.Parse(u)",
         ],
     )
     def test_mcp_go_url_to_each_sink(self, tmp_path, sink):
