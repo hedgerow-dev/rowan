@@ -74,3 +74,44 @@ def test_express_with_helmet_on_another_line_is_quiet(tmp_path):
 
 def test_non_express_listen_is_quiet(tmp_path):
     assert not _fires(tmp_path, "server.js", "javascript", "ns-fw-js-001", PLAIN_SERVER)
+
+
+AIOHTTP_LOGIN = """from aiohttp_session import get_session
+
+async def index(request):
+    session = await get_session(request)
+    user = await authorize(request)
+    session['user_id'] = user.id
+    return redirect('/')
+"""
+AIOHTTP_LOGIN_ROTATED = """from aiohttp_session import new_session
+
+async def index(request):
+    user = await authorize(request)
+    session = await new_session(request)
+    session['user_id'] = user.id
+    return redirect('/')
+"""
+FLASK_LOGIN_CLEARED = """from flask import session
+
+def login():
+    user = check_password()
+    session.clear()
+    session['user_id'] = user.id
+"""
+SESSION_READ_AND_CART = """from flask import session
+
+def view():
+    uid = session['user_id']
+    session['cart'] = []
+    return uid
+"""
+
+
+def test_login_without_session_rotation_fires(tmp_path):
+    assert _fires(tmp_path, "views.py", "python", "ns-fw-sess-001", AIOHTTP_LOGIN)
+
+
+@pytest.mark.parametrize("src", [AIOHTTP_LOGIN_ROTATED, FLASK_LOGIN_CLEARED, SESSION_READ_AND_CART])
+def test_rotated_session_or_non_login_key_is_quiet(tmp_path, src):
+    assert not _fires(tmp_path, "views.py", "python", "ns-fw-sess-001", src)

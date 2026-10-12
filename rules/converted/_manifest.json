@@ -1,11 +1,11 @@
 {
   "meta": {
-    "total_rules": 388,
-    "ok": 388,
+    "total_rules": 379,
+    "ok": 379,
     "warning": 0,
     "error": 0,
     "secrets_residual": 5,
-    "sanitizer_residual": 229,
+    "sanitizer_residual": 223,
     "converter_version": "1.0"
   },
   "rules": [
@@ -3442,66 +3442,6 @@
       ]
     },
     {
-      "id": "ns-fw-js-003",
-      "category": "auth",
-      "cwe": [
-        352
-      ],
-      "original_severity": "WARNING",
-      "original_engine": "neuroscan",
-      "residual": [],
-      "status": "ok",
-      "warnings": [],
-      "name": "Express missing CSRF protection",
-      "pattern_not": [
-        "csrf\\(",
-        "csurf\\(",
-        "(?m)^\\s*#",
-        "(?m)^\\s*//.*",
-        "(?:def test_|conftest|unittest)"
-      ]
-    },
-    {
-      "id": "ns-fw-js-004",
-      "category": "injection",
-      "cwe": [
-        89
-      ],
-      "original_severity": "ERROR",
-      "original_engine": "neuroscan",
-      "residual": [
-        "sanitizer"
-      ],
-      "status": "ok",
-      "warnings": [],
-      "name": "SQL injection in Express route",
-      "pattern_not": [
-        "(?m)^\\s*#",
-        "(?m)^\\s*//.*",
-        "(?:def test_|conftest|unittest)"
-      ]
-    },
-    {
-      "id": "ns-fw-js-005",
-      "category": "xss",
-      "cwe": [
-        79
-      ],
-      "original_severity": "ERROR",
-      "original_engine": "neuroscan",
-      "residual": [
-        "sanitizer"
-      ],
-      "status": "ok",
-      "warnings": [],
-      "name": "Unsanitized response in Express",
-      "pattern_not": [
-        "(?m)^\\s*#",
-        "(?m)^\\s*//.*",
-        "(?:def test_|conftest|unittest)"
-      ]
-    },
-    {
       "id": "ns-fw-java-001",
       "category": "auth",
       "cwe": [
@@ -3576,26 +3516,6 @@
       ]
     },
     {
-      "id": "ns-fw-java-005",
-      "category": "injection",
-      "cwe": [
-        915
-      ],
-      "original_severity": "ERROR",
-      "original_engine": "neuroscan",
-      "residual": [
-        "sanitizer"
-      ],
-      "status": "ok",
-      "warnings": [],
-      "name": "Spring mass assignment",
-      "pattern_not": [
-        "(?m)^\\s*#",
-        "(?m)^\\s*//.*",
-        "(?:def test_|conftest|unittest)"
-      ]
-    },
-    {
       "id": "ns-fw-cs-001",
       "category": "auth",
       "cwe": [
@@ -3633,26 +3553,6 @@
       ]
     },
     {
-      "id": "ns-fw-cs-003",
-      "category": "injection",
-      "cwe": [
-        89
-      ],
-      "original_severity": "ERROR",
-      "original_engine": "neuroscan",
-      "residual": [
-        "sanitizer"
-      ],
-      "status": "ok",
-      "warnings": [],
-      "name": "ASP.NET raw SQL injection",
-      "pattern_not": [
-        "(?m)^\\s*#",
-        "(?m)^\\s*//.*",
-        "(?:def test_|conftest|unittest)"
-      ]
-    },
-    {
       "id": "ns-fw-cs-004",
       "category": "auth",
       "cwe": [
@@ -3683,27 +3583,6 @@
       "status": "ok",
       "warnings": [],
       "name": "ASP.NET developer exception page in production",
-      "pattern_not": [
-        "(?m)^\\s*#",
-        "(?m)^\\s*//.*",
-        "(?:def test_|conftest|unittest)"
-      ]
-    },
-    {
-      "id": "ns-fw-go-001",
-      "category": "injection",
-      "cwe": [
-        89,
-        78
-      ],
-      "original_severity": "ERROR",
-      "original_engine": "neuroscan",
-      "residual": [
-        "sanitizer"
-      ],
-      "status": "ok",
-      "warnings": [],
-      "name": "Go framework unsanitized input to dangerous sink",
       "pattern_not": [
         "(?m)^\\s*#",
         "(?m)^\\s*//.*",
@@ -3765,62 +3644,6 @@
       "pattern_not": [
         "(?m)^\\s*#",
         "(?m)^\\s*//.*",
-        "(?:def test_|conftest|unittest)"
-      ]
-    },
-    {
-      "id": "ns-fw-py-001",
-      "category": "config",
-      "cwe": [
-        489
-      ],
-      "original_severity": "ERROR",
-      "original_engine": "neuroscan",
-      "residual": [],
-      "status": "ok",
-      "warnings": [],
-      "name": "Flask debug mode enabled",
-      "pattern_not": [
-        "(?m)^\\s*#",
-        "(?:def test_|conftest|unittest)"
-      ]
-    },
-    {
-      "id": "ns-fw-py-003",
-      "category": "injection",
-      "cwe": [
-        601
-      ],
-      "original_severity": "ERROR",
-      "original_engine": "neuroscan",
-      "residual": [
-        "sanitizer"
-      ],
-      "status": "ok",
-      "warnings": [],
-      "name": "Flask open redirect",
-      "pattern_not": [
-        "(?m)^\\s*#",
-        "(?:def test_|conftest|unittest)"
-      ]
-    },
-    {
-      "id": "ns-fw-sess-001",
-      "category": "auth",
-      "cwe": [
-        384
-      ],
-      "original_severity": "WARNING",
-      "original_engine": "neuroscan",
-      "residual": [],
-      "status": "ok",
-      "warnings": [],
-      "name": "Session fixation risk",
-      "pattern_not": [
-        "session\\.regenerate",
-        "cycle_key\\(",
-        "flush\\(",
-        "(?m)^\\s*#",
         "(?:def test_|conftest|unittest)"
       ]
     },

@@ -252,7 +252,7 @@ def test_vuln_app_class_consistency_scoring():
     assert benchmark._cwe_keywords("CWE-639") == ()  # IDOR -> uncatchable
 
     # CWE-915 (mass assignment) DOES have a real keyword mapping now -- unlike
-    # 639, actual rules in the corpus (ns-bb-005/RB-AUTH-001/ns-fw-java-005)
+    # 639, actual rules in the corpus (ns-bb-005/RB-AUTH-001)
     # target this class by declared CWE, they just don't fire on every mass-
     # assignment shape yet. The keywords are narrow enough that an unrelated
     # finding near a mass-assignment sink still isn't credited.

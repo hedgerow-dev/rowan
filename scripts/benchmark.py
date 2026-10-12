@@ -408,7 +408,7 @@ _CWE_CLASS_KEYWORDS: dict[int, tuple[str, ...]] = {
     # mention of "token" or "query" elsewhere (both very common words in this
     # corpus) can't credit it.
     598: ("bearer token", "query parameter"),
-    # CWE-601: open redirect. Mirrors NS-REDIRECT-001/ns-fw-py-003/ns-fw-go-005
+    # CWE-601: open redirect. Mirrors NS-REDIRECT-001/ns-fw-go-005
     # /ns-bb-007's own wording. Note TNT-HEADER-001 (CRLF header injection,
     # CWE-113) also mentions "open redirect" in passing ("...cache poisoning,
     # cookie injection, or open redirect attacks") -- harmless here because
@@ -455,8 +455,8 @@ _CWE_CLASS_KEYWORDS: dict[int, tuple[str, ...]] = {
     # "auth"/"access"/"authorization" also rejected per the file's existing
     # discipline.
     862: ("confused deputy", "broken authorization"),
-    # CWE-915: mass assignment / unsafe setattr. Mirrors ns-bb-005/RB-AUTH-001
-    # /ns-fw-java-005's own wording -- these rules are real (unlike CWE-639,
+    # CWE-915: mass assignment / unsafe setattr. Mirrors ns-bb-005/RB-AUTH-001's
+    # own wording -- these rules are real (unlike CWE-639,
     # which has no keyword signature at all) but none currently fire on this
     # corpus's setattr-loop shape, so this stays an honest MISS rather than a
     # false credit; entry kept narrow so a future rule improvement can be

@@ -22,71 +22,7 @@ rules:
     message: |
       CORS configured with wildcard origin (*). Restrict to specific trusted domains.
 
-  - id: ns-fw-js-003
-    name: Express missing CSRF protection
-    severity: WARNING
-    category: auth
-    cwe: [352]
-    languages: [javascript, typescript]
-    # DEF-25: bare `\.post\(`/`\.put\(` matched the method name on ANY
-    # receiver, not just an Express app/router. Confirmed on two real
-    # corpus scans: discourse (225 fires) were pretender.js mock-server
-    # test route definitions (`pretender.post(...)`/`server.put(...)`,
-    # Ember.js frontend test fixtures, not real server routes); prestashop
-    # (72 fires) were jQuery's client-side AJAX helper (`$.post(...)`) --
-    # the client *making* a request, the opposite of a server handling one
-    # without CSRF protection. Scoped to the standard Express convention
-    # (`app.post(...)`/`router.post(...)`).
-    patterns:
-      - 'express\(\)'
-      - '\b(?:app|router)\.post\('
-      - '\b(?:app|router)\.put\('
-    pattern-not:
-      - 'csrf\('
-      - 'csurf\('
-      - '(?m)^\s*#'
-      - '(?m)^\s*//.*'
-      - '(?:def test_|conftest|unittest)'
-    message: |
-      Express app with POST/PUT routes but no CSRF middleware detected.
-      Use csurf or csrf-csrf middleware for state-changing endpoints.
-
-  - id: ns-fw-js-004
-    name: SQL injection in Express route
-    severity: ERROR
-    category: injection
-    cwe: [89]
-    languages: [javascript, typescript]
-    patterns:
-      - 'req\.(?:params|query|body)'
-      - '\.query\('
-    pattern-not:
-      - '(?m)^\s*#'
-      - '(?m)^\s*//.*'
-      - '(?:def test_|conftest|unittest)'
-    message: |
-      User input from req.params/query/body near a .query() call.
-      Use parameterized queries to prevent SQL injection.
-
-  - id: ns-fw-js-005
-    name: Unsanitized response in Express
-    severity: ERROR
-    category: xss
-    cwe: [79]
-    languages: [javascript, typescript]
-    patterns:
-      - 'res\.send\('
-      - 'req\.(?:params|query|body)'
-    pattern-not:
-      - '(?m)^\s*#'
-      - '(?m)^\s*//.*'
-      - '(?:def test_|conftest|unittest)'
-    message: |
-      User input from request may be reflected in res.send() without encoding.
-      Sanitize or encode all user input before sending in responses.
-
   # ── Spring (Java) ─────────────────────────────────────────────────
-
   - id: ns-fw-java-001
     name: Spring CSRF disabled
     severity: ERROR
@@ -163,25 +99,7 @@ rules:
       Spring Expression Language (SpEL) parsing detected. If user input reaches
       parseExpression(), RCE is possible. Use SimpleEvaluationContext with restricted types.
 
-  - id: ns-fw-java-005
-    name: Spring mass assignment
-    severity: ERROR
-    category: injection
-    cwe: [915]
-    languages: [java]
-    patterns:
-      - 'BeanUtils\.copyProperties\('
-      - '@ModelAttribute'
-    pattern-not:
-      - '(?m)^\s*#'
-      - '(?m)^\s*//.*'
-      - '(?:def test_|conftest|unittest)'
-    message: |
-      Mass assignment via BeanUtils.copyProperties() or @ModelAttribute. Attackers
-      can set unintended fields. Use DTOs with explicit field mapping.
-
   # ── ASP.NET (C#) ──────────────────────────────────────────────────
-
   - id: ns-fw-cs-001
     name: ASP.NET missing Authorize attribute
     severity: WARNING
@@ -218,23 +136,6 @@ rules:
       CORS allows any origin with credentials. This is a browser security violation
       and exposes authenticated endpoints to any site.
 
-  - id: ns-fw-cs-003
-    name: ASP.NET raw SQL injection
-    severity: ERROR
-    category: injection
-    cwe: [89]
-    languages: [csharp]
-    patterns:
-      - 'FromSqlRaw\('
-      - 'ExecuteSqlRaw\('
-    pattern-not:
-      - '(?m)^\s*#'
-      - '(?m)^\s*//.*'
-      - '(?:def test_|conftest|unittest)'
-    message: |
-      Raw SQL execution in Entity Framework. Use FromSqlInterpolated()
-      or parameterized queries to prevent SQL injection.
-
   - id: ns-fw-cs-004
     name: ASP.NET missing anti-forgery token
     severity: WARNING
@@ -269,24 +170,6 @@ rules:
       Only enable in Development environment behind env.IsDevelopment() check.
 
   # ── Gin / Echo (Go) ───────────────────────────────────────────────
-
-  - id: ns-fw-go-001
-    name: Go framework unsanitized input to dangerous sink
-    severity: ERROR
-    category: injection
-    cwe: [89, 78]
-    languages: [go]
-    patterns:
-      - 'c\.(?:Param|Query|PostForm)\('
-      - 'db\.(?:Raw|Exec)\('
-      - 'exec\.Command\('
-    pattern-not:
-      - '(?m)^\s*#'
-      - '(?m)^\s*//.*'
-      - '(?:def test_|conftest|unittest)'
-    message: |
-      User input from Gin/Echo context flows to db.Raw(), db.Exec(), or exec.Command().
-      Use parameterized queries and avoid shell commands with user input.
 
   - id: ns-fw-go-002
     name: Go CORS wildcard
@@ -338,51 +221,3 @@ rules:
 
   # ── Flask / Django (Python) ───────────────────────────────────────
 
-  - id: ns-fw-py-001
-    name: Flask debug mode enabled
-    severity: ERROR
-    category: config
-    cwe: [489]
-    languages: [python]
-    patterns:
-      - '\.run\((?:[^()]|\([^()]*\))*debug\s*=\s*True'
-    pattern-not:
-      - '(?m)^\s*#'
-      - '(?:def test_|conftest|unittest)'
-    message: |
-      Flask running with debug=True. The Werkzeug debugger allows arbitrary
-      code execution. Never enable debug mode in production.
-
-  - id: ns-fw-py-003
-    name: Flask open redirect
-    severity: ERROR
-    category: injection
-    cwe: [601]
-    languages: [python]
-    patterns:
-      - 'redirect\(request\.(?:args|form|GET|POST)\.get\('
-    pattern-not:
-      - '(?m)^\s*#'
-      - '(?:def test_|conftest|unittest)'
-    message: |
-      Redirect target from user input enables open redirect. Validate the
-      URL against a whitelist or use url_for() with known endpoints.
-
-  - id: ns-fw-sess-001
-    name: Session fixation risk
-    severity: WARNING
-    category: auth
-    cwe: [384]
-    languages: [python]
-    patterns:
-      - 'session\['
-      - 'request\.session\b'
-    pattern-not:
-      - 'session\.regenerate'
-      - 'cycle_key\('
-      - 'flush\('
-      - '(?m)^\s*#'
-      - '(?:def test_|conftest|unittest)'
-    message: |
-      Session value set without regenerating the session ID. After login,
-      call session.cycle_key() (Django) or regenerate the session to prevent fixation.

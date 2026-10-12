@@ -557,41 +557,6 @@ def test_ns_xss_002_ignores_innerhtml_empty_string_clear(tmp_path):
     assert rule.check(genuine), "must still fire on a genuine innerHTML XSS sink"
 
 
-def test_ns_fw_js_003_ignores_non_express_post_put(tmp_path):
-    """DEF-25: ns-fw-js-003 ("Express missing CSRF protection") had bare
-    `\\.post\\(`/`\\.put\\(` patterns matching the method name on ANY
-    receiver. Confirmed on two real corpus scans: discourse (225 fires)
-    were pretender.js mock-server test route definitions
-    (`pretender.post(...)`/`server.put(...)`, Ember.js frontend test
-    fixtures, not real server routes); prestashop (72 fires) were
-    jQuery's client-side AJAX helper (`$.post(...)`) -- the client making
-    a request, the opposite of a server handling one without CSRF
-    protection. Scoped to the standard Express convention
-    (`app.post(...)`/`router.post(...)`)."""
-    rules_dir = Path(__file__).parent.parent / "rules"
-    rules = load_neuroscan_rules(rules_dir / "framework_rules.yaml")
-    rule = next(r for r in rules if r.metadata.id == "ns-fw-js-003")
-
-    mock_server = tmp_path / "mock.js"
-    mock_server.write_text('pretender.post("/admin/email/test", () => {});\n', encoding="utf-8")
-    assert rule.check(mock_server) == [], "must not fire on pretender.js mock-server test routes"
-
-    jquery_ajax = tmp_path / "client.js"
-    jquery_ajax.write_text(
-        "$.post(url).then(() => window.location.assign(redirectUrl));\n", encoding="utf-8"
-    )
-    assert rule.check(jquery_ajax) == [], "must not fire on jQuery's client-side $.post()"
-
-    genuine = tmp_path / "server.js"
-    genuine.write_text(
-        "const express = require('express');\n"
-        "const app = express();\n"
-        "app.post('/transfer', (req, res) => { doTransfer(req.body); });\n",
-        encoding="utf-8",
-    )
-    assert rule.check(genuine), "must still fire on a real Express app.post() route without CSRF"
-
-
 def test_ns_path_005_ignores_unrelated_extract_methods(tmp_path):
     """DEF-16: NS-PATH-005's bare `\\.extract\\(` pattern matched the method
     name "extract" on ANY receiver, not just tarfile/zipfile objects.

@@ -322,7 +322,7 @@ _DUPLICATE_RULE_GROUPS: tuple[frozenset[str], ...] = (
     frozenset({"NS-PATH-005", "ns-aiml-063"}),  # tarfile extractall zip-slip
     frozenset({"NS-CACHE-001", "ns-fw-js-002"}),  # CORS wildcard origin
     frozenset({"NS-DESER-010", "ns-aiml-043"}),  # Keras model_from_json code exec
-    frozenset({"NS-REDIRECT-001", "ns-fw-py-003", "TNT-REDIR-001"}),
+    frozenset({"NS-REDIRECT-001", "TNT-REDIR-001"}),
     frozenset({"NS-INJECT-001", "NS-INJECT-002", "ns-aiml-046"}),
     frozenset({"NS-CMDI-002", "NS-INJECT-003"}),
     frozenset({"NS-SSTI-001", "ns-aiml-129"}),

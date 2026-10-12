@@ -162,10 +162,6 @@ NAMED_REGRESSION_RULES = [
         "mass assignment -- request data passed directly to a model "
         "create/update call",
     ),
-    (
-        "ns-fw-py-003", "injection",
-        "open redirect -- redirect target taken straight from user input",
-    ),
 ]
 
 

@@ -38,3 +38,68 @@ rules:
           $APP = express();
           ...
           $APP.use(helmet(...));
+
+  - id: ns-fw-sess-001
+    message: >
+      A login-style key (user_id, uid, ...) is written into the session without
+      rotating the session in the same function. An attacker who planted a
+      session ID before login keeps it after the victim authenticates (session
+      fixation). Rotate first: session.clear() (Flask), new_session() (aiohttp),
+      request.session.cycle_key() or login() (Django).
+    severity: WARNING
+    languages: [python]
+    paths:
+      exclude:
+        - "**/tests/**"
+        - "**/test_*.py"
+    metadata:
+      cwe: [384]
+      category: auth
+      fix: "Issue a fresh session at login before storing the user's identity in it."
+    patterns:
+      - pattern: $SESSION[$KEY] = $VALUE
+      - metavariable-regex:
+          metavariable: $SESSION
+          regex: ^(session|sess|request\.session)$
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: ^["'](user_id|uid|user|username|account_id|auth_user_id|logged_in)["']$
+      # `def` also matches `async def`.
+      - pattern-inside: |
+          def $F(...):
+            ...
+      - pattern-not-inside: |
+          def $F(...):
+            ...
+            $S.clear()
+            ...
+      - pattern-not-inside: |
+          def $F(...):
+            ...
+            $S.cycle_key()
+            ...
+      - pattern-not-inside: |
+          def $F(...):
+            ...
+            $S.invalidate()
+            ...
+      - pattern-not-inside: |
+          def $F(...):
+            ...
+            $S.regenerate(...)
+            ...
+      - pattern-not-inside: |
+          def $F(...):
+            ...
+            $S = await new_session(...)
+            ...
+      - pattern-not-inside: |
+          def $F(...):
+            ...
+            $S = new_session(...)
+            ...
+      - pattern-not-inside: |
+          def $F(...):
+            ...
+            login(...)
+            ...
