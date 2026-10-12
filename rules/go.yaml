@@ -75,54 +75,6 @@ rules:
       math/rand is not cryptographically secure. Use crypto/rand for
       tokens, keys, and security-sensitive random values.
 
-  - id: GO-SSRF-001
-    name: Unvalidated HTTP client
-    severity: high
-    category: ssrf
-    cwe: [918]
-    languages: [go]
-    patterns:
-      - 'http\.(Get|Post|PostForm|NewRequest)\s*\('
-    pattern-not:
-      - 'context\.'
-      - '\.WithContext\s*\('
-      - '(?m)^\s*//.*'
-    message: |
-      HTTP client without request validation enables SSRF. Validate and
-      whitelist destination URLs before making outbound requests.
-
-  - id: GO-PATH-001
-    name: User-controlled file path
-    severity: high
-    category: path_traversal
-    cwe: [22]
-    languages: [go]
-    patterns:
-      - 'os\.(Open|OpenFile)\s*\('
-      - 'ioutil\.ReadFile\s*\('
-    pattern-not:
-      - 'filepath\.Clean\s*\('
-      - 'filepath\.Abs\s*\('
-      - '(?m)^\s*//.*'
-    message: |
-      Filesystem path from user input allows directory traversal. Use
-      filepath.Clean() and validate the resolved path.
-
-  - id: GO-SSTI-001
-    name: text/template used for HTML
-    severity: medium
-    category: ssti
-    cwe: [94]
-    languages: [go]
-    patterns:
-      - '"text/template"'
-    pattern-not:
-      - '"html/template"'
-      - '(?m)^\s*//.*'
-    message: |
-      text/template used for HTML rendering: no automatic XSS escaping.
-      Use html/template for HTML contexts.
-
   - id: GO-CONFIG-001
     name: TLS verification disabled
     severity: high
@@ -136,34 +88,3 @@ rules:
     message: |
       TLS certificate verification disabled. Enables man-in-the-middle
       attacks in production. Remove InsecureSkipVerify.
-
-  - id: GO-AUTH-001
-    name: HTTP server without TLS
-    severity: medium
-    category: auth
-    cwe: [319]
-    languages: [go]
-    patterns:
-      - 'http\.ListenAndServe\s*\('
-    pattern-not:
-      - 'http\.ListenAndServeTLS\s*\('
-      - '(?m)^\s*//.*'
-    message: |
-      HTTP server running in cleartext. Sensitive data transmitted in
-      plaintext. Use ListenAndServeTLS with valid certificates.
-
-  - id: GO-SUPPLY-001
-    name: Missing response body close
-    severity: low
-    category: supply_chain
-    cwe: [772]
-    languages: [go]
-    patterns:
-      - '\.Do\s*\('
-    pattern-not:
-      - '(?i)once\.Do\s*\('
-      - '(?s)\.Do\s*\(.{0,300}?defer\s+\S+\.Body\.Close\s*\(\s*\)'
-      - '(?m)^\s*//.*'
-    message: |
-      HTTP response body not closed. Leaks connections and may exhaust
-      file descriptors. Add 'defer resp.Body.Close()'.

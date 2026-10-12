@@ -472,6 +472,43 @@ rules:
           - pattern: $C.Redirect($CODE, $URL)
           - focus-metavariable: $URL
 
+  # Request input used as the template SOURCE. Data passed to Execute is
+  # escaped (html/template) or inert; a template the caller writes can call
+  # any method or function reachable from the data and the FuncMap (#56,
+  # replaces GO-SSTI-001, which fired on every text/template import).
+  - id: tnt-go-ssti-001
+    mode: taint
+    languages: [go]
+    severity: ERROR
+    message: >-
+      User input is parsed as a Go template, so the caller writes template
+      code that runs with access to the data and functions passed to it.
+    metadata:
+      cwe:
+        - "CWE-1336: Improper Neutralization of Special Elements Used in a Template Engine"
+      confidence: HIGH
+      category: ssti
+      source_kind: http_input
+      fix: "Parse only templates shipped with the code; pass user input as data to Execute, never as template text."
+    pattern-sources:
+      # rowan-registry:begin source=web_request_go
+      - patterns:
+          - pattern-either:
+              - pattern: $R.URL.Query()
+              - pattern: $R.FormValue(...)
+              - pattern: $R.Body
+              - pattern: $C.Param(...)
+              - pattern: "($C : *gin.Context).Query(...)"
+              - pattern: $C.ShouldBindJSON(...)
+      # rowan-registry:end source=web_request_go
+      - pattern: $C.Query(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: template.New(...).Parse($SRC)
+              - pattern: $T.Parse($SRC)
+          - focus-metavariable: $SRC
+
   - id: tnt-go-xss-001
     mode: taint
     languages: [go]

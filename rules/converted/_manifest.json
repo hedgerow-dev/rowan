@@ -1,11 +1,11 @@
 {
   "meta": {
-    "total_rules": 369,
-    "ok": 369,
+    "total_rules": 364,
+    "ok": 364,
     "warning": 0,
     "error": 0,
     "secrets_residual": 5,
-    "sanitizer_residual": 220,
+    "sanitizer_residual": 217,
     "converter_version": "1.0"
   },
   "rules": [
@@ -3706,65 +3706,6 @@
       ]
     },
     {
-      "id": "GO-SSRF-001",
-      "category": "ssrf",
-      "cwe": [
-        918
-      ],
-      "original_severity": "high",
-      "original_engine": "neuroscan",
-      "residual": [
-        "sanitizer"
-      ],
-      "status": "ok",
-      "warnings": [],
-      "name": "Unvalidated HTTP client",
-      "pattern_not": [
-        "context\\.",
-        "\\.WithContext\\s*\\(",
-        "(?m)^\\s*//.*"
-      ]
-    },
-    {
-      "id": "GO-PATH-001",
-      "category": "path_traversal",
-      "cwe": [
-        22
-      ],
-      "original_severity": "high",
-      "original_engine": "neuroscan",
-      "residual": [
-        "sanitizer"
-      ],
-      "status": "ok",
-      "warnings": [],
-      "name": "User-controlled file path",
-      "pattern_not": [
-        "filepath\\.Clean\\s*\\(",
-        "filepath\\.Abs\\s*\\(",
-        "(?m)^\\s*//.*"
-      ]
-    },
-    {
-      "id": "GO-SSTI-001",
-      "category": "ssti",
-      "cwe": [
-        94
-      ],
-      "original_severity": "medium",
-      "original_engine": "neuroscan",
-      "residual": [
-        "sanitizer"
-      ],
-      "status": "ok",
-      "warnings": [],
-      "name": "text/template used for HTML",
-      "pattern_not": [
-        "\"html/template\"",
-        "(?m)^\\s*//.*"
-      ]
-    },
-    {
       "id": "GO-CONFIG-001",
       "category": "config",
       "cwe": [
@@ -3777,41 +3718,6 @@
       "warnings": [],
       "name": "TLS verification disabled",
       "pattern_not": [
-        "(?m)^\\s*//.*"
-      ]
-    },
-    {
-      "id": "GO-AUTH-001",
-      "category": "auth",
-      "cwe": [
-        319
-      ],
-      "original_severity": "medium",
-      "original_engine": "neuroscan",
-      "residual": [],
-      "status": "ok",
-      "warnings": [],
-      "name": "HTTP server without TLS",
-      "pattern_not": [
-        "http\\.ListenAndServeTLS\\s*\\(",
-        "(?m)^\\s*//.*"
-      ]
-    },
-    {
-      "id": "GO-SUPPLY-001",
-      "category": "supply_chain",
-      "cwe": [
-        772
-      ],
-      "original_severity": "low",
-      "original_engine": "neuroscan",
-      "residual": [],
-      "status": "ok",
-      "warnings": [],
-      "name": "Missing response body close",
-      "pattern_not": [
-        "(?i)once\\.Do\\s*\\(",
-        "(?s)\\.Do\\s*\\(.{0,300}?defer\\s+\\S+\\.Body\\.Close\\s*\\(\\s*\\)",
         "(?m)^\\s*//.*"
       ]
     },
