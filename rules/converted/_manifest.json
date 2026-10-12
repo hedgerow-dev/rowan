@@ -4222,7 +4222,7 @@
         327,
         328
       ],
-      "original_severity": "ERROR",
+      "original_severity": "WARNING",
       "original_engine": "neuroscan",
       "residual": [],
       "status": "ok",
@@ -4231,6 +4231,8 @@
       "fix": "Use an untruncated keyed digest (HMAC-SHA256 or BLAKE3) for cache and block keys, and never narrow the stored identifier below 128 bits.",
       "pattern_not": [
         "(?m)^\\s*#",
+        ">>\\s*\\d+\\s*\\)?\\s*&\\s*0x",
+        "\\[\\s*\\d+\\s*\\]\\s*&\\s*0x",
         "(?:def test_|conftest|unittest)"
       ]
     },

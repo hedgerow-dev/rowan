@@ -24,8 +24,8 @@ rules:
   - id: ns-aiml-140
     name: KV transfer control parameters on the public request schema
     message: |
-      An internal KV transfer or remote peer parameter (kv_transfer_params,
-      remote_engine_id, remote_host, remote_port, cache_salt) is declared as a
+      An internal KV transfer or remote peer parameter (kv_transfer_params or
+      remote_engine_id) is declared as a
       field on a request model, or read straight out of a request body, so an
       unauthenticated caller can choose which peer a decode worker pulls KV
       blocks from. In vLLM's NIXL path the worker compares the peer's
@@ -42,8 +42,8 @@ rules:
       - "*_test.py"
     patterns:
       - '\bkv_transfer_params\s*:\s*[^=]*=\s*Field\b'
-      - '\b(?:remote_engine_id|remote_host|remote_port|cache_salt)\s*:\s*[^=]*=\s*Field\b'
-      - '\b(?:request|req|body|payload|data|params|json|kv_transfer_params|kv_params|transfer_params)\w*(?:\.\w+)*\s*(?:\.get\(|\[)\s*["''](?:kv_transfer_params|remote_engine_id|remote_host|remote_port|cache_salt)["'']'
+      - '\bremote_engine_id\s*:\s*[^=]*=\s*Field\b'
+      - '\b(?:request|req|body|payload|data|params|json|kv_transfer_params|kv_params|transfer_params)\w*(?:\.\w+)*\s*(?:\.get\(|\[)\s*["''](?:kv_transfer_params|remote_engine_id)["'']'
     pattern-not:
       - '(?m)^\s*#'
       - '(?:def test_|conftest|unittest)'
@@ -115,14 +115,17 @@ rules:
       of key space is a birthday collision within a few hundred requests, so
       one tenant's lookup can land on another tenant's cached entry. Keep
       cache lookup identifiers at full width, at least 128 bits.
-    severity: ERROR
+    severity: WARNING
     languages: [python]
     patterns:
       - '(?i)\b(?:hash|hashes|digest|hexdigest|hex_part|hexpart|cache_key|block_key|mm_hash)\w*.*&\s*0x(?:ffff|ff)\b'
       - '(?i)&\s*0x(?:ffff|ff)\b.*\b(?:cache|hash|block|key)\w*\b'
-      - '(?i)\b(?:kv|block|prefix|chunk|cache|prompt|token|mm_hash)\w*.*(?:hexdigest\(\)|\.hex\(\))\s*\[\s*:\s*(?:1[0-6]|[1-9])\s*\]'
+      - '(?i)\b(?:kv|block|prefix|chunk|cache|prompt|token(?!iz)|mm_hash)\w*.*(?:hexdigest\(\)|\.hex\(\))\s*\[\s*:\s*[1-8]\s*\]'
     pattern-not:
       - '(?m)^\s*#'
+      # Byte extraction, not truncation: (h >> 8) & 0xFF, digest[0] & 0xff.
+      - '>>\s*\d+\s*\)?\s*&\s*0x'
+      - '\[\s*\d+\s*\]\s*&\s*0x'
       - '(?:def test_|conftest|unittest)'
     metadata:
       mode: regex
@@ -134,7 +137,7 @@ rules:
     name: Unkeyed builtin hash used for cache key derivation
     message: |
       A cache key is derived with Python's builtin hash() over token or chunk
-      data, or the process pins PYTHONHASHSEED to make that hash reproducible.
+      data.
       CPython does not randomize int and tuple hashing, so the key is a fixed,
       publicly reproducible function of the token sequence with no secret and
       no tenant binding. LMCache's builtin chunk hashing has exactly this
@@ -151,8 +154,6 @@ rules:
       - "test_*.py"
       - "*_test.py"
     patterns:
-      - '(?:environ\s*(?:\[|\.get\()|getenv\(|setenv\(|putenv\()\s*["'']PYTHONHASHSEED'
-      - '(?m)^\s*(?:export\s+|ENV\s+)?PYTHONHASHSEED\s*=\s*\d'
       - '\bhash\(\s*\(?[^)]*\b(?:token_ids|tokens_tuple|token_tuple|tokens|chunk_tokens|chunk_hash|prefix_hash|block_tokens)\b'
       - '(?i)\b(?:hash_func|hash_function|hash_algo\w*|chunk_hash_algo\w*|hashing_algorithm)\b[^=\n]*=\s*(?:hash\b|["'']builtin["''])'
     pattern-not:

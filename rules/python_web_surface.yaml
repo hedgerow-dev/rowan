@@ -109,6 +109,9 @@ rules:
       - request\.args\[\s*["'](?:token|access_token|auth_token|api_key|apikey|session_token|bearer_token|id_token|refresh_token)["']\s*\]
       - request\.GET\.get\(\s*["'](?:token|access_token|auth_token|api_key|apikey|session_token|bearer_token|id_token|refresh_token)["']
       - request\.GET\[\s*["'](?:token|access_token|auth_token|api_key|apikey|session_token|bearer_token|id_token|refresh_token)["']\s*\]
+      # FastAPI/Starlette query string and Flask's merged args/form.
+      - request\.(?:query_params|values)\.get\(\s*["'](?:token|access_token|auth_token|api_key|apikey|session_token|bearer_token|id_token|refresh_token)["']
+      - request\.(?:query_params|values)\[\s*["'](?:token|access_token|auth_token|api_key|apikey|session_token|bearer_token|id_token|refresh_token)["']\s*\]
     pattern-not:
       - '(?m)^\s*#'
       - '(?:def test_|conftest|unittest)'
@@ -344,7 +347,11 @@ rules:
       - "*_test.py"
       - "conftest.py"
     patterns:
-      - (?:os|shutil)\.(?:chmod|fchmod|lchmod)\s*\([^,\n]+,\s*0o?[0-7]?[0-7][0-7][2367]\s*[),]
+      # First argument may hold nested calls (os.path.join(d, "x")). A
+      # leading 1 is the sticky bit, the /tmp convention, so it is skipped.
+      - (?:os|shutil)\.(?:chmod|fchmod|lchmod)\s*\((?:[^(),\n]|\([^()\n]*\))+,\s*0o?[02-7]?[0-7][0-7][2367]\s*[),]
+      # pathlib: Path(p).chmod(0o777)
+      - \.chmod\s*\(\s*0o?[02-7]?[0-7][0-7][2367]\s*[),]
       - os\.umask\s*\(\s*0+\s*\)
     pattern-not:
       - '(?m)^\s*#'

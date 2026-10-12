@@ -158,7 +158,7 @@ rules:
     severity: WARNING
     languages: [python]
     patterns:
-      - '(?:h5py\.File|h5netcdf\.File|zarr\.open(?:_group|_array|_consolidated)?|SingleHdf5ToZarr)\(\s*[^,)]*(?:request\.|request\[|\bupload|\buser_|\buntrusted|\battacker|\bincoming_|\bremote_|\.filename)'
+      - '(?:h5py\.File|h5netcdf\.File|zarr\.open(?:_group|_array|_consolidated)?|SingleHdf5ToZarr)\(\s*[^,)]*(?:request\.|request\[|\bupload|\buser_\w*(?:url|uri)\b|\buntrusted|\battacker|\bincoming_)'
       - '(?:h5py\.File|h5netcdf\.File|zarr\.open(?:_group|_array|_consolidated)?|SingleHdf5ToZarr)\(\s*[^,)]*files\['
     pattern-not:
       - '(?m)^\s*#'

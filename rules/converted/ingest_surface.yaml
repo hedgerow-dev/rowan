@@ -175,7 +175,7 @@ rules:
     reading any dataset.'
   patterns:
   - pattern-either:
-    - pattern-regex: (?:h5py\.File|h5netcdf\.File|zarr\.open(?:_group|_array|_consolidated)?|SingleHdf5ToZarr)\(\s*[^,)]*(?:request\.|request\[|\bupload|\buser_|\buntrusted|\battacker|\bincoming_|\bremote_|\.filename)
+    - pattern-regex: (?:h5py\.File|h5netcdf\.File|zarr\.open(?:_group|_array|_consolidated)?|SingleHdf5ToZarr)\(\s*[^,)]*(?:request\.|request\[|\bupload|\buser_\w*(?:url|uri)\b|\buntrusted|\battacker|\bincoming_)
     - pattern-regex: (?:h5py\.File|h5netcdf\.File|zarr\.open(?:_group|_array|_consolidated)?|SingleHdf5ToZarr)\(\s*[^,)]*files\[
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)

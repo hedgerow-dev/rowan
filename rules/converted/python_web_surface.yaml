@@ -13,6 +13,8 @@ rules:
     - pattern-regex: request\.args\[\s*["'](?:token|access_token|auth_token|api_key|apikey|session_token|bearer_token|id_token|refresh_token)["']\s*\]
     - pattern-regex: request\.GET\.get\(\s*["'](?:token|access_token|auth_token|api_key|apikey|session_token|bearer_token|id_token|refresh_token)["']
     - pattern-regex: request\.GET\[\s*["'](?:token|access_token|auth_token|api_key|apikey|session_token|bearer_token|id_token|refresh_token)["']\s*\]
+    - pattern-regex: request\.(?:query_params|values)\.get\(\s*["'](?:token|access_token|auth_token|api_key|apikey|session_token|bearer_token|id_token|refresh_token)["']
+    - pattern-regex: request\.(?:query_params|values)\[\s*["'](?:token|access_token|auth_token|api_key|apikey|session_token|bearer_token|id_token|refresh_token)["']\s*\]
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
@@ -79,7 +81,8 @@ rules:
     group, and nothing wider.
   patterns:
   - pattern-either:
-    - pattern-regex: (?:os|shutil)\.(?:chmod|fchmod|lchmod)\s*\([^,\n]+,\s*0o?[0-7]?[0-7][0-7][2367]\s*[),]
+    - pattern-regex: (?:os|shutil)\.(?:chmod|fchmod|lchmod)\s*\((?:[^(),\n]|\([^()\n]*\))+,\s*0o?[02-7]?[0-7][0-7][2367]\s*[),]
+    - pattern-regex: \.chmod\s*\(\s*0o?[02-7]?[0-7][0-7][2367]\s*[),]
     - pattern-regex: os\.umask\s*\(\s*0+\s*\)
   - pattern-not-regex: (?m)^\s*#
   metadata:

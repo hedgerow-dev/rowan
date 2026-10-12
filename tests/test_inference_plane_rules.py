@@ -40,13 +40,15 @@ class TestKVTransferParamsOnRequestSchema:
         )
         assert len(_rule("ns-aiml-140").check(f)) >= 1
 
-    def test_cache_salt_field_is_flagged(self, tmp_path):
+    def test_cache_salt_field_is_not_flagged(self, tmp_path):
+        # cache_salt is vLLM's per-tenant prefix-cache isolation field: the
+        # defence, not a peer selector (#53).
         f = tmp_path / "protocol.py"
         f.write_text(
             "class ChatCompletionRequest(BaseModel):\n"
             "    cache_salt: str | None = Field(default=None)\n"
         )
-        assert len(_rule("ns-aiml-140").check(f)) >= 1
+        assert _rule("ns-aiml-140").check(f) == []
 
     def test_read_from_request_body_is_flagged(self, tmp_path):
         f = tmp_path / "handler.py"
@@ -210,13 +212,14 @@ class TestTruncatedCacheKey:
 class TestUnkeyedBuiltinHash:
     """ns-aiml-143."""
 
-    def test_pythonhashseed_pin_is_flagged(self, tmp_path):
+    def test_pythonhashseed_pin_is_not_flagged(self, tmp_path):
+        # The standard ML reproducibility line; nothing ties it to a cache key (#53).
         f = tmp_path / "worker.py"
         f.write_text(
             "def bootstrap() -> None:\n"
             "    os.environ[\"PYTHONHASHSEED\"] = \"0\"\n"
         )
-        assert len(_rule("ns-aiml-143").check(f)) >= 1
+        assert _rule("ns-aiml-143").check(f) == []
 
     def test_builtin_hash_over_token_tuple_is_flagged(self, tmp_path):
         f = tmp_path / "token_database.py"
@@ -337,8 +340,8 @@ class TestKVParamWriteDirectionRegression:
         f.write_text(
             "async def handle(request):\n"
             "    body = await request.json()\n"
-            '    salt = body.get("cache_salt")\n'
-            "    return salt\n"
+            '    peer = body.get("remote_engine_id")\n'
+            "    return peer\n"
         )
         assert len(_rule("ns-aiml-140").check(f)) >= 1
 

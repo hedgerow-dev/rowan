@@ -3,9 +3,9 @@ rules:
   languages:
   - python
   severity: WARNING
-  message: 'An internal KV transfer or remote peer parameter (kv_transfer_params,
+  message: 'An internal KV transfer or remote peer parameter (kv_transfer_params or
 
-    remote_engine_id, remote_host, remote_port, cache_salt) is declared as a
+    remote_engine_id) is declared as a
 
     field on a request model, or read straight out of a request body, so an
 
@@ -23,8 +23,8 @@ rules:
   patterns:
   - pattern-either:
     - pattern-regex: \bkv_transfer_params\s*:\s*[^=]*=\s*Field\b
-    - pattern-regex: \b(?:remote_engine_id|remote_host|remote_port|cache_salt)\s*:\s*[^=]*=\s*Field\b
-    - pattern-regex: \b(?:request|req|body|payload|data|params|json|kv_transfer_params|kv_params|transfer_params)\w*(?:\.\w+)*\s*(?:\.get\(|\[)\s*["'](?:kv_transfer_params|remote_engine_id|remote_host|remote_port|cache_salt)["']
+    - pattern-regex: \bremote_engine_id\s*:\s*[^=]*=\s*Field\b
+    - pattern-regex: \b(?:request|req|body|payload|data|params|json|kv_transfer_params|kv_params|transfer_params)\w*(?:\.\w+)*\s*(?:\.get\(|\[)\s*["'](?:kv_transfer_params|remote_engine_id)["']
   - pattern-not-regex: (?m)^\s*#
   - pattern-not-regex: (?:def test_|conftest|unittest)
   - pattern-not-regex: (?:\bdel\b|\.pop\()
@@ -100,7 +100,7 @@ rules:
 - id: ns-aiml-142
   languages:
   - python
-  severity: ERROR
+  severity: WARNING
   message: 'A cache or block key is truncated to 8 or 16 bits by a small bitmask, or
 
     to a short hexdigest slice. LMCache truncates its multimodal hash with
@@ -116,8 +116,10 @@ rules:
   - pattern-either:
     - pattern-regex: (?i)\b(?:hash|hashes|digest|hexdigest|hex_part|hexpart|cache_key|block_key|mm_hash)\w*.*&\s*0x(?:ffff|ff)\b
     - pattern-regex: (?i)&\s*0x(?:ffff|ff)\b.*\b(?:cache|hash|block|key)\w*\b
-    - pattern-regex: (?i)\b(?:kv|block|prefix|chunk|cache|prompt|token|mm_hash)\w*.*(?:hexdigest\(\)|\.hex\(\))\s*\[\s*:\s*(?:1[0-6]|[1-9])\s*\]
+    - pattern-regex: (?i)\b(?:kv|block|prefix|chunk|cache|prompt|token(?!iz)|mm_hash)\w*.*(?:hexdigest\(\)|\.hex\(\))\s*\[\s*:\s*[1-8]\s*\]
   - pattern-not-regex: (?m)^\s*#
+  - pattern-not-regex: '>>\s*\d+\s*\)?\s*&\s*0x'
+  - pattern-not-regex: \[\s*\d+\s*\]\s*&\s*0x
   - pattern-not-regex: (?:def test_|conftest|unittest)
   metadata:
     category: crypto
@@ -134,7 +136,7 @@ rules:
   severity: WARNING
   message: 'A cache key is derived with Python''s builtin hash() over token or chunk
 
-    data, or the process pins PYTHONHASHSEED to make that hash reproducible.
+    data.
 
     CPython does not randomize int and tuple hashing, so the key is a fixed,
 
@@ -151,8 +153,6 @@ rules:
     which enables presence probing, targeted eviction and pre-seeding.'
   patterns:
   - pattern-either:
-    - pattern-regex: (?:environ\s*(?:\[|\.get\()|getenv\(|setenv\(|putenv\()\s*["']PYTHONHASHSEED
-    - pattern-regex: (?m)^\s*(?:export\s+|ENV\s+)?PYTHONHASHSEED\s*=\s*\d
     - pattern-regex: \bhash\(\s*\(?[^)]*\b(?:token_ids|tokens_tuple|token_tuple|tokens|chunk_tokens|chunk_hash|prefix_hash|block_tokens)\b
     - pattern-regex: (?i)\b(?:hash_func|hash_function|hash_algo\w*|chunk_hash_algo\w*|hashing_algorithm)\b[^=\n]*=\s*(?:hash\b|["']builtin["'])
   - pattern-not-regex: (?m)^\s*#
