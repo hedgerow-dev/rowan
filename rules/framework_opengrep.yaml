@@ -103,3 +103,71 @@ rules:
             ...
             login(...)
             ...
+
+  - id: ns-fw-java-001
+    message: >
+      CSRF protection is disabled in the Spring Security configuration. This is
+      only safe for a stateless API that authenticates every request with a
+      token rather than a cookie.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      cwe: [352]
+      category: auth
+      fix: "Keep CSRF enabled for cookie-authenticated endpoints; disable it only on a stateless token-authenticated API."
+    pattern-either:
+      - pattern: $H.csrf().disable()
+      # Opengrep has no pattern syntax for method references.
+      - patterns:
+          - pattern: $H.csrf($M)
+          - metavariable-regex:
+              metavariable: $M
+              regex: .*::disable$
+      - pattern: $H.csrf($C -> $C.disable())
+
+  - id: ns-fw-java-002
+    message: >
+      permitAll() is applied to every request (anyRequest() or "/**"), so the
+      whole application is reachable without authentication.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      cwe: [862]
+      category: auth
+      fix: "Use anyRequest().authenticated() and permitAll() only the specific public paths (login, static assets)."
+    pattern-either:
+      - pattern: $X.anyRequest().permitAll()
+      - pattern: $X.requestMatchers("/**").permitAll()
+      - pattern: $X.antMatchers("/**").permitAll()
+      - pattern: $X.mvcMatchers("/**").permitAll()
+
+  - id: ns-fw-cs-002
+    message: >
+      CORS reflects any origin while allowing credentials, so any site can make
+      authenticated requests and read the responses. (AllowAnyOrigin together
+      with AllowCredentials throws at startup in ASP.NET Core; the
+      SetIsOriginAllowed(_ => true) form does not.)
+    severity: WARNING
+    languages: [csharp]
+    metadata:
+      cwe: [942]
+      category: config
+      fix: "Use WithOrigins(...) with an explicit list of trusted origins when credentials are allowed."
+    pattern-either:
+      - pattern: $B.AllowAnyOrigin().AllowCredentials()
+      - pattern: $B.SetIsOriginAllowed($F).AllowCredentials()
+
+  - id: ns-fw-cs-005
+    message: >
+      UseDeveloperExceptionPage() is called outside an env.IsDevelopment()
+      check, so production responses can expose stack traces and source.
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      cwe: [209]
+      category: config
+      fix: "Call UseDeveloperExceptionPage() only inside if (env.IsDevelopment()) and use UseExceptionHandler in production."
+    patterns:
+      - pattern: $A.UseDeveloperExceptionPage()
+      - pattern-not-inside: |
+          if ($ENV.IsDevelopment()) { ... }

@@ -1,11 +1,11 @@
 {
   "meta": {
-    "total_rules": 379,
-    "ok": 379,
+    "total_rules": 372,
+    "ok": 372,
     "warning": 0,
     "error": 0,
     "secrets_residual": 5,
-    "sanitizer_residual": 223,
+    "sanitizer_residual": 222,
     "converter_version": "1.0"
   },
   "rules": [
@@ -3442,42 +3442,6 @@
       ]
     },
     {
-      "id": "ns-fw-java-001",
-      "category": "auth",
-      "cwe": [
-        352
-      ],
-      "original_severity": "ERROR",
-      "original_engine": "neuroscan",
-      "residual": [],
-      "status": "ok",
-      "warnings": [],
-      "name": "Spring CSRF disabled",
-      "pattern_not": [
-        "(?m)^\\s*#",
-        "(?m)^\\s*//.*",
-        "(?:def test_|conftest|unittest)"
-      ]
-    },
-    {
-      "id": "ns-fw-java-002",
-      "category": "auth",
-      "cwe": [
-        862
-      ],
-      "original_severity": "WARNING",
-      "original_engine": "neuroscan",
-      "residual": [],
-      "status": "ok",
-      "warnings": [],
-      "name": "Spring permitAll on sensitive endpoint",
-      "pattern_not": [
-        "(?m)^\\s*#",
-        "(?m)^\\s*//.*",
-        "(?:def test_|conftest|unittest)"
-      ]
-    },
-    {
       "id": "ns-fw-java-003",
       "category": "config",
       "cwe": [
@@ -3489,100 +3453,6 @@
       "status": "ok",
       "warnings": [],
       "name": "Spring Actuator endpoints exposed",
-      "pattern_not": [
-        "(?m)^\\s*#",
-        "(?m)^\\s*//.*",
-        "(?:def test_|conftest|unittest)"
-      ]
-    },
-    {
-      "id": "ns-fw-java-004",
-      "category": "injection",
-      "cwe": [
-        917
-      ],
-      "original_severity": "ERROR",
-      "original_engine": "neuroscan",
-      "residual": [
-        "sanitizer"
-      ],
-      "status": "ok",
-      "warnings": [],
-      "name": "Spring SpEL injection",
-      "pattern_not": [
-        "(?m)^\\s*#",
-        "(?m)^\\s*//.*",
-        "(?:def test_|conftest|unittest)"
-      ]
-    },
-    {
-      "id": "ns-fw-cs-001",
-      "category": "auth",
-      "cwe": [
-        862
-      ],
-      "original_severity": "WARNING",
-      "original_engine": "neuroscan",
-      "residual": [],
-      "status": "ok",
-      "warnings": [],
-      "name": "ASP.NET missing Authorize attribute",
-      "pattern_not": [
-        "\\[Authorize",
-        "(?m)^\\s*#",
-        "(?m)^\\s*//.*",
-        "(?:def test_|conftest|unittest)"
-      ]
-    },
-    {
-      "id": "ns-fw-cs-002",
-      "category": "config",
-      "cwe": [
-        942
-      ],
-      "original_severity": "WARNING",
-      "original_engine": "neuroscan",
-      "residual": [],
-      "status": "ok",
-      "warnings": [],
-      "name": "ASP.NET CORS any origin with credentials",
-      "pattern_not": [
-        "(?m)^\\s*#",
-        "(?m)^\\s*//.*",
-        "(?:def test_|conftest|unittest)"
-      ]
-    },
-    {
-      "id": "ns-fw-cs-004",
-      "category": "auth",
-      "cwe": [
-        352
-      ],
-      "original_severity": "WARNING",
-      "original_engine": "neuroscan",
-      "residual": [],
-      "status": "ok",
-      "warnings": [],
-      "name": "ASP.NET missing anti-forgery token",
-      "pattern_not": [
-        "\\[ValidateAntiForgeryToken\\]",
-        "(?m)^\\s*#",
-        "(?m)^\\s*//.*",
-        "(?:def test_|conftest|unittest)"
-      ]
-    },
-    {
-      "id": "ns-fw-cs-005",
-      "category": "config",
-      "cwe": [
-        209
-      ],
-      "original_severity": "ERROR",
-      "original_engine": "neuroscan",
-      "residual": [],
-      "status": "ok",
-      "warnings": [],
-      "name": "ASP.NET developer exception page in production",
       "pattern_not": [
         "(?m)^\\s*#",
         "(?m)^\\s*//.*",

@@ -23,39 +23,6 @@ rules:
       CORS configured with wildcard origin (*). Restrict to specific trusted domains.
 
   # ── Spring (Java) ─────────────────────────────────────────────────
-  - id: ns-fw-java-001
-    name: Spring CSRF disabled
-    severity: ERROR
-    category: auth
-    cwe: [352]
-    languages: [java]
-    patterns:
-      - '\.csrf\(\)\.disable\(\)'
-      - 'csrf\s*:\s*false'
-    pattern-not:
-      - '(?m)^\s*#'
-      - '(?m)^\s*//.*'
-      - '(?:def test_|conftest|unittest)'
-    message: |
-      CSRF protection explicitly disabled in Spring Security configuration.
-      Only disable for stateless API endpoints using token-based auth.
-
-  - id: ns-fw-java-002
-    name: Spring permitAll on sensitive endpoint
-    severity: WARNING
-    category: auth
-    cwe: [862]
-    languages: [java]
-    patterns:
-      - '\.permitAll\(\)'
-    pattern-not:
-      - '(?m)^\s*#'
-      - '(?m)^\s*//.*'
-      - '(?:def test_|conftest|unittest)'
-    message: |
-      permitAll() grants unauthenticated access. Verify this is intentional
-      and does not expose admin or sensitive endpoints.
-
   - id: ns-fw-java-003
     name: Spring Actuator endpoints exposed
     severity: ERROR
@@ -82,95 +49,7 @@ rules:
       Spring Actuator endpoints exposed (env, heapdump, etc.).
       Restrict exposure to health and info only. Protect with authentication.
 
-  - id: ns-fw-java-004
-    name: Spring SpEL injection
-    severity: ERROR
-    category: injection
-    cwe: [917]
-    languages: [java]
-    patterns:
-      - 'parseExpression\('
-      - 'SimpleEvaluationContext'
-    pattern-not:
-      - '(?m)^\s*#'
-      - '(?m)^\s*//.*'
-      - '(?:def test_|conftest|unittest)'
-    message: |
-      Spring Expression Language (SpEL) parsing detected. If user input reaches
-      parseExpression(), RCE is possible. Use SimpleEvaluationContext with restricted types.
-
-  # ── ASP.NET (C#) ──────────────────────────────────────────────────
-  - id: ns-fw-cs-001
-    name: ASP.NET missing Authorize attribute
-    severity: WARNING
-    category: auth
-    cwe: [862]
-    languages: [csharp]
-    patterns:
-      - '\[HttpPost\]'
-      - '\[HttpPut\]'
-      - '\[HttpDelete\]'
-    pattern-not:
-      - '\[Authorize'
-      - '(?m)^\s*#'
-      - '(?m)^\s*//.*'
-      - '(?:def test_|conftest|unittest)'
-    message: |
-      State-changing HTTP endpoint without [Authorize] attribute.
-      Add [Authorize] to restrict access to authenticated users.
-
-  - id: ns-fw-cs-002
-    name: ASP.NET CORS any origin with credentials
-    severity: WARNING
-    category: config
-    cwe: [942]
-    languages: [csharp]
-    patterns:
-      - '\.AllowAnyOrigin\(\)'
-      - '\.AllowCredentials\(\)'
-    pattern-not:
-      - '(?m)^\s*#'
-      - '(?m)^\s*//.*'
-      - '(?:def test_|conftest|unittest)'
-    message: |
-      CORS allows any origin with credentials. This is a browser security violation
-      and exposes authenticated endpoints to any site.
-
-  - id: ns-fw-cs-004
-    name: ASP.NET missing anti-forgery token
-    severity: WARNING
-    category: auth
-    cwe: [352]
-    languages: [csharp]
-    patterns:
-      - '\[HttpPost\]'
-      - '\[ValidateAntiForgeryToken\]'
-    pattern-not:
-      - '\[ValidateAntiForgeryToken\]'
-      - '(?m)^\s*#'
-      - '(?m)^\s*//.*'
-      - '(?:def test_|conftest|unittest)'
-    message: |
-      POST endpoint should use [ValidateAntiForgeryToken] for CSRF protection.
-
-  - id: ns-fw-cs-005
-    name: ASP.NET developer exception page in production
-    severity: ERROR
-    category: config
-    cwe: [209]
-    languages: [csharp]
-    patterns:
-      - 'UseDeveloperExceptionPage\(\)'
-    pattern-not:
-      - '(?m)^\s*#'
-      - '(?m)^\s*//.*'
-      - '(?:def test_|conftest|unittest)'
-    message: |
-      UseDeveloperExceptionPage() exposes stack traces and source code.
-      Only enable in Development environment behind env.IsDevelopment() check.
-
   # ── Gin / Echo (Go) ───────────────────────────────────────────────
-
   - id: ns-fw-go-002
     name: Go CORS wildcard
     severity: WARNING
@@ -218,6 +97,3 @@ rules:
     message: |
       Redirect target from user input enables open redirect attacks.
       Validate redirect URLs against an allowlist of trusted destinations.
-
-  # ── Flask / Django (Python) ───────────────────────────────────────
-
