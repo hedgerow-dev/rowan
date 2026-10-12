@@ -1,11 +1,11 @@
 {
   "meta": {
-    "total_rules": 360,
-    "ok": 360,
+    "total_rules": 358,
+    "ok": 358,
     "warning": 0,
     "error": 0,
     "secrets_residual": 5,
-    "sanitizer_residual": 213,
+    "sanitizer_residual": 212,
     "converter_version": "1.0"
   },
   "rules": [
@@ -3977,44 +3977,6 @@
       "name": "java.util.Random for security",
       "pattern_not": [
         "new\\s+SecureRandom\\s*\\(",
-        "(?m)^\\s*//.*"
-      ]
-    },
-    {
-      "id": "JA-XXE-001",
-      "category": "injection",
-      "cwe": [
-        611
-      ],
-      "original_severity": "high",
-      "original_engine": "neuroscan",
-      "residual": [
-        "sanitizer"
-      ],
-      "status": "ok",
-      "warnings": [],
-      "name": "XML parser without XXE protection",
-      "pattern_not": [
-        "setFeature.*EXTERNAL_GENERAL_ENTITIES.*false",
-        "setFeature.*EXTERNAL_PARAMETER_ENTITIES.*false",
-        "(?m)^\\s*//.*"
-      ]
-    },
-    {
-      "id": "JA-AUTH-001",
-      "category": "auth",
-      "cwe": [
-        614
-      ],
-      "original_severity": "medium",
-      "original_engine": "neuroscan",
-      "residual": [],
-      "status": "ok",
-      "warnings": [],
-      "name": "Cookie without Secure/HttpOnly",
-      "pattern_not": [
-        "\\.setSecure\\s*\\(true\\)",
-        "\\.setHttpOnly\\s*\\(true\\)",
         "(?m)^\\s*//.*"
       ]
     },

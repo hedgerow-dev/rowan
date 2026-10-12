@@ -927,7 +927,7 @@ classification.
 
 Rules defined in YAML with compiled regex patterns, severity, category,
 and CWE metadata. Each rule's `check()` method runs against file content.
-360 regex rules across 22 YAML files covering Python, JavaScript, TypeScript,
+358 regex rules across 22 YAML files covering Python, JavaScript, TypeScript,
 Java, Go, C#, Ruby, PHP, Rust, Terraform, Dockerfile, and GitHub Actions YAML.
 
 ### Taint (Opengrep)
@@ -945,7 +945,7 @@ Rules defined in YAML with `mode: taint`, using Opengrep's DSL:
     - pattern: urlparse($URL)
 ```
 
-212 taint/Opengrep rules across 28 YAML files.
+214 taint/Opengrep rules across 29 YAML files.
 
 ### Rule ID conventions
 

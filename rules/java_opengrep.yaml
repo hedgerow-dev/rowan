@@ -1,0 +1,81 @@
+# Structural companions to java.yaml. The hardening for these checks is on
+# later lines than the call the regex rule matched, so a line regex fired on
+# every factory and every Cookie (#55, #71). Same rule IDs.
+
+rules:
+  - id: JA-XXE-001
+    message: >
+      An XML parser factory is created without disabling DTDs or external
+      entities on it, so parsing untrusted XML can read local files or make
+      network requests (XXE). Disallow DOCTYPE declarations
+      (disallow-doctype-decl), or turn off both external general and external
+      parameter entities; for StAX set SUPPORT_DTD to false; for a
+      TransformerFactory set ACCESS_EXTERNAL_DTD to "".
+    severity: WARNING
+    languages: [java]
+    metadata:
+      cwe: [611]
+      category: injection
+      fix: "Call factory.setFeature(\"http://apache.org/xml/features/disallow-doctype-decl\", true) before creating the parser."
+    patterns:
+      - pattern-either:
+          - pattern: $T $F = $FACTORY.newInstance(...);
+          - pattern: $T $F = $FACTORY.newFactory(...);
+      - metavariable-regex:
+          metavariable: $FACTORY
+          regex: ^(DocumentBuilderFactory|SAXParserFactory|XMLInputFactory|TransformerFactory)$
+      - pattern-not-inside: |
+          $T $F = $FACTORY.$NEW(...);
+          ...
+          $F.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+      - pattern-not-inside: |
+          $T $F = $FACTORY.$NEW(...);
+          ...
+          $F.setFeature("http://xml.org/sax/features/external-general-entities", false);
+          ...
+          $F.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+      - pattern-not-inside: |
+          $T $F = $FACTORY.$NEW(...);
+          ...
+          $F.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+          ...
+          $F.setFeature("http://xml.org/sax/features/external-general-entities", false);
+      - pattern-not-inside: |
+          $T $F = $FACTORY.$NEW(...);
+          ...
+          $F.setProperty(XMLInputFactory.SUPPORT_DTD, false);
+      - pattern-not-inside: |
+          $T $F = $FACTORY.$NEW(...);
+          ...
+          $F.setProperty("javax.xml.stream.supportDTD", false);
+      - pattern-not-inside: |
+          $T $F = $FACTORY.$NEW(...);
+          ...
+          $F.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+
+  - id: JA-AUTH-001
+    message: >
+      A Cookie is created without both setSecure(true) and setHttpOnly(true),
+      so it can travel over plain HTTP or be read by JavaScript. If it carries
+      a session or auth token, that is hijacking via a network attacker or any
+      XSS.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      cwe: [614, 1004]
+      category: auth
+      fix: "Call cookie.setSecure(true) and cookie.setHttpOnly(true) before adding it to the response."
+    patterns:
+      - pattern: $T $C = new Cookie(...);
+      - pattern-not-inside: |
+          $T $C = new Cookie(...);
+          ...
+          $C.setSecure(true);
+          ...
+          $C.setHttpOnly(true);
+      - pattern-not-inside: |
+          $T $C = new Cookie(...);
+          ...
+          $C.setHttpOnly(true);
+          ...
+          $C.setSecure(true);

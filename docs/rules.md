@@ -1,6 +1,6 @@
 # Rule Catalog
 
-Rowan ships 572 source-code rules across 50 YAML files. Model files are
+Rowan ships 572 source-code rules across 51 YAML files. Model files are
 scanned by [Hayward](https://github.com/hedgerow-dev/hayward), Hedgerow's
 model-file scanner, which Rowan installs as a dependency.
 
@@ -8,8 +8,8 @@ model-file scanner, which Rowan installs as a dependency.
 
 | Engine | Speed | Precision | Rules |
 |--------|-------|-----------|-------|
-| NeuroScan (regex) | Fast (<1ms/file) | Surface-level | 360 |
-| Taint/structural (Opengrep) | Slower | Evidence varies by rule | 212 |
+| NeuroScan (regex) | Fast (<1ms/file) | Surface-level | 358 |
+| Taint/structural (Opengrep) | Slower | Evidence varies by rule | 214 |
 | Hayward (model files) | Fast | Format-aware, structural | [Hayward rules](https://github.com/hedgerow-dev/hayward/blob/main/docs/rules.md) |
 
 ## Selected taint rule files
@@ -31,6 +31,7 @@ model-file scanner, which Rowan installs as a dependency.
 | `java_ai_taint.yaml` | 4 | Java | Spring AI / LangChain4j `@Tool` method parameter (model-chosen) to command execution, filesystem path, SQL text, outbound HTTP URL |
 | `java_llm_taint.yaml` | 11 | Java | LLM output (Spring AI `ChatClient`, LangChain4j, openai-java, anthropic-java) to SQL, command, HTTP URL, path, servlet response, SpEL/script/Freemarker, YAML/Java deserialization; request to system prompt, vector/graph query, SnakeYAML; config to MCP stdio transport |
 | `java_llm_opengrep.yaml` | 1 | Java | Search mode: `StdioMcpTransport.Builder.command(...)` / `ServerParameters.builder(...)` with a non-literal command (the aideepin DB-configured MCP shape) |
+| `java_opengrep.yaml` | 2 | Java | Search mode: XML parser factory without DTD/external-entity hardening on the same variable, Cookie without both setSecure(true) and setHttpOnly(true) |
 | `javascript_taint.yaml` | 12 | JS/TS | SQLi, CMDi, path traversal, SSRF, XSS, NoSQLi, deserialization, SSTI, log injection, header injection, open redirect |
 | `typescript_agent_taint.yaml` | 7 | JS/TS | MCP tool argument (`McpServer.tool`/`registerTool`, low-level `CallToolRequestSchema` handler), Vercel AI SDK `tool({ execute })` and LangChain.js tool input (model-chosen) to command execution, filesystem path, outbound HTTP URL, SQL text; model output (AI SDK `generateText`/`generateObject`, OpenAI, Anthropic) to `eval`/`Function`/`vm` and shell; a server-supplied OAuth authorization URL to `open()` |
 | `go_taint.yaml` | 14 | Go | SQLi, CMDi, path traversal, SSRF, XSS, template injection, deserialization, log injection, header injection, open redirect |
@@ -42,10 +43,10 @@ model-file scanner, which Rowan installs as a dependency.
 | `python_web_surface_opengrep.yaml` | 3 | Python | Search mode: `set_cookie` without `httponly` / without `secure`, Django and Flask `SESSION_COOKIE_SECURE = False`, ReDoS-prone regex literals passed to `re.*` |
 | `go_ai_opengrep.yaml` | 1 | Go | Search mode, inventory: SSE / streamable-HTTP MCP server bound on all interfaces (`0.0.0.0:port` or `:port`) with no auth middleware in view |
 
-**Total: 212 taint/Opengrep rules**
+**Total: 214 taint/Opengrep rules**
 
 `guardrail_opengrep.yaml`, `langchain_hardening_opengrep.yaml`,
-`go_ai_opengrep.yaml`, `java_llm_opengrep.yaml`, `framework_opengrep.yaml` and `python_web_surface_opengrep.yaml` are the Opengrep files
+`go_ai_opengrep.yaml`, `java_llm_opengrep.yaml`, `java_opengrep.yaml`, `framework_opengrep.yaml` and `python_web_surface_opengrep.yaml` are the Opengrep files
 whose rules are *search* mode rather than `mode: taint`.
 `guardrail_opengrep.yaml`'s rules ask whether a guardrail's verdict is acted
 on, which is a control-flow property no dataflow rule can express. `langchain_hardening_opengrep.yaml` holds the LangChain hardening
@@ -64,7 +65,7 @@ rulepack's pattern-only checks; its taint-mode siblings live in
 | `misc_rules.yaml` | 32 | Bug bounty patterns, auth, logging, Gradio, Streamlit, container isolation, identity disclosure |
 | `cloud_rules.yaml` | 7 | S3, IAM, encryption, database, logging, security groups |
 | `javascript.yaml` | 9 | JS-specific: eval, child_process, XSS, deserialization |
-| `java.yaml` | 8 | Java-specific: Runtime.exec, ProcessBuilder, XXE, cookies, deserialization |
+| `java.yaml` | 6 | Java-specific: Runtime.exec, ProcessBuilder, deserialization |
 | `java_ai_surface.yaml` | 5 | Java AI/MCP surface: public HTTP bind, literal provider keys, mutable tool descriptions, remote DJL model URLs, non-literal model paths |
 | `go.yaml` | 6 | Go-specific: exec, template.HTML, SQL, crypto, TLS verification |
 | `csharp.yaml` | 9 | C#-specific: SqlCommand, deserialization, XmlDocument, path, XSS |

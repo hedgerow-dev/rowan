@@ -61,39 +61,6 @@ rules:
       java.util.Random is predictable. Use java.security.SecureRandom
       for tokens, nonces, and cryptographic keys.
 
-  - id: JA-XXE-001
-    name: XML parser without XXE protection
-    severity: high
-    category: injection
-    cwe: [611]
-    languages: [java]
-    patterns:
-      - 'DocumentBuilderFactory\.newInstance\(\)'
-      - 'SAXParserFactory\.newInstance\(\)'
-    pattern-not:
-      - 'setFeature.*EXTERNAL_GENERAL_ENTITIES.*false'
-      - 'setFeature.*EXTERNAL_PARAMETER_ENTITIES.*false'
-      - '(?m)^\s*//.*'
-    message: |
-      XML parser without XXE protections. Set FEATURE_SECURE_PROCESSING,
-      disallow DOCTYPE, and set external-general-entities/parameter-entities to false.
-
-  - id: JA-AUTH-001
-    name: Cookie without Secure/HttpOnly
-    severity: medium
-    category: auth
-    cwe: [614]
-    languages: [java]
-    patterns:
-      - 'new\s+Cookie\s*\('
-    pattern-not:
-      - '\.setSecure\s*\(true\)'
-      - '\.setHttpOnly\s*\(true\)'
-      - '(?m)^\s*//.*'
-    message: |
-      Cookie created without setSecure(true) and setHttpOnly(true).
-      Session hijacking risk via MITM or XSS.
-
   - id: JA-INJECT-004
     name: XPath injection
     severity: medium
