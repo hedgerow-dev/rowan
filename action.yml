@@ -28,7 +28,7 @@ inputs:
   opengrep-version:
     description: "Opengrep release tag to install. Pinned so a red build is attributable to the scanned change, not an engine update."
     required: false
-    default: "v1.29.0"
+    default: "v1.31.0"
 
 # Taint analysis requires Opengrep. The steps below install Cosign and a
 # signature-verified Opengrep binary before scanning.

@@ -607,7 +607,7 @@ def self_test():
 @click.option(
     "--version",
     default=None,
-    help="Release tag (default v1.29.0, verified by a built-in hash). Other tags, or 'latest', need cosign",
+    help="Release tag (default v1.31.0, verified by a built-in hash). Other tags, or 'latest', need cosign",
 )
 @click.option(
     "--allow-unverified",

@@ -14,7 +14,7 @@ Inside a virtual environment or a CI container, `pip install rowan-sast` works.
 Install the Opengrep taint-analysis engine (required for the `Taint` pass):
 
 ```bash
-rowan install-engine       # Opengrep v1.29.0, checked against a built-in SHA-256
+rowan install-engine       # Opengrep v1.31.0, checked against a built-in SHA-256
 ```
 
 Optional: install `tree-sitter` for JS/TS and Go cross-file taint propagation (the
@@ -220,7 +220,7 @@ rowan install-engine [--prefix PATH] [--version TAG] [--allow-unverified]
 
 Downloads the Opengrep binary for your OS and architecture from GitHub releases. Default install location: `~/.local/bin`.
 
-By default it installs **Opengrep v1.29.0** and checks the download against a SHA-256 hash built into Rowan. Each hash was verified against Opengrep's [Sigstore](https://www.sigstore.dev/) signature when it was pinned. No other tool is needed, and a mismatch is always refused.
+By default it installs **Opengrep v1.31.0** and checks the download against a SHA-256 hash built into Rowan. Each hash was verified against Opengrep's [Sigstore](https://www.sigstore.dev/) signature when it was pinned. No other tool is needed, and a mismatch is always refused.
 
 `--version` installs a different release tag, or `latest` for whatever GitHub currently calls the newest. Those need `cosign` on your `PATH` for signature verification; without it, or without signature assets, or when verification fails, the install is refused. `--allow-unverified` skips that check for a non-default version (not recommended).
 

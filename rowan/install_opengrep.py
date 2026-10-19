@@ -64,17 +64,17 @@ _COSIGN_IDENTITY_REGEXP = (
 
 
 # The engine version installed by default, and the SHA-256 of each raw binary
-# Rowan selects. Verified 2026-10-02: every hash equals GitHub's recorded
+# Rowan selects. Verified 2026-10-19: every hash equals GitHub's recorded
 # asset digest, and every binary passed `sigstore verify identity` against
 # Opengrep's rolling-release workflow identity (logged in Rekor). Bump the
 # version and all five hashes together, re-verifying each signature.
-PINNED_VERSION = "v1.29.0"
+PINNED_VERSION = "v1.31.0"
 PINNED_SHA256: dict[str, str] = {
-    "opengrep_osx_arm64": "dacc12a24e95b22c8b1ab55be1777b6eb877a922c5571a95b9a8de30f3963438",
-    "opengrep_osx_x86": "7173bd701491b58e1d1f62c24470ca0be124ecd63885c4d6293cbf71fd706508",
-    "opengrep_windows_x86.exe": "ee485b31912704dc6410bc43f04b5c6ad896697db56e360a98204abf95fa1025",
-    "opengrep_manylinux_aarch64": "db3cda6e6e53251a3874e62b7c8493c281508480b3f3b4db554be41583b21174",
-    "opengrep_manylinux_x86": "3365ef49d04893e01338d85d9bbd49b2bd5261ad4c9c0df0a6a0f8d44232ae13",
+    "opengrep_osx_arm64": "035dd8fd2410fe68513916df0c2895257fffafcd5314b4a118484ce8db62bedb",
+    "opengrep_osx_x86": "2f0d0c7a41a3e48dc02c30dabc4851bc37c18f021b46c9ae54b15177ece088ee",
+    "opengrep_windows_x86.exe": "fdd2e22549e7000ceb66976a01366db6910760b2aa4e457b6bda62545070d26a",
+    "opengrep_manylinux_aarch64": "2b713a29a00237f85408b83002fc111db5b94c7fa8d263f0a93184a960655d9d",
+    "opengrep_manylinux_x86": "dbbe3c2058dbe600c449a8ba22ea79a1643a6660658400090d0323a8d0d31147",
 }
 
 

@@ -49,7 +49,7 @@ export PATH="$HOME/.local/bin:$PATH"
 rowan self-test
 ```
 
-This installs Opengrep v1.29.0 and checks the download against a SHA-256 hash
+This installs Opengrep v1.31.0 and checks the download against a SHA-256 hash
 built into Rowan, so it needs no other tool. A mismatch is refused. To install
 a different Opengrep version, install
 [Cosign](https://docs.sigstore.dev/cosign/system_config/installation/) first so
