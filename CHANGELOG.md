@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Go: a hashed value (`sha256.Sum256`, `hex.EncodeToString`, a library
+  `Digest()`/`Sum()`) and a number formatted with `%d`/`%x`/`%f` no longer
+  carry taint into path, command, SQL or URL sinks. The Go SQL sinks ignore
+  struct-literal option values and, for the context-first `Query(ctx, x)`
+  form, receivers not named like a database handle (PromQL clients).
 - Agent skill files (`SKILL.md`) are treated as AI instruction files: the
   zero-width and bidi smuggling rule (ns-aiml-108) now scans them, and Hunt
   keeps their text out of LLM context, as for `AGENTS.md`.
