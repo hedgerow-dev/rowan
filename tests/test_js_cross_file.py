@@ -1114,3 +1114,63 @@ def test_only_the_wrapped_handler_is_a_tool_not_other_wrapper_args():
         "}\n"
         "server.registerTool('mkdir', {}, withAuth(handleMkdir, auditLog));\n"
     ) == []
+
+
+# ---------------------------------------------------------------------------
+# Method calls on objects of unknown type (MCP census G5, 2026-10-20):
+# chrome-devtools-mcp handlers call `context.saveFile(...)`, dbhub calls
+# `connector.executeSQL(...)`. Fan out to the project's classes that define
+# the method, when there are few of them and the name is specific.
+# ---------------------------------------------------------------------------
+
+_CONTEXT_CLASS = (
+    "const fs = require('fs');\n"
+    "class McpContext {\n"
+    "  saveFile(target) {\n"
+    "    fs.writeFileSync(target, '');\n"
+    "  }\n"
+    "}\n"
+    "module.exports = { McpContext };\n"
+)
+
+
+def _fanout_hits(server_js: str, extra: dict[str, str]) -> list[tuple[str, str]]:
+    root = _make_project({"server.js": server_js, **extra})
+    return [
+        (f.rule_id, f.metadata.get("callee_name", ""))
+        for f in _run_js_cross_file(root).findings
+        if f.rule_id == "CF-SINK-001"
+    ]
+
+
+def test_method_on_untyped_receiver_resolves_to_the_defining_class():
+    hits = _fanout_hits(
+        "server.registerTool('save', {}, async (args, context) => {\n"
+        "  context.saveFile(args.path);\n"
+        "});\n",
+        {"context.js": _CONTEXT_CLASS},
+    )
+    assert hits == [("CF-SINK-001", "saveFile")]
+
+
+def test_generic_method_name_is_not_fanned_out():
+    hits = _fanout_hits(
+        "server.registerTool('save', {}, async (args, store) => {\n"
+        "  store.get(args.path);\n"
+        "});\n",
+        {"store.js": _CONTEXT_CLASS.replace("saveFile", "get")},
+    )
+    assert hits == []
+
+
+def test_method_defined_by_many_classes_is_not_fanned_out():
+    classes = {
+        f"c{i}.js": _CONTEXT_CLASS.replace("McpContext", f"Ctx{i}") for i in range(6)
+    }
+    hits = _fanout_hits(
+        "server.registerTool('save', {}, async (args, context) => {\n"
+        "  context.saveFile(args.path);\n"
+        "});\n",
+        classes,
+    )
+    assert hits == []

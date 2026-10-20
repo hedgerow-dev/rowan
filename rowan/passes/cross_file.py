@@ -3515,6 +3515,10 @@ class _FunctionSig:
     cross-file TaintFlow's sink node (issue #154 Defect 1) can point at the
     actual sink call instead of the containing function's signature."""
     has_source: bool = False
+    destructured_params: frozenset[str] = frozenset()
+    """JS: parameter names bound by destructuring (`async ({ dir, svc }) => ...`).
+    A tool's JSON arguments are never class instances, so method fan-out skips
+    receivers named here."""
     operator_source_only: bool = False
     """True when every source this function reads is the operator's own input
     (`sys.argv`, `process.argv`, a CLI command handler), not a remote party's.

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- JS/TS cross-file: `obj.method()` on a receiver of unknown type follows the
+  call into the project's classes that define `method`, when one to four
+  classes do and the name is specific. Receivers destructured from a tool's
+  arguments, builtins and module aliases are never fanned out.
 - MCP tools registered indirectly are now treated as tools: Python
   `mcp.tool(...)(func)`, `add_tool(func)`, wrapper decorators that register
   tools, and `apply()` on Tool subclasses; TypeScript handlers passed by name,

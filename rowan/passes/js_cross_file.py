@@ -565,6 +565,40 @@ def _tool_handler_refs(root_node: Any, source: bytes) -> tuple[set[str], set[str
     return names, factories
 
 
+# `obj.method()` on a receiver of unknown type fans out to the project's
+# classes defining `method` (MCP census G5): only for a specific method name
+# defined by a handful of classes, on a plain local receiver.
+_FANOUT_MAX_CLASSES = 4
+_GENERIC_METHOD_NAMES = frozenset({
+    "get", "set", "has", "delete", "add", "remove", "clear", "run", "call", "apply", "bind",
+    "then", "catch", "finally", "map", "filter", "reduce", "forEach", "find", "some", "every",
+    "push", "pop", "shift", "send", "write", "read", "end", "on", "once", "off", "emit", "close",
+    "open", "start", "stop", "init", "handle", "process", "update", "create", "execute", "query",
+    "parse", "toString", "toJSON", "valueOf", "log", "info", "warn", "error", "debug", "next",
+    "use", "listen", "connect", "request", "fetch", "load", "save", "resolve", "reject",
+    "dispose", "destroy", "render", "validate", "register", "post", "put", "patch", "invoke",
+    "constructor",
+})
+_BUILTIN_QUALIFIERS = frozenset({
+    "console", "JSON", "Math", "Object", "Array", "Promise", "Reflect", "Number", "String", "Date",
+    "fs", "path", "os", "process", "window", "document", "crypto", "Buffer", "URL", "this", "super",
+})
+
+
+def _class_method_names(root_node: Any, source: bytes) -> set[str]:
+    """Names of methods declared in this file's class bodies."""
+    names: set[str] = set()
+    for node in _walk_all(root_node):
+        if node.type != "class_body":
+            continue
+        for member in node.named_children:
+            if member.type == "method_definition":
+                name = member.child_by_field_name("name")
+                if name is not None:
+                    names.add(_node_text(name, source))
+    return names
+
+
 def _returned_function_lines(root_node: Any, source: bytes) -> dict[str, list[int]]:
     """For each named function, the start lines of functions it returns directly
     (`return async (args) => {...}`, or an arrow whose body is a function)."""
@@ -928,6 +962,24 @@ def _params_of(formal_params_node: Any | None, source: bytes) -> list[str]:
     return names
 
 
+def _destructured_param_names(formal_params_node: Any | None, source: bytes) -> frozenset[str]:
+    """Names bound by an object or array pattern among the parameters."""
+    names: set[str] = set()
+    if formal_params_node is None:
+        return frozenset()
+    for c in formal_params_node.named_children:
+        pattern = (
+            c.child_by_field_name("pattern")
+            if c.type in ("required_parameter", "optional_parameter")
+            else c
+        )
+        if pattern is not None and pattern.type == "assignment_pattern":
+            pattern = pattern.child_by_field_name("left")
+        if pattern is not None and pattern.type in ("object_pattern", "array_pattern"):
+            names.update(_collect_pattern_identifiers(pattern, source))
+    return frozenset(names)
+
+
 def _param_slots(formal_params_node: Any | None, source: bytes) -> list[list[str]]:
     """Names bound by each positional parameter (a destructured one binds several)."""
     if formal_params_node is None:
@@ -1121,6 +1173,7 @@ def extract_functions(
             calls_propagator=calls_propagator,
             has_source=remote_source or operator_source,
             operator_source_only=operator_source and not remote_source,
+            destructured_params=_destructured_param_names(params_node, source),
             has_return_taint=_returns_known_source(body_node, source),
         )
         sink = _param_sink(body_node, [] if is_sanitizer else params, source, aliases)
@@ -1363,6 +1416,7 @@ class JSCrossFilePass:
         reexports: dict[tuple[str, str], tuple[str, str]] = {}
         star_exports: dict[str, list[str]] = {}
         handler_refs: list[tuple[str, set[str], set[str]]] = []
+        method_files: dict[str, set[str]] = {}
         # Handlers Opengrep's inline-only TS rules cannot see: (file, line).
         indirect_handlers: set[tuple[str, int]] = set()
         returned_functions: dict[tuple[str, str], list[int]] = {}
@@ -1432,6 +1486,8 @@ class JSCrossFilePass:
             tool_spans.extend((file_str, start, end) for start, end in spans)
             indirect_handlers.update((file_str, line) for line in definition_lines)
             handler_refs.append((file_str, *_tool_handler_refs(tree.root_node, source)))
+            for method in _class_method_names(tree.root_node, source):
+                method_files.setdefault(method, set()).add(file_str)
             returned_functions.update(
                 ((file_str, name), lines)
                 for name, lines in _returned_function_lines(tree.root_node, source).items()
@@ -1523,6 +1579,30 @@ class JSCrossFilePass:
                 target_name = object_members.get(owner, {}).get(callee)
                 if target_name:
                     sig.calls[i] = (*call[:4], owner[0], *call[5:7], target_name, *call[8:])
+
+        # `context.saveFile(p)` on a parameter or local of unknown type: one
+        # call edge per class that defines the method, when that is few.
+        for sig in all_funcs:
+            fanned: list[tuple] = []
+            for i, call in enumerate(sig.calls):
+                callee, qualifier = call[0], call[1]
+                if (
+                    call[4] is not None
+                    or qualifier is None
+                    or qualifier == _UNRESOLVED_QUALIFIER
+                    or "." in qualifier
+                    or qualifier in _BUILTIN_QUALIFIERS
+                    or qualifier in sig.destructured_params
+                    or callee in _GENERIC_METHOD_NAMES
+                    or (sig.file, qualifier) in all_imports.module_to_file
+                ):
+                    continue
+                files = sorted(method_files.get(callee, ()))
+                if not 1 <= len(files) <= _FANOUT_MAX_CLASSES:
+                    continue
+                sig.calls[i] = (*call[:4], files[0], *call[5:])
+                fanned.extend((*call[:4], f, *call[5:]) for f in files[1:])
+            sig.calls.extend(fanned)
 
         logger.info(
             "JSCrossFilePass: %d files, %d functions, %d imports",
