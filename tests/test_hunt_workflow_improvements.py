@@ -561,3 +561,54 @@ def test_inventory_index_returns_records_per_file_and_follows_replaced_inventory
     second = {"file": "a.py", "line": 2, "kind": "helper", "status": "skipped"}
     state.inventory = [second]
     assert workflow._inventory_for(root / "a.py") == [second]
+
+
+def _two_eval_handlers(tmp_path: Path) -> Path:
+    path = tmp_path / "app.py"
+    path.write_text(
+        '@app.post("/x")\ndef handler(request):\n    return eval(request.body)\n\n'
+        '@app.post("/y")\ndef other(request):\n    return eval(request.body)\n'
+    )
+    return path
+
+
+def test_discovery_verdict_outside_its_batch_cannot_overwrite_another_claim(tmp_path):
+    """Batch 2 echoing `_claim_idx: 0` must not replace batch 1's verdict for claim 0."""
+    path = _two_eval_handlers(tmp_path)
+    state = state_for(tmp_path, enable_discovery=True)
+    state.llm = MagicMock(is_configured=True, _backend="ollama")  # one claim per batch
+    state.llm.generate_structured.side_effect = [
+        {"verdicts": [verdict()]},
+        {"verdicts": [{"_claim_idx": 0, "verdict": "refuted", "reason": "safe"}]},
+    ]
+    first = finding(path, 3, engine="llm-discovery")
+    second = finding(path, 7, engine="llm-discovery")
+    upheld = HuntWorkflow(state).verify_discovered_findings([first, second])
+    assert [f.start_line for f in upheld] == [3]
+    # The misnumbered verdict is discarded; claim 1 has no verdict and stays unverified.
+    assert [o["verdict"] for o in state.observations] == ["upheld", "uncertain"]
+
+
+def test_duplicate_discovery_verdicts_for_one_claim_are_uncertain(tmp_path):
+    path = _two_eval_handlers(tmp_path)
+    state = state_for(tmp_path, enable_discovery=True)
+    state.llm = MagicMock(is_configured=True, _backend="openai")
+    state.llm.generate_structured.return_value = {"verdicts": [
+        verdict(),
+        {"_claim_idx": 0, "verdict": "refuted", "reason": "safe"},
+    ]}
+    upheld = HuntWorkflow(state).verify_discovered_findings([finding(path, 3, engine="llm-discovery")])
+    assert upheld == []
+    assert state.observations[0]["verdict"] == "uncertain"
+
+
+def test_discovery_citation_inside_shown_code_context_is_supported(tmp_path):
+    """The verifier sees ~25 lines of code_context; citing them is grounded evidence
+    even when the related_context budget kept only the sink line."""
+    path = tmp_path / "app.py"
+    path.write_text('@app.post("/x")\ndef handler(request):\n    return eval(request.body)\n')
+    state = state_for(tmp_path, enable_discovery=True, budgets=HuntBudgets(context_lines=1))
+    state.llm = MagicMock(is_configured=True, _backend="openai")
+    state.llm.generate_structured.return_value = {"verdicts": [verdict()]}  # entrypoint app.py:1
+    upheld = HuntWorkflow(state).verify_discovered_findings([finding(path, 3, engine="llm-discovery")])
+    assert [f.start_line for f in upheld] == [3]

@@ -17,6 +17,9 @@
 - SCA lists every reason the pass was degraded, not only the last one.
 - A target that is not a directory, or cannot be resolved, is a usage error
   (exit 2) instead of exit 1, which CI reads as findings present.
+- Hunt discovery verification no longer lets a misnumbered or repeated
+  verdict overwrite another claim's verdict, and accepts citations of the
+  code it showed the verifier instead of dropping those findings.
 
 ## v0.3.11 (alpha)
 

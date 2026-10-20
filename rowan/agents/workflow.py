@@ -1311,12 +1311,20 @@ class HuntWorkflow:
                           (f.taint_flow.sink.file_path, "sink_context")]
         data["inspected_locations"] = []
         for file, field_name in locations:
-            safe = HuntWorkflow._safe_resolve(target_path, file)
-            numbers = [int(n) for n in re.findall(r"(?m)^\s*(?:>>>)?\s*(\d+):", data.get(field_name, ""))]
-            if safe is not None and numbers:
-                data["inspected_locations"].append({"file": safe.resolve().relative_to(target_path.resolve()).as_posix(),
-                                                    "start_line": min(numbers), "end_line": max(numbers)})
+            location = HuntWorkflow._shown_range(target_path, file, data.get(field_name, ""))
+            if location is not None:
+                data["inspected_locations"].append(location)
         return data
+
+    @staticmethod
+    def _shown_range(target_path: Path, file: str, context: str) -> dict[str, Any] | None:
+        """The file and line range of numbered source shown to the model."""
+        safe = HuntWorkflow._safe_resolve(target_path, file)
+        numbers = [int(n) for n in re.findall(r"(?m)^\s*(?:>>>)?\s*(\d+):", context)]
+        if safe is None or not numbers:
+            return None
+        return {"file": safe.resolve().relative_to(target_path.resolve()).as_posix(),
+                "start_line": min(numbers), "end_line": max(numbers)}
 
     # ── Stage 3: Verify ───────────────────────────────────────────
 
@@ -2253,10 +2261,12 @@ class HuntWorkflow:
         stats = self.state.discovery_stats
         batch_size = _verification_batch_size(self.state.llm._backend)
         verdicts_by_idx: dict[int, dict[str, Any]] = {}
+        claims_by_idx: dict[int, dict[str, Any]] = {}
 
         for start in range(0, len(findings), batch_size):
             batch = findings[start:start + batch_size]
             claims = [self._discovery_claim(f, start + i) for i, f in enumerate(batch)]
+            claims_by_idx.update((c["_claim_idx"], c) for c in claims)
             prompt = DISCOVERY_VERIFY_PROMPT.format(claims_json=json.dumps(claims, indent=2))
             try:
                 result = self.state.llm.generate_structured(
@@ -2278,8 +2288,12 @@ class HuntWorkflow:
                     # Model dropped the index: fall back to positional order
                     # within this batch's own response list.
                     idx = start + i if i < len(batch) else None
-                if idx is not None:
-                    verdicts_by_idx[idx] = v
+                # An index outside this batch would overwrite another claim's verdict.
+                if idx is not None and start <= idx < start + len(batch):
+                    if idx in verdicts_by_idx:
+                        verdicts_by_idx[idx] = {"verdict": "uncertain", "reason": "duplicate verifier index"}
+                    else:
+                        verdicts_by_idx[idx] = v
 
         upheld: list[Finding] = []
         for i, f in enumerate(findings):
@@ -2290,7 +2304,9 @@ class HuntWorkflow:
             verdict = _normalise_verdict(v.get("verdict")) if v else "uncertain"
             evidence, sufficient = verification_evidence(v or {})
             assessment = reachability_assessment((v or {}).get("reachability_assessment"), fallback=f.metadata.get("reachability", ""))
-            inspected = self._discovery_claim(f, i)["related_context"]
+            claim = claims_by_idx[i]
+            shown = self._shown_range(self.state.target_path, f.file_path, claim["code_context"])
+            inspected = {"snippets": [*claim["related_context"]["snippets"], *([shown] if shown else [])]}
             sufficient = sufficient and evidence_locations_supported(evidence, assessment, inspected)
             if verdict == "upheld" and not sufficient:
                 verdict = "uncertain"
