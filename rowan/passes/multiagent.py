@@ -517,7 +517,8 @@ class MultiAgentPass:
         start = time.perf_counter()
         result = ScanResult()
 
-        if not getattr(context.config, "enable_multiagent", False):
+        # None means the policy chose; the scan plan only runs this pass when enabled.
+        if context.config.enable_multiagent is False:
             return result
 
         files_scanned = 0

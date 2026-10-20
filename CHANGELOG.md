@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+- `--policy deep` now runs the authz (BOLA/IDOR) and multiagent passes. They
+  were selected but returned without scanning any file.
+- A repo checked out under a folder named `build`, `dist`, `out`, `coverage`,
+  `vendor` or `testdata` no longer loses its JS, Go and SCA files.
+- JS/TS cross-file analysis reports the scan as degraded when tree-sitter is
+  not installed, as Go already did. With `--ci` or `--fail-on-degraded`, a
+  repo with JS or TS files now exits 2 unless `rowan[js-crossfile]` is
+  installed.
+- The RAG tenant-scope check no longer misses an owner-model query that
+  follows an unrelated unscoped query in the same handler.
+- Go cross-file analysis treats `os.Rename` as a path sink, matching the Go
+  taint rules.
+- SCA lists every reason the pass was degraded, not only the last one.
+- A target that is not a directory, or cannot be resolved, is a usage error
+  (exit 2) instead of exit 1, which CI reads as findings present.
+
 ## v0.3.11 (alpha)
 
 Fixes from a full review of the detection rules and engine (#47).

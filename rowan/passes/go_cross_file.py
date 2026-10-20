@@ -32,7 +32,7 @@ from rowan.core.confidence import CROSSFILE_TAINT
 from rowan.core.findings import Category, Finding, ScanResult, Severity, TaintFlow, TaintNode
 from rowan.core.paths import is_within_root
 from rowan.passes.base import ScanContext, scan_span
-from rowan.passes.file_scan import is_hidden_under, is_ignored, load_ignore_patterns
+from rowan.passes.file_scan import _parts_under, is_hidden_under, is_ignored, load_ignore_patterns
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +82,7 @@ _SQL_RECEIVER_TYPE_RE = re.compile(
 # os.Lstat are not sinks: they are how containment guards probe a candidate.
 _PATH_FUNCS = frozenset({
     "os.Open", "os.OpenFile", "os.ReadFile", "os.WriteFile", "os.Create", "os.Remove",
-    "os.RemoveAll", "os.MkdirAll", "ioutil.ReadFile", "ioutil.WriteFile"
+    "os.RemoveAll", "os.MkdirAll", "os.Rename", "ioutil.ReadFile", "ioutil.WriteFile"
 })
 _EXEC_FUNCS = frozenset({"exec.Command", "exec.CommandContext", "syscall.Exec", "os.StartProcess"})
 _CLIENT_RE = re.compile(r"[cC]lient")
@@ -194,7 +194,7 @@ def _collect_go_files(root: Path, context: ScanContext) -> list[Path]:
     for path in candidates:
         if not path.is_file() or path.name.endswith("_test.go"):
             continue
-        if is_hidden_under(path, root) or any(part in _SKIP_DIRS for part in path.parts):
+        if is_hidden_under(path, root) or any(part in _SKIP_DIRS for part in _parts_under(path, root)):
             continue
         if path.is_symlink() and not is_within_root(path, root):
             continue

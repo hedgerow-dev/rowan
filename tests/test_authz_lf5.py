@@ -4,6 +4,7 @@ from rowan.config import ScanConfig
 from rowan.core.findings import ScanResult
 from rowan.passes.authz import AuthzPass
 from rowan.passes.base import ScanContext
+from rowan.pipeline import ScanPipeline
 
 
 def _scan(tmp_path, source: str, rule_id: str):
@@ -199,3 +200,45 @@ def test_owner_scoped_rag_retrieval_is_safe(tmp_path):
         "    return run_agent('summarize', context_docs=docs)\n"
     )
     assert _scan(tmp_path, source, "AUTHZ-RAG-TENANT-SCOPE-001") == []
+
+
+def test_deep_policy_runs_authz(tmp_path):
+    """--policy deep selects the pass with enable_authz left at None."""
+    (tmp_path / "api.py").write_text(
+        "@bp.post('/notes')\n"
+        "@require_auth\n"
+        "def add_note():\n"
+        "    row = ExperimentNote(owner_id=g.user_id, note=request.json['note'])\n"
+        "    db.session.add(row)\n\n"
+        "@bp.post('/brief')\n"
+        "@require_auth\n"
+        "def brief():\n"
+        "    rows = ExperimentNote.query.filter_by(experiment_id=request.json['id']).all()\n"
+        "    docs = [row.note for row in rows]\n"
+        "    return run_agent('summarize', context_docs=docs)\n",
+        encoding="utf-8",
+    )
+    result = ScanPipeline(ScanConfig(target=tmp_path, policy="deep", enable_sca=False)).run()
+    assert "AUTHZ-RAG-TENANT-SCOPE-001" in {f.rule_id for f in result.findings}
+
+
+def test_unscoped_rag_retrieval_after_unrelated_unscoped_query_is_flagged(tmp_path):
+    """An earlier unscoped query on a non-owner model must not hide the owner-model one."""
+    source = (
+        "@bp.post('/notes')\n"
+        "@require_auth\n"
+        "def add_note():\n"
+        "    row = ExperimentNote(owner_id=g.user_id, note=request.json['note'])\n"
+        "    db.session.add(row)\n\n"
+        "@bp.post('/brief')\n"
+        "@require_auth\n"
+        "def brief():\n"
+        "    tags = Tag.query.filter_by(kind='public').all()\n"
+        "    rows = ExperimentNote.query.filter_by(experiment_id=request.json['id']).all()\n"
+        "    docs = [row.note for row in rows]\n"
+        "    return run_agent('summarize', context_docs=docs)\n"
+    )
+    hits = _scan(tmp_path, source, "AUTHZ-RAG-TENANT-SCOPE-001")
+    assert len(hits) == 1
+    assert hits[0].metadata["model"] == "ExperimentNote"
+

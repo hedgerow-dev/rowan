@@ -33,7 +33,7 @@ from rowan.passes.cross_file import (
     _propagate_cross_file,
     _resolve_callee,
 )
-from rowan.passes.file_scan import is_hidden_under, is_ignored, load_ignore_patterns
+from rowan.passes.file_scan import _parts_under, is_hidden_under, is_ignored, load_ignore_patterns
 
 logger = logging.getLogger(__name__)
 
@@ -125,7 +125,7 @@ def _collect_js_files(
     for path in source_paths:
         if not path.is_file() or path.suffix not in exts:
             continue
-        if is_hidden_under(path, root) or any(part in _SKIP_DIRS for part in path.parts):
+        if is_hidden_under(path, root) or any(part in _SKIP_DIRS for part in _parts_under(path, root)):
             continue
         # A symlinked source file can point outside the scan root (CWE-59);
         # rglob does not follow a symlinked directory but does yield a
@@ -1141,13 +1141,6 @@ class JSCrossFilePass:
         start = time.perf_counter()
         result = ScanResult()
 
-        if not TREE_SITTER_AVAILABLE:
-            logger.info(
-                "JSCrossFilePass: tree-sitter not installed "
-                "(pip install 'rowan[js-crossfile]'). Skipping."
-            )
-            return result
-
         target = context.target_path
         if not target.exists():
             return result
@@ -1168,6 +1161,12 @@ class JSCrossFilePass:
             candidates=candidates,
         )
         if not js_files:
+            return result
+        if not TREE_SITTER_AVAILABLE:
+            result.degraded_passes[self.name] = (
+                "tree-sitter not installed (pip install 'rowan[js-crossfile]'); "
+                "JS/TS cross-file taint was not run"
+            )
             return result
 
         parsers = _get_parsers()

@@ -893,3 +893,22 @@ def test_non_commander_action_callback_is_not_a_source():
     )
     root = _make_project({"ui.ts": ui, "cloner.ts": _CLONER})
     assert [f for f in _run_js_cross_file(root).findings if f.engine == "crossfile"] == []
+
+
+def test_missing_tree_sitter_marks_pass_degraded(tmp_path, monkeypatch):
+    """Without tree-sitter the pass must say JS was not analysed, not report success."""
+    import rowan.passes.js_cross_file as js_cross_file
+
+    monkeypatch.setattr(js_cross_file, "TREE_SITTER_AVAILABLE", False)
+    (tmp_path / "app.js").write_text("module.exports = 1;\n", encoding="utf-8")
+    ctx = ScanContext(target_path=tmp_path, config=ScanConfig(target=tmp_path), result=ScanResult())
+    result = JSCrossFilePass().run(ctx)
+    assert "js_crossfile" in result.degraded_passes
+
+
+def test_missing_tree_sitter_without_js_files_is_not_degraded(tmp_path, monkeypatch):
+    import rowan.passes.js_cross_file as js_cross_file
+
+    monkeypatch.setattr(js_cross_file, "TREE_SITTER_AVAILABLE", False)
+    ctx = ScanContext(target_path=tmp_path, config=ScanConfig(target=tmp_path), result=ScanResult())
+    assert JSCrossFilePass().run(ctx).degraded_passes == {}

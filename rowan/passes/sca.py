@@ -41,6 +41,7 @@ from rowan.core.version_ranges import (
 )
 from rowan.core.vuln_functions import get_vulnerable_functions
 from rowan.passes.base import ScanContext, SourceInventory, scan_span
+from rowan.passes.file_scan import _parts_under
 
 logger = logging.getLogger(__name__)
 
@@ -198,13 +199,14 @@ class SCAPass:
             dropped_packages += dropped
             hydration_failures.update(self._hydration_failures)
 
+        degraded: list[str] = []
         if component_inventory:
             result.metadata["dependencies"] = list(component_inventory.values())
         if dependency_status:
             result.metadata["dependency_files"] = dependency_status
             unparsed = [item["path"] for item in dependency_status if item["status"] == "unparsed"]
             if unparsed:
-                result.degraded_passes["sca"] = (
+                degraded.append(
                     f"Could not parse {len(unparsed)} dependency file(s): "
                     + ", ".join(unparsed[:5])
                     + (" ..." if len(unparsed) > 5 else "")
@@ -215,7 +217,7 @@ class SCAPass:
                 f"OSV query exhausted retries for {dropped_packages} package(s) -- "
                 f"those dependencies were not checked for known vulnerabilities"
             )
-            result.degraded_passes["sca"] = message
+            degraded.append(message)
             logger.warning("SCAPass DEGRADED: %s", message)
 
         if hydration_failures:
@@ -226,8 +228,10 @@ class SCAPass:
             )
             if len(ids) <= 5:
                 message += ": " + ", ".join(ids)
-            result.degraded_passes["sca"] = message
+            degraded.append(message)
             logger.warning("SCAPass DEGRADED: %s", message)
+        if degraded:
+            result.degraded_passes["sca"] = "; ".join(degraded)
 
         python_sources = (
             source_inventory.paths_for("python", suffix=".py")
@@ -295,7 +299,7 @@ class SCAPass:
 
         files: list[Path] = []
         for f in target.rglob("*"):
-            if any(p in DEPENDENCY_SKIP_DIRS for p in f.parts):
+            if any(p in DEPENDENCY_SKIP_DIRS for p in _parts_under(f, target)):
                 continue
             if not f.is_file():
                 continue
@@ -1921,6 +1925,6 @@ class SCAPass:
         return [
             py_file
             for py_file in (target.rglob("*.py") if candidates is None else candidates)
-            if not any(p in skip_dirs for p in py_file.parts)
+            if not any(p in skip_dirs for p in _parts_under(py_file, target))
             and not (py_file.is_symlink() and not is_within_root(py_file, target))
         ]

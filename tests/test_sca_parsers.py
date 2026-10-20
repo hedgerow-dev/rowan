@@ -772,6 +772,20 @@ class TestDroppedChunksMarkScanDegraded:
         assert "sca" in result.degraded_passes
         assert "3" in result.degraded_passes["sca"]
 
+    def test_run_reports_every_degraded_cause(self, tmp_path):
+        (tmp_path / "requirements.txt").write_text("requests==2.0\n")
+        (tmp_path / "package.json").write_text("{not-json")
+        sca = SCAPass()
+
+        with (
+            patch.object(sca, "_check_vulnerabilities", return_value=([], 3)),
+            patch.object(sca, "_apply_reachability"),
+        ):
+            result = sca.run(self._make_context(tmp_path))
+
+        assert "Could not parse 1 dependency file" in result.degraded_passes["sca"]
+        assert "exhausted retries for 3 package" in result.degraded_passes["sca"]
+
     def test_run_does_not_mark_degraded_when_nothing_dropped(self, tmp_path):
         (tmp_path / "requirements.txt").write_text("requests==2.0\n")
         sca = SCAPass()

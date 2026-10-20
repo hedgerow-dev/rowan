@@ -552,3 +552,45 @@ def test_mutually_recursive_passthrough_keeps_second_flow():
     })
     sources = sorted(f.taint_flow.source.line for f in _cf(_run(root)))
     assert sources == [13, 19]
+
+
+HANDLER_RENAME = """package tools
+
+import (
+\t"context"
+
+\t"github.com/mark3labs/mcp-go/mcp"
+
+\t"example.com/app/internal/files"
+)
+
+func MoveFile(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+\tdest := request.GetString("dest", "")
+\tif err := files.Move("/tmp/upload", dest); err != nil {
+\t\treturn mcp.NewToolResultError(err.Error()), nil
+\t}
+\treturn mcp.NewToolResultText("ok"), nil
+}
+"""
+
+FILES_MOVE = """package files
+
+import "os"
+
+func Move(src string, dst string) error {
+\treturn os.Rename(src, dst)
+}
+"""
+
+
+def test_tool_param_reaching_os_rename_destination_is_flagged():
+    """os.Rename's second argument is a path sink, as in rules/go_ai_taint.yaml."""
+    root = _make_module(
+        {
+            "internal/tools/move.go": HANDLER_RENAME,
+            "internal/files/move.go": FILES_MOVE,
+        }
+    )
+    findings = _cf(_run(root))
+    assert [f.category for f in findings] == [Category.PATH_TRAVERSAL]
+    assert findings[0].file_path.endswith("internal/files/move.go")

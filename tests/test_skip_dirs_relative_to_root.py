@@ -20,10 +20,13 @@ from rowan.passes.base import ScanContext
 from rowan.passes.config_taint import ConfigTaintPass
 from rowan.passes.dormant_code import DormantCodePass
 from rowan.passes.file_scan import FileScanPass
+from rowan.passes.go_cross_file import _collect_go_files
+from rowan.passes.js_cross_file import _collect_js_files
 from rowan.passes.mcp_network_exposure import MCPNetworkExposurePass
 from rowan.passes.mcp_sampling_approval import MCPSamplingApprovalPass
 from rowan.passes.mcp_stored_content import MCPStoredContentPass
 from rowan.passes.multiagent import MultiAgentPass
+from rowan.passes.sca import SCAPass
 from rowan.passes.serialization_scope import SerializationScopePass
 from rowan.passes.web_security import WebSecurityPass
 
@@ -93,3 +96,36 @@ def test_ast_passes_scan_files_under_dot_ancestor(tmp_path, pass_cls, ancestor):
     ctx = ScanContext(target_path=repo, config=config, result=ScanResult())
     result = pass_cls().run(ctx)
     assert result.files_scanned == 1
+
+
+def _collect_js_go_sca(repo: Path):
+    ctx = ScanContext(target_path=repo, config=ScanConfig(target=repo), result=ScanResult())
+    return (
+        [p.name for p in _collect_js_files(repo)],
+        [p.name for p in _collect_go_files(repo, ctx)],
+        [p.name for p in SCAPass._collect_python_files(repo)],
+        [p.name for p in SCAPass()._find_dep_files(repo)],
+    )
+
+
+@pytest.mark.parametrize("ancestor", ["build", "dist", "out", "coverage", "vendor", "testdata"])
+def test_js_go_sca_collect_files_under_skip_named_ancestor(tmp_path, ancestor):
+    repo = _repo_under(tmp_path, ancestor)
+    (repo / "app.js").write_text("module.exports = 1;\n", encoding="utf-8")
+    (repo / "main.go").write_text("package main\n", encoding="utf-8")
+    assert _collect_js_go_sca(repo) == (["app.js"], ["main.go"], ["app.py"], ["requirements.txt"])
+
+
+def test_js_go_sca_still_skip_build_dirs_inside_repo(tmp_path):
+    repo = _repo_under(tmp_path, "src")
+    (repo / "app.js").write_text("module.exports = 1;\n", encoding="utf-8")
+    (repo / "main.go").write_text("package main\n", encoding="utf-8")
+    (repo / "build").mkdir()
+    (repo / "build" / "gen.js").write_text("module.exports = 2;\n", encoding="utf-8")
+    (repo / "build" / "gen.py").write_text(_SOURCE, encoding="utf-8")
+    (repo / "vendor").mkdir()
+    (repo / "vendor" / "gen.go").write_text("package gen\n", encoding="utf-8")
+    js, go, py, _manifests = _collect_js_go_sca(repo)
+    assert js == ["app.js"]
+    assert go == ["main.go"]
+    assert py == ["app.py"]

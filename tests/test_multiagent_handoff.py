@@ -39,6 +39,7 @@ from rowan.core.findings import ScanResult
 from rowan.core.rules import load_neuroscan_rules
 from rowan.passes.base import ScanContext
 from rowan.passes.multiagent import MultiAgentPass
+from rowan.pipeline import ScanPipeline
 from rowan.taint.opengrep_adapter import OpengrepAdapter
 
 RULES_PATH = Path(__file__).parent.parent / "rules" / "ai_security.yaml"
@@ -385,3 +386,21 @@ class TestCleanCorpusBaseline:
                 continue
             findings.extend(pass_._scan_tree(py_file, tree))
         assert findings == []
+
+
+def test_deep_policy_runs_handoff_detection(tmp_path):
+    """--policy deep selects the pass with enable_multiagent left at None."""
+    (tmp_path / "crew.py").write_text(
+        _CREWAI_IMPORTS
+        + "from crewai_tools import ScrapeWebsiteTool, CodeInterpreterTool\n\n"
+        "researcher = Agent(role='Researcher', tools=[ScrapeWebsiteTool()])\n"
+        "executor = Agent(role='Executor', tools=[CodeInterpreterTool()])\n\n"
+        "research_task = Task(description='scrape the target site', agent=researcher)\n"
+        "exec_task = Task(description='run the recommended command', agent=executor, "
+        "context=[research_task])\n\n"
+        "crew = Crew(agents=[researcher, executor], tasks=[research_task, exec_task])\n"
+        "crew.kickoff()\n",
+        encoding="utf-8",
+    )
+    result = ScanPipeline(ScanConfig(target=tmp_path, policy="deep", enable_sca=False)).run()
+    assert "AGENT-HANDOFF-001" in {f.rule_id for f in result.findings}

@@ -260,7 +260,7 @@ def _unscoped_rag_retrieval(
     owner_written_models: set[str],
 ) -> tuple[int, str, int] | None:
     """Unscoped owner-model rows later supplied as LLM/RAG context."""
-    gap = _unscoped_collection_query(func)
+    gap = _unscoped_collection_query(func, owner_written_models)
     if gap is None:
         return None
     query_line, model = gap
@@ -1195,7 +1195,8 @@ class AuthzPass:
         start = time.perf_counter()
         result = ScanResult()
 
-        if not getattr(context.config, "enable_authz", False):
+        # None means the policy chose; the scan plan only runs this pass when enabled.
+        if context.config.enable_authz is False:
             return result
 
         trees: list[tuple[Path, ast.AST]] = []

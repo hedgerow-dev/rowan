@@ -401,13 +401,11 @@ def scan(
 
     try:
         target = target.resolve()
-    except OSError:
-        console.print(f"[red]Error:[/red] Cannot resolve path: {target}")
-        sys.exit(1)
+    except OSError as exc:
+        raise click.UsageError(f"Cannot resolve path: {target}") from exc
 
     if not target.is_dir():
-        console.print(f"[red]Error:[/red] Target must be a directory: {target}")
-        sys.exit(1)
+        raise click.UsageError(f"Target must be a directory: {target}")
 
     try:
         config = ScanConfig(

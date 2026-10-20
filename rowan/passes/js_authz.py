@@ -468,7 +468,8 @@ class JSAuthzPass:
     def run(self, context: ScanContext) -> ScanResult:
         start = time.perf_counter()
         result = ScanResult()
-        if not getattr(context.config, "enable_authz", False) or not TREE_SITTER_AVAILABLE:
+        # None means the policy chose; the scan plan only runs this pass when enabled.
+        if context.config.enable_authz is False or not TREE_SITTER_AVAILABLE:
             return result
 
         target = context.target_path
