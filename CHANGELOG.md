@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Agent skill files (`SKILL.md`) are treated as AI instruction files: the
+  zero-width and bidi smuggling rule (ns-aiml-108) now scans them, and Hunt
+  keeps their text out of LLM context, as for `AGENTS.md`.
 - `--policy deep` now runs the authz (BOLA/IDOR) and multiagent passes. They
   were selected but returned without scanning any file.
 - A repo checked out under a folder named `build`, `dist`, `out`, `coverage`,

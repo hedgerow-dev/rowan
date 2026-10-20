@@ -1330,6 +1330,7 @@ rules:
     - '*.tsx'
     - CLAUDE.md
     - AGENTS.md
+    - SKILL.md
     - .cursorrules
     - copilot-instructions.md
     - '*.prompt.md'
@@ -1387,6 +1388,7 @@ rules:
     - '*.tsx'
     - CLAUDE.md
     - AGENTS.md
+    - SKILL.md
     - .cursorrules
     - copilot-instructions.md
     - '*.prompt.md'

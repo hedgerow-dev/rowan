@@ -233,8 +233,10 @@ _PATH_GLOBS: dict[str, list[str]] = {
     "json": ["*.json"],
     "yaml": ["*.yaml", "*.yml"],
     "toml": ["*.toml"],
+    # Must match OPENGREP_LANGUAGE_INCLUDE_GLOBS["ai_instructions"] in
+    # rowan/languages.py (enforced by a test).
     "ai_instructions": [
-        "CLAUDE.md", "AGENTS.md", ".cursorrules",
+        "CLAUDE.md", "AGENTS.md", "SKILL.md", ".cursorrules",
         "copilot-instructions.md", "*.prompt.md",
     ],
     "markdown": ["*.md"],

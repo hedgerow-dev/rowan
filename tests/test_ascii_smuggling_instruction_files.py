@@ -88,6 +88,17 @@ class TestLegacyDiscoveryReachesInstructionFiles:
             f"AGENTS.md must be scanned and flagged, got: {[f.rule_id for f in findings]}"
         )
 
+    def test_zero_width_in_agent_skill_is_flagged(self, tmp_path):
+        skill_dir = tmp_path / "skills" / "deploy"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text(
+            "---\nname: deploy\n---\nDeploy steps." + _ZERO_WIDTH_PAYLOAD, encoding="utf-8"
+        )
+        findings = _legacy_scan(tmp_path)
+        assert any(f.rule_id == "ns-aiml-108" for f in findings), (
+            f"SKILL.md is an agent instruction file, got: {[f.rule_id for f in findings]}"
+        )
+
     def test_nested_copilot_instructions_is_flagged(self, tmp_path):
         github_dir = tmp_path / ".github"
         github_dir.mkdir()
@@ -165,6 +176,19 @@ class TestDefaultPipelineDiscoveryReachesInstructionFiles:
             f"{[f.rule_id for f in result.findings]}"
         )
 
+    def test_zero_width_in_agent_skill_is_flagged(self, tmp_path):
+        skill_dir = tmp_path / "skills" / "deploy"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text(
+            "---\nname: deploy\n---\nDeploy steps." + _ZERO_WIDTH_PAYLOAD, encoding="utf-8"
+        )
+        config = ScanConfig(target=tmp_path, no_sca=True, no_taint=False, rules_dir=RULES_DIR)
+        result = ScanPipeline(config).run()
+        assert any(f.rule_id == "ns-aiml-108" for f in result.findings), (
+            f"SKILL.md must be scanned via the default pipeline, got: "
+            f"{[f.rule_id for f in result.findings]}"
+        )
+
     def test_legitimate_i18n_in_instruction_file_not_flagged(self, tmp_path):
         (tmp_path / "AGENTS.md").write_text(
             "# Agents\n\n支持中文 مرحبا \U0001F389\n", encoding="utf-8"
@@ -174,3 +198,22 @@ class TestDefaultPipelineDiscoveryReachesInstructionFiles:
         assert not any(f.rule_id == "ns-aiml-108" for f in result.findings), (
             f"legitimate i18n must not be flagged, got: {[f.rule_id for f in result.findings]}"
         )
+
+
+def test_agent_skill_is_an_instruction_file():
+    """Hunt keeps instruction files out of LLM context; skills are attacker-authorable too."""
+    from rowan.passes.file_scan import is_ai_instruction_file
+
+    assert is_ai_instruction_file("skills/deploy/SKILL.md")
+    assert not is_ai_instruction_file("docs/skills.md")
+
+
+def test_converted_rules_cover_the_same_instruction_files():
+    """The rule converter keeps its own glob table; it must not drift from languages.py."""
+    import runpy
+
+    from rowan.languages import OPENGREP_LANGUAGE_INCLUDE_GLOBS
+
+    script = Path(__file__).parent.parent / "scripts" / "convert_neuroscan_to_opengrep.py"
+    converter_globs = runpy.run_path(str(script), run_name="not_main")["_PATH_GLOBS"]
+    assert tuple(converter_globs["ai_instructions"]) == OPENGREP_LANGUAGE_INCLUDE_GLOBS["ai_instructions"]

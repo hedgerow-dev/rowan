@@ -63,11 +63,11 @@ _REGISTRY = {
         opengrep_include_globs=("*.html", "*.htm", "*.jinja", "*.jinja2", "*.j2"),
     ),
     "ai_instructions": LanguageDefinition(
-        ("CLAUDE.md", "AGENTS.md", ".cursorrules", "copilot-instructions.md", ".prompt.md"),
+        ("CLAUDE.md", "AGENTS.md", "SKILL.md", ".cursorrules", "copilot-instructions.md", ".prompt.md"),
         (".cursorrules", ".prompt.md"),
-        opengrep_exact_names=("claude.md", "agents.md", "copilot-instructions.md"),
+        opengrep_exact_names=("claude.md", "agents.md", "skill.md", "copilot-instructions.md"),
         opengrep_include_globs=(
-            "CLAUDE.md", "AGENTS.md", ".cursorrules", "copilot-instructions.md", "*.prompt.md",
+            "CLAUDE.md", "AGENTS.md", "SKILL.md", ".cursorrules", "copilot-instructions.md", "*.prompt.md",
         ),
     ),
     "markdown": LanguageDefinition((".md",), (".md",), opengrep_include_globs=("*.md",)),
