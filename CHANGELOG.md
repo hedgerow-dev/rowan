@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Code files skipped as build output (`dist/`, `build/`), minified or
+  oversized are listed in `analysis_capability.skipped_code_files` and in the
+  console and text reports. A scan that skipped a package's only bundle no
+  longer prints "No vulnerabilities found."
 - Agent skill files (`SKILL.md`) are treated as AI instruction files: the
   zero-width and bidi smuggling rule (ns-aiml-108) now scans them, and Hunt
   keeps their text out of LLM context, as for `AGENTS.md`.

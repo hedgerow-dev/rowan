@@ -288,6 +288,7 @@ class ScanPipeline:
             "opengrep_mode": execution["mode"],
             "patterns_only_languages": patterns_only,
             "unsupported_languages": unsupported,
+            "skipped_code_files": self._context.metadata.get("skipped_code_files", {}),
         }
         self._context.result.metadata["scan_manifest"] = {
             "rowan_version": __version__,

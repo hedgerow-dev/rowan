@@ -577,6 +577,16 @@ def to_text(result: ScanResult) -> str:
         lines.append(f"  ANALYSIS COVERAGE: not analysed (unsupported language) for: {langs}.")
         lines.append("  No engine ran on these files;")
         lines.append("  absence of findings there is NOT evidence of absence.")
+    skipped = capability.get("skipped_code_files") or {}
+    if skipped:
+        parts = ", ".join(
+            f"{reason.replace('_', ' ')} ({entry['count']} files, e.g. {entry['examples'][0]})"
+            for reason, entry in sorted(skipped.items())
+        )
+        lines.append("")
+        lines.append(f"  ANALYSIS COVERAGE: skipped code files: {parts}.")
+        lines.append("  These were not scanned; for a published package the bundle may be all")
+        lines.append("  the code there is. Use .rowanignore negations or scan_vendored to include them.")
     lines.append("")
 
     severity_order = {
