@@ -32,6 +32,7 @@ from rowan.languages import (
     OPENGREP_LANGUAGE_INCLUDE_GLOBS,
     normalize_languages,
 )
+from rowan.passes.file_scan import BASE_SKIP_DIRS, is_ai_instruction_file
 
 logger = logging.getLogger(__name__)
 _UNSET = object()
@@ -707,7 +708,16 @@ class OpengrepAdapter:
                 if part.startswith(".") and part not in self._ALLOWED_DOTFILES
             ]
             is_workflow = relative_parts[:2] == (".github", "workflows")
-            if hidden_parts and not (is_workflow and hidden_parts == [".github"]):
+            # Agent instructions live in dot-folders by convention
+            # (.claude/skills/*/SKILL.md, .github/copilot-instructions.md);
+            # .git, .venv and the tool caches stay excluded.
+            is_instruction = (
+                is_ai_instruction_file(path)
+                and not any(part in BASE_SKIP_DIRS for part in relative_parts)
+                # Claude Code worktrees are checkouts of this same repository.
+                and relative_parts[:2] != (".claude", "worktrees")
+            )
+            if hidden_parts and not is_instruction and not (is_workflow and hidden_parts == [".github"]):
                 continue
             if any(skip in relative_parts for skip in self._SKIP_DIRS):
                 continue

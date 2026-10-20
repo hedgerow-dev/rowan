@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- AI instruction files inside dot-folders (`.claude/skills/*/SKILL.md`,
+  `.github/copilot-instructions.md`) now reach the Opengrep rules, so the
+  Unicode smuggling rules (ns-aiml-107/108) cover them. `.git`, `.venv`, tool
+  caches and `.claude/worktrees` stay excluded.
 - Agent skill files (`SKILL.md`) are treated as AI instruction files: the
   zero-width and bidi smuggling rule (ns-aiml-108) now scans them, and Hunt
   keeps their text out of LLM context, as for `AGENTS.md`.

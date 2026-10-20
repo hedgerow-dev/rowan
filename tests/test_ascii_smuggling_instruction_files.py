@@ -189,6 +189,36 @@ class TestDefaultPipelineDiscoveryReachesInstructionFiles:
             f"{[f.rule_id for f in result.findings]}"
         )
 
+    def _default_scan(self, tmp_path):
+        config = ScanConfig(target=tmp_path, no_sca=True, no_taint=False, rules_dir=RULES_DIR)
+        return {f.rule_id for f in ScanPipeline(config).run().findings}
+
+    def test_skill_in_dot_claude_folder_is_scanned(self, tmp_path):
+        """Skills live in .claude/skills/ by convention (MCP census, 2026-10-20)."""
+        skill = tmp_path / ".claude" / "skills" / "deploy" / "SKILL.md"
+        skill.parent.mkdir(parents=True)
+        skill.write_text("---\nname: deploy\n---\nDeploy." + _ZERO_WIDTH_PAYLOAD, encoding="utf-8")
+        assert "ns-aiml-108" in self._default_scan(tmp_path)
+
+    def test_copilot_instructions_in_dot_github_is_scanned(self, tmp_path):
+        target = tmp_path / ".github" / "copilot-instructions.md"
+        target.parent.mkdir()
+        target.write_text("Coding standards." + _TAGS_BLOCK_PAYLOAD, encoding="utf-8")
+        assert "ns-aiml-107" in self._default_scan(tmp_path)
+
+    def test_instruction_files_in_nested_worktrees_are_not_rescanned(self, tmp_path):
+        """.claude/worktrees/* are checkouts of this same repo, not new input."""
+        target = tmp_path / ".claude" / "worktrees" / "feature-x" / "CLAUDE.md"
+        target.parent.mkdir(parents=True)
+        target.write_text("Assistant." + _TAGS_BLOCK_PAYLOAD, encoding="utf-8")
+        assert "ns-aiml-107" not in self._default_scan(tmp_path)
+
+    def test_ordinary_markdown_in_a_dot_folder_stays_skipped(self, tmp_path):
+        target = tmp_path / ".cache" / "notes.md"
+        target.parent.mkdir()
+        target.write_text("Notes." + _TAGS_BLOCK_PAYLOAD, encoding="utf-8")
+        assert "ns-aiml-107" not in self._default_scan(tmp_path)
+
     def test_legitimate_i18n_in_instruction_file_not_flagged(self, tmp_path):
         (tmp_path / "AGENTS.md").write_text(
             "# Agents\n\n支持中文 مرحبا \U0001F389\n", encoding="utf-8"
