@@ -28,6 +28,7 @@ from rowan.analysis.orm_reads import (
 from rowan.analysis.orm_reads import (
     orm_classes_by_var as _orm_classes_by_var,
 )
+from rowan.analysis.request_sources import KNOWN_SOURCE_PREFIXES, route_input_names
 from rowan.analysis.request_sources import (
     call_returns_llm_output as _call_returns_llm_output,
 )
@@ -46,7 +47,6 @@ from rowan.analysis.request_sources import (
 from rowan.analysis.request_sources import (
     function_reads_source as _function_reads_request_source,
 )
-from rowan.analysis.request_sources import route_input_names
 from rowan.analysis.stmt_walk import iter_body_statements as _iter_body_statements
 from rowan.analysis.test_paths import ENTRYPOINT_RE as _ENTRYPOINT_RE
 from rowan.analysis.test_paths import is_example_only_path as _is_example_only_path
@@ -109,6 +109,24 @@ def _expr_reads_source(expr: ast.expr) -> bool:
     why the cross-file layer is where it matters.
     """
     return _expr_reads_request_source(expr) or _expr_reads_llm_output(expr)
+
+
+_REMOTE_SOURCE_PREFIXES = tuple(p for p in KNOWN_SOURCE_PREFIXES if p != "sys.argv")
+
+
+def _reads_remote_request_source(node: ast.AST) -> bool:
+    """`_function_reads_request_source` without `sys.argv`: the operator's own
+    command line is a source, but not a remote one (see
+    `_FunctionSig.operator_source_only`)."""
+    for child in ast.walk(node):
+        if isinstance(child, ast.Attribute):
+            name = _dotted_name(child)
+            if any(
+                name == p or name.startswith((p + ".", p + "["))
+                for p in _REMOTE_SOURCE_PREFIXES
+            ):
+                return True
+    return False
 
 
 def _first_source_read_line(func_node: ast.AST) -> int:
@@ -1351,7 +1369,10 @@ _CONTAINMENT_NORMALIZE_ATTRS = ("realpath", "abspath", "resolve", "commonpath", 
 # recognition rather than falling out of _function_reads_source.
 # ---------------------------------------------------------------------------
 
-_TOOL_METHOD_NAMES = frozenset({"_run", "run", "_arun", "arun", "_invoke", "invoke", "ainvoke"})
+# `apply` is the tool body in serena-style Tool subclasses.
+_TOOL_METHOD_NAMES = frozenset(
+    {"_run", "run", "_arun", "arun", "_invoke", "invoke", "ainvoke", "apply"}
+)
 _TOOL_BASE_HINT_RE = re.compile(r"Tool$")
 # `tool` covers LangChain `@tool` and FastMCP `@mcp.tool()`; `call_tool` is
 # the low-level MCP server's `@server.call_tool()` handler.
@@ -1630,9 +1651,86 @@ def _is_tool_class(class_def: ast.ClassDef) -> bool:
     return False
 
 
-def _collect_agent_tool_nodes(tree: ast.AST) -> set[int]:
-    """Identify _run/run/_arun/arun methods on BaseTool-style classes, and
-    @tool-decorated bare functions. Returns id()s of the matching FunctionDef/
+def _registered_tool_target(call: ast.Call) -> ast.expr | None:
+    """The function handed to `X.tool(...)(func)` or `X.add_tool(func, ...)`."""
+    func = call.func
+    if (
+        isinstance(func, ast.Call)
+        and isinstance(func.func, ast.Attribute)
+        and func.func.attr == "tool"
+        and call.args
+    ):
+        return call.args[0]
+    if isinstance(func, ast.Attribute) and func.attr == "add_tool" and call.args:
+        return call.args[0]
+    return None
+
+
+def _collect_tool_registrations(
+    parsed: list[tuple[str, ast.AST]],
+    def_nodes: dict[tuple[str, str], ast.AST],
+    import_graph: _ImportGraph,
+) -> tuple[frozenset[str], set[int]]:
+    """Indirect MCP tool registration, across the whole project.
+
+    Returns the names of functions that wrap registration (a decorator with one
+    of these names registers what it decorates, e.g. excel-mcp-server's
+    `@tools.reader(...)`), and the id()s of functions registered by call
+    (`mcp.tool(name=...)(func)`, `self.mcp.tool()(self.method)`,
+    `mcp.add_tool(func)`, as awslabs/mcp does).
+    """
+    registrars: set[str] = set()
+    called_names: dict[str, set[str]] = {}
+    registered: set[int] = set()
+    for file_str, tree in parsed:
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                names = called_names.setdefault(node.name, set())
+                for call in ast.walk(node):
+                    if not isinstance(call, ast.Call):
+                        continue
+                    if isinstance(call.func, ast.Attribute):
+                        if call.func.attr in ("tool", "add_tool"):
+                            registrars.add(node.name)
+                        names.add(call.func.attr)
+                    elif isinstance(call.func, ast.Name):
+                        names.add(call.func.id)
+            elif isinstance(node, ast.Call):
+                target = _registered_tool_target(node)
+                key: tuple[str, str] | None = None
+                if isinstance(target, ast.Name):
+                    key = (
+                        (file_str, target.id)
+                        if (file_str, target.id) in def_nodes
+                        else import_graph.name_to_def.get((file_str, target.id))
+                    )
+                elif (
+                    isinstance(target, ast.Attribute)
+                    and isinstance(target.value, ast.Name)
+                    and target.value.id in _SELF_QUALIFIERS
+                ):
+                    key = (file_str, target.attr)
+                fn = def_nodes.get(key) if key else None
+                if fn is not None:
+                    registered.add(id(fn))
+    # A function that calls a registrar wraps registration too
+    # (`reader()` returns `self._register(...)`, whose inner decorator calls `.tool()`).
+    for _ in range(3):
+        grown = {n for n, called in called_names.items() if called & registrars} - registrars
+        if not grown:
+            break
+        registrars |= grown
+    return frozenset(registrars), registered
+
+
+def _collect_agent_tool_nodes(
+    tree: ast.AST,
+    registrars: frozenset[str] = frozenset(),
+    registered: set[int] = frozenset(),
+) -> set[int]:
+    """Identify _run/run/_arun/arun/apply methods on BaseTool-style classes,
+    @tool-decorated bare functions, and functions registered indirectly (see
+    `_collect_tool_registrations`). Returns id()s of the matching FunctionDef/
     AsyncFunctionDef nodes -- valid for the lifetime of this parsed tree,
     which CrossFilePass holds for the duration of a single scan."""
     tool_nodes: set[int] = set()
@@ -1645,8 +1743,10 @@ def _collect_agent_tool_nodes(tree: ast.AST) -> set[int]:
                 ):
                     tool_nodes.add(id(item))
         elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            if any(
-                _decorator_ref_name(dec) in _TOOL_DECORATOR_NAMES for dec in node.decorator_list
+            if id(node) in registered or any(
+                _decorator_ref_name(dec) in _TOOL_DECORATOR_NAMES
+                or _decorator_ref_name(dec) in registrars
+                for dec in node.decorator_list
             ):
                 tool_nodes.add(id(node))
     return tool_nodes
@@ -2296,7 +2396,11 @@ def _collect_confirmation_provenance_findings(
     return findings
 
 
-def _collect_boundary_nodes(tree: ast.AST) -> dict[int, str]:
+def _collect_boundary_nodes(
+    tree: ast.AST,
+    tool_registrars: frozenset[str] = frozenset(),
+    registered_tools: set[int] = frozenset(),
+) -> dict[int, str]:
     """Union of every recognized structural trust-boundary function in this
     file, mapped to its kind ("agent_tool"/"task_queue"/"grpc"/"graphql"/
     "webhook") -- id()s valid for the lifetime of this parsed tree, which
@@ -2305,7 +2409,7 @@ def _collect_boundary_nodes(tree: ast.AST) -> dict[int, str]:
     to also be @tool-decorated); any single tag is enough to mark the
     function as a source and widen its sink detection."""
     kind_by_id: dict[int, str] = {}
-    for node_id in _collect_agent_tool_nodes(tree):
+    for node_id in _collect_agent_tool_nodes(tree, tool_registrars, registered_tools):
         kind_by_id[node_id] = "agent_tool"
     for node_id in _collect_task_queue_nodes(tree):
         kind_by_id[node_id] = "task_queue"
@@ -3411,6 +3515,11 @@ class _FunctionSig:
     cross-file TaintFlow's sink node (issue #154 Defect 1) can point at the
     actual sink call instead of the containing function's signature."""
     has_source: bool = False
+    operator_source_only: bool = False
+    """True when every source this function reads is the operator's own input
+    (`sys.argv`, `process.argv`, a CLI command handler), not a remote party's.
+    A chain reachable only from such functions is capped like the Opengrep
+    path caps operator sources (`_OPERATOR_SOURCE_RULES` in enrichment)."""
     has_return_taint: bool = False
     """True if this function returns tainted data (propagates upward to callers)."""
     calls_propagator: bool = False
@@ -3924,8 +4033,9 @@ def _extract_functions(
                 if def_nodes is not None
                 else (False, "", 0)
             )
-            has_source = (
-                _function_reads_source(node)
+            remote_source = (
+                _reads_remote_request_source(node)
+                or _function_reads_llm_output(node)
                 or (
                     orm_channels is not None
                     and _function_reads_orm_channel(
@@ -3936,6 +4046,8 @@ def _extract_functions(
                 or _function_reads_objstate_channel(node, objstate_channels)
                 or is_boundary_source
             )
+            operator_source = _function_reads_request_source(node) and not remote_source
+            has_source = remote_source or operator_source
             has_return_taint = _function_returns_source(node)
             boundary_finding = (
                 (sink_line, sink_detail, boundary_kind)
@@ -3954,6 +4066,7 @@ def _extract_functions(
                     calls=calls,
                     calls_propagator=calls_propagator,
                     has_source=has_source,
+                    operator_source_only=operator_source,
                     source_line=_first_source_read_line(node) if has_source else 0,
                     has_return_taint=has_return_taint,
                     has_sink=has_sink,
@@ -4984,6 +5097,10 @@ def _propagate_cross_file(
     }
     return_dist, pred_return = _bfs_taint_upward(return_seeds, return_reverse_graph, edge_call_line)
     source_seeded = _bfs_reachable_forward(source_seeds, forward_graph)
+    remote_seeded = _bfs_reachable_forward(
+        {_node_key(f) for f in funcs if f.has_source and not f.operator_source_only},
+        forward_graph,
+    )
 
     # Emission: a single pass over the now fully-converged sets. Because BFS
     # runs each closure to completion before emission starts, there's no
@@ -5045,6 +5162,7 @@ def _propagate_cross_file(
                 pred_return,
                 func_index,
                 indirect_agent_context=indirect_agent_context,
+                operator_only=caller_key not in remote_seeded,
             )
 
     # "return" direction, part 1 (unchanged): a caller with its own local
@@ -5369,6 +5487,7 @@ def _emit_cross_file_finding(
     func_index: dict[tuple[str, str], _FunctionSig] | None = None,
     allow_same_file: bool = False,
     indirect_agent_context: bool = False,
+    operator_only: bool = False,
 ) -> None:
     """Emit a cross-file finding if the call crosses file boundaries.
 
@@ -5440,7 +5559,7 @@ def _emit_cross_file_finding(
         Severity.LOW
         if unclassified_return
         else Severity.MEDIUM
-        if _CF_LOG_FORGING_CWE in sink_cwe
+        if _CF_LOG_FORGING_CWE in sink_cwe or operator_only
         else Severity.HIGH
     )
     flow_label = (
@@ -5501,11 +5620,12 @@ def _emit_cross_file_finding(
         ),
         file_path=caller_sig.file,
         start_line=line,
-        confidence=CROSSFILE_TAINT(depth),
+        confidence=min(CROSSFILE_TAINT(depth), 0.5) if operator_only else CROSSFILE_TAINT(depth),
         cwe_ids=list(sink_cwe),
         engine="crossfile",
         taint_flow=taint_flow,
         metadata={
+            **({"operator_controlled_source": True} if operator_only else {}),
             "cross_file": not allow_same_file,
             "caller": caller_sig.name,
             "callee_file": callee_key[0],
@@ -5789,6 +5909,9 @@ class CrossFilePass:
         objstate_channels: set[tuple[str, str, str]] = set()
         file_channels = _collect_file_write_channels(parsed)
         boundary_kind_by_id: dict[int, str] = {}
+        tool_registrars, registered_tools = _collect_tool_registrations(
+            parsed, def_nodes, all_imports
+        )
         for file_str, tree in parsed:
             orm_channels |= _collect_orm_write_channels(
                 tree, file_str, all_imports, classes_by_file
@@ -5797,7 +5920,9 @@ class CrossFilePass:
             vector_channels |= _collect_vector_write_channels(tree)
             # #300: object/KV state, armed per receiver and literal key.
             objstate_channels |= _collect_objstate_write_channels(tree)
-            boundary_kind_by_id.update(_collect_boundary_nodes(tree))
+            boundary_kind_by_id.update(
+                _collect_boundary_nodes(tree, tool_registrars, registered_tools)
+            )
 
         # Project-wide class model for receiver type inference (#158).
         class_model = _build_class_model(parsed)

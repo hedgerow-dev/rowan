@@ -912,3 +912,205 @@ def test_missing_tree_sitter_without_js_files_is_not_degraded(tmp_path, monkeypa
     monkeypatch.setattr(js_cross_file, "TREE_SITTER_AVAILABLE", False)
     ctx = ScanContext(target_path=tmp_path, config=ScanConfig(target=tmp_path), result=ScanResult())
     assert JSCrossFilePass().run(ctx).degraded_passes == {}
+
+
+def _mkdir_chain_findings(entry_arg: str) -> list[Finding]:
+    root = _make_project(
+        {
+            "helper.js": (
+                "const fs = require('fs');\n"
+                "function makeDir(p) {\n"
+                "  fs.mkdirSync(p);\n"
+                "}\n"
+                "module.exports = { makeDir };\n"
+            ),
+            "entry.js": (
+                "const { makeDir } = require('./helper');\n"
+                "function main(req) {\n"
+                f"  makeDir({entry_arg});\n"
+                "}\n"
+            ),
+        }
+    )
+    return [f for f in _run_js_cross_file(root).findings if f.rule_id == "CF-SINK-001"]
+
+
+def test_argv_only_source_is_operator_input_capped_at_medium():
+    """process.argv is the operator's own input, the same trust level Rowan gives
+    sys.argv and env vars on the Opengrep path: MEDIUM, not a remote HIGH."""
+    hits = _mkdir_chain_findings("process.argv[2]")
+    assert [(h.severity, h.metadata.get("operator_controlled_source")) for h in hits] == [
+        (Severity.MEDIUM, True)
+    ]
+
+
+def test_request_source_into_same_chain_stays_high():
+    hits = _mkdir_chain_findings("req.body.dir")
+    assert [(h.severity, h.metadata.get("operator_controlled_source")) for h in hits] == [
+        (Severity.HIGH, None)
+    ]
+
+
+def test_source_read_in_nested_handler_does_not_taint_the_enclosing_function():
+    """bootstrap() registers a request handler; the handler reads request.params,
+    bootstrap() itself only passes a constant config path to the sink."""
+    root = _make_project(
+        {
+            "helper.js": (
+                "const fs = require('fs');\n"
+                "function makeDir(p) {\n"
+                "  fs.mkdirSync(p);\n"
+                "}\n"
+                "module.exports = { makeDir };\n"
+            ),
+            "server.js": (
+                "const { makeDir } = require('./helper');\n"
+                "function bootstrap(server, configDir) {\n"
+                "  server.setRequestHandler('setLevel', async (request) => {\n"
+                "    console.log(request.params.level);\n"
+                "  });\n"
+                "  makeDir(configDir);\n"
+                "}\n"
+            ),
+        }
+    )
+    hits = [f for f in _run_js_cross_file(root).findings if f.rule_id == "CF-SINK-001"]
+    assert hits == []
+
+
+# ---------------------------------------------------------------------------
+# Indirect MCP tool registration (MCP census 2026-10-20): dbhub passes a
+# handler factory, Aikido's MCP registers `{name, config, cb}` objects through
+# a wrapper, chrome-devtools-mcp defines `{name, schema, handler}` objects.
+# ---------------------------------------------------------------------------
+
+_HELPER_JS = (
+    "const fs = require('fs');\n"
+    "function makeDir(p) {\n"
+    "  fs.mkdirSync(p);\n"
+    "}\n"
+    "module.exports = { makeDir };\n"
+)
+
+
+def _tool_chain_hits(server_js: str, extra: dict[str, str] | None = None) -> list[tuple[str, str]]:
+    root = _make_project({"helper.js": _HELPER_JS, "server.js": server_js, **(extra or {})})
+    return [
+        (f.severity.value, f.metadata["caller"])
+        for f in _run_js_cross_file(root).findings
+        if f.rule_id == "CF-SINK-001"
+    ]
+
+
+def test_handler_factory_passed_to_register_tool_is_a_tool():
+    hits = _tool_chain_hits(
+        "const { makeDir } = require('./helper');\n"
+        "function createMkdirHandler(base) {\n"
+        "  return async (args) => {\n"
+        "    makeDir(args.dir);\n"
+        "  };\n"
+        "}\n"
+        "server.registerTool('mkdir', {}, createMkdirHandler('/srv'));\n"
+    )
+    assert [severity for severity, _caller in hits] == ["high"]
+
+
+def test_imported_handler_reference_is_a_tool():
+    hits = _tool_chain_hits(
+        "const { handleMkdir } = require('./handlers');\n"
+        "server.registerTool('mkdir', {}, handleMkdir);\n",
+        {"handlers.js": (
+            "const { makeDir } = require('./helper');\n"
+            "async function handleMkdir(args) {\n"
+            "  makeDir(args.dir);\n"
+            "}\n"
+            "module.exports = { handleMkdir };\n"
+        )},
+    )
+    assert hits == [("high", "handleMkdir")]
+
+
+def test_tool_definition_object_with_wrapped_member_registration():
+    hits = _tool_chain_hits(
+        "const { makeDir } = require('./helper');\n"
+        "async function mkdirCb(args) {\n"
+        "  makeDir(args.dir);\n"
+        "}\n"
+        "const mkdirTool = { name: 'mkdir', config: { inputSchema: {} }, cb: mkdirCb };\n"
+        "server.registerTool(mkdirTool.name, mkdirTool.config, withAuth(mkdirTool.cb));\n"
+    )
+    assert hits == [("high", "mkdirCb")]
+
+
+def test_inline_handler_in_tool_definition_object():
+    hits = _tool_chain_hits(
+        "const { makeDir } = require('./helper');\n"
+        "const mkdirTool = defineTool(() => ({\n"
+        "  name: 'mkdir',\n"
+        "  schema: {},\n"
+        "  handler: async (request) => {\n"
+        "    makeDir(request.params.dir);\n"
+        "  },\n"
+        "}));\n"
+    )
+    assert [severity for severity, _caller in hits] == ["high"]
+
+
+def test_unregistered_function_is_not_a_tool():
+    assert _tool_chain_hits(
+        "const { makeDir } = require('./helper');\n"
+        "async function mkdirCb(args) {\n"
+        "  makeDir(args.dir);\n"
+        "}\n"
+    ) == []
+
+
+def _own_body_tool_hits(server_js: str) -> list[tuple[str, str, int]]:
+    root = _make_project({"server.js": server_js})
+    return [
+        (f.rule_id, f.severity.value, f.start_line)
+        for f in _run_js_cross_file(root).findings
+        if f.rule_id.startswith("TNT-TS-AGENT-")
+    ]
+
+
+def test_referenced_handler_with_sink_in_its_own_body_is_reported():
+    """Opengrep's TS rules only see inline handlers; the pass reports the rest."""
+    assert _own_body_tool_hits(
+        "const fs = require('fs');\n"
+        "async function handleMkdir(args) {\n"
+        "  fs.mkdirSync(args.dir);\n"
+        "}\n"
+        "server.registerTool('mkdir', {}, handleMkdir);\n"
+    ) == [("TNT-TS-AGENT-PATH-001", "high", 3)]
+
+
+def test_inline_handler_own_body_sink_is_left_to_the_opengrep_rule():
+    assert _own_body_tool_hits(
+        "const fs = require('fs');\n"
+        "server.registerTool('mkdir', {}, async (args) => {\n"
+        "  fs.mkdirSync(args.dir);\n"
+        "});\n"
+    ) == []
+
+
+def test_job_definition_with_config_and_run_is_not_a_tool():
+    assert _own_body_tool_hits(
+        "const fs = require('fs');\n"
+        "const job = { name: 'build', config: { retries: 2 }, run: async (opts) => {\n"
+        "  fs.mkdirSync(opts.dir);\n"
+        "} };\n"
+    ) == []
+
+
+def test_only_the_wrapped_handler_is_a_tool_not_other_wrapper_args():
+    assert _own_body_tool_hits(
+        "const fs = require('fs');\n"
+        "async function handleMkdir(args) {\n"
+        "  return args;\n"
+        "}\n"
+        "function auditLog(entry) {\n"
+        "  fs.mkdirSync(entry.dir);\n"
+        "}\n"
+        "server.registerTool('mkdir', {}, withAuth(handleMkdir, auditLog));\n"
+    ) == []
