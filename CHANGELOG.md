@@ -1,7 +1,13 @@
 # Changelog
 
-## Unreleased
+## v0.3.12 (alpha)
 
+Fixes from a code audit of Rowan itself and from scanning 13 popular MCP
+servers, plus Opengrep 1.31.
+
+- `rowan install-engine` and the GitHub Action now install Opengrep v1.31.0
+  (hash and Sigstore signature verified), which brings upstream taint fixes
+  from v1.30.1.
 - JS/TS cross-file: `obj.method()` on a receiver of unknown type follows the
   call into the project's classes that define `method`, when one to four
   classes do and the name is specific. Receivers destructured from a tool's
