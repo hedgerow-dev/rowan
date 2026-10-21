@@ -594,3 +594,97 @@ def test_tool_param_reaching_os_rename_destination_is_flagged():
     findings = _cf(_run(root))
     assert [f.category for f in findings] == [Category.PATH_TRAVERSAL]
     assert findings[0].file_path.endswith("internal/files/move.go")
+
+
+HANDLER_CACHE = """package tools
+
+import (
+\t"context"
+
+\t"github.com/mark3labs/mcp-go/mcp"
+
+\t"example.com/app/internal/cache"
+)
+
+func Cache(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+\tname := request.GetString("image", "")
+\tif err := cache.Store(name); err != nil {
+\t\treturn mcp.NewToolResultError(err.Error()), nil
+\t}
+\treturn mcp.NewToolResultText("ok"), nil
+}
+"""
+
+
+def _cache_module(store_body: str) -> Path:
+    return _make_module(
+        {
+            "internal/tools/cache.go": HANDLER_CACHE,
+            "internal/cache/store.go": (
+                "package cache\n\n"
+                'import (\n\t"crypto/sha256"\n\t"encoding/hex"\n\t"os"\n\t"path/filepath"\n)\n\n'
+                "func Store(name string) error {\n" + store_body + "}\n"
+            ),
+        }
+    )
+
+
+def test_hashed_tool_argument_is_clean_for_a_path_sink():
+    """A digest is hex: it cannot carry ../ (radar's image cache, MCP census)."""
+    root = _cache_module(
+        "\tsum := sha256.Sum256([]byte(name))\n"
+        '\treturn os.MkdirAll(filepath.Join("/cache", hex.EncodeToString(sum[:])), 0o700)\n'
+    )
+    assert _cf(_run(root)) == []
+
+
+def test_external_digest_method_result_is_clean_for_a_path_sink():
+    """radar: the cache key is `img.Digest()` from go-containerregistry, an
+    unresolved method on a value derived from the tool argument."""
+    root = _make_module(
+        {
+            "internal/tools/cache.go": HANDLER_CACHE,
+            "internal/cache/store.go": (
+                "package cache\n\n"
+                "import (\n\t\"os\"\n\t\"path/filepath\"\n\n"
+                "\t\"github.com/google/go-containerregistry/pkg/name\"\n"
+                "\t\"github.com/google/go-containerregistry/pkg/v1/remote\"\n)\n\n"
+                "func Store(image string) error {\n"
+                "\tref, _ := name.ParseReference(image)\n"
+                "\timg, _ := remote.Image(ref)\n"
+                "\td, _ := img.Digest()\n"
+                "\treturn os.MkdirAll(filepath.Join(\"/cache\", d.String()), 0o700)\n"
+                "}\n"
+            ),
+        }
+    )
+    assert _cf(_run(root)) == []
+
+
+def test_unhashed_tool_argument_still_reaches_the_path_sink():
+    root = _cache_module(
+        '\t_ = sha256.Sum256\n\t_ = hex.EncodeToString\n'
+        '\treturn os.MkdirAll(filepath.Join("/cache", name), 0o700)\n'
+    )
+    assert [f.category for f in _cf(_run(root))] == [Category.PATH_TRAVERSAL]
+
+
+def test_numeric_sprintf_verb_does_not_carry_a_path_payload():
+    """radar: `fmt.Sprintf("layer-%d.tar", idx)` is digits whatever idx came from."""
+    root = _cache_module(
+        '\t_ = sha256.Sum256\n\t_ = hex.EncodeToString\n'
+        '\treturn os.MkdirAll(filepath.Join("/cache", fmt.Sprintf("layer-%d.tar", count(name))), 0o700)\n'
+    )
+    store = root / "internal/cache/store.go"
+    store.write_text(store.read_text().replace('"crypto/sha256"', '"crypto/sha256"\n\t"fmt"'))
+    assert _cf(_run(root)) == []
+
+
+def test_string_sprintf_verb_still_carries_the_path_payload():
+    root = _cache_module(
+        '\t_ = sha256.Sum256\n\t_ = hex.EncodeToString\n'
+        '\treturn os.MkdirAll(filepath.Join("/cache", fmt.Sprintf("layer-%d-%s.tar", 1, name)), 0o700)\n'
+    )
+    store = root / "internal/cache/store.go"
+    store.write_text(store.read_text().replace('"crypto/sha256"', '"crypto/sha256"\n\t"fmt"'))
+    assert [f.category for f in _cf(_run(root))] == [Category.PATH_TRAVERSAL]
