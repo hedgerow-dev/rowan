@@ -7,6 +7,15 @@
   carry taint into path, command, SQL or URL sinks. The Go SQL sinks ignore
   struct-literal option values and, for the context-first `Query(ctx, x)`
   form, receivers not named like a database handle (PromQL clients).
+- MCP tools registered indirectly are now treated as tools: Python
+  `mcp.tool(...)(func)`, `add_tool(func)`, wrapper decorators that register
+  tools, and `apply()` on Tool subclasses; TypeScript handlers passed by name,
+  through a factory, or in `{name, schema, handler}` / `{name, config, cb}`
+  tool-definition objects. A referenced TS handler's own sinks are reported.
+- Cross-file flows fed only by the operator's command line (`sys.argv`,
+  `process.argv`) are capped at MEDIUM and marked `operator_controlled_source`,
+  as the Opengrep path already did. A source read inside a nested callback no
+  longer taints the function that registers it.
 - Agent skill files (`SKILL.md`) are treated as AI instruction files: the
   zero-width and bidi smuggling rule (ns-aiml-108) now scans them, and Hunt
   keeps their text out of LLM context, as for `AGENTS.md`.
