@@ -54,3 +54,13 @@ def test_unresolvable_target_is_a_usage_error(tmp_path, monkeypatch):
     result = CliRunner().invoke(cli.main, ["scan", str(tmp_path), "--ci"])
     assert result.exit_code == 2
     assert "Cannot resolve path" in result.output
+
+
+def test_console_does_not_call_a_skipped_bundle_clean(tmp_path):
+    (tmp_path / "dist").mkdir()
+    (tmp_path / "dist" / "index.js").write_text("module.exports = 1;\n", encoding="utf-8")
+    result = CliRunner().invoke(
+        cli.main, ["scan", str(tmp_path), "--no-sca", "--no-taint", "--no-project-config"]
+    )
+    assert "No vulnerabilities found" not in result.output
+    assert "skipped" in result.output and "dist/index.js" in result.output

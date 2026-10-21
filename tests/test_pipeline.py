@@ -986,3 +986,32 @@ def test_scan_manifest_rule_hash_covers_converted_rules(tmp_path):
     after = ScanPipeline(ScanConfig(**cfg)).run().metadata["scan_manifest"]["rule_set_sha256"]
 
     assert before != after
+
+
+def test_skipped_code_files_are_reported_not_silently_dropped(tmp_path):
+    """A published package often ships only a minified dist/ bundle; scanning
+    zero files must not read as a clean pass (Aikido MCP review, 2026-10-20)."""
+    (tmp_path / "app.py").write_text("x = 1\n", encoding="utf-8")
+    (tmp_path / "big.py").write_text("y = 2\n" * 400, encoding="utf-8")
+    (tmp_path / "vendor.min.js").write_text("var a=1;", encoding="utf-8")
+    (tmp_path / "dist").mkdir()
+    (tmp_path / "dist" / "index.js").write_text("module.exports = 1;\n", encoding="utf-8")
+    from rowan.reporters import to_text
+
+    result = ScanPipeline(
+        ScanConfig(target=tmp_path, no_sca=True, no_taint=True, max_file_bytes=1000)
+    ).run()
+    skipped = result.metadata["analysis_capability"]["skipped_code_files"]
+    assert {reason: entry["count"] for reason, entry in skipped.items()} == {
+        "build_output": 1,
+        "minified_or_generated": 1,
+        "oversized": 1,
+    }
+    assert skipped["build_output"]["examples"] == ["dist/index.js"]
+    assert "ANALYSIS COVERAGE: skipped" in to_text(result)
+
+
+def test_nothing_skipped_reports_an_empty_map(tmp_path):
+    (tmp_path / "app.py").write_text("x = 1\n", encoding="utf-8")
+    result = ScanPipeline(ScanConfig(target=tmp_path, no_sca=True, no_taint=True)).run()
+    assert result.metadata["analysis_capability"]["skipped_code_files"] == {}

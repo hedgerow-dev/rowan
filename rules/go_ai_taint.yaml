@@ -232,6 +232,15 @@ rules:
                   - pattern-not: "($DB : *sql.Stmt).$M(...)"
                   - pattern-not: $X.URL.Query(...)
                   - pattern-not: "($X : *gin.Context).Query(...)"
+                  - pattern-not-inside: |
+                      $SQL := $T{...}
+                      ...
+                  - pattern-not-inside: |
+                      $SQL := $PKG.$T{...}
+                      ...
+                  - pattern-not-inside: |
+                      $SQL := &$PKG.$T{...}
+                      ...
                   - focus-metavariable: $SQL
               - patterns:
                   - pattern: $DB.$M($CTX, $SQL, ...)
@@ -247,6 +256,18 @@ rules:
                   - metavariable-regex:
                       metavariable: $CTX
                       regex: (?i).*(ctx|context)
+                  - metavariable-regex:
+                      metavariable: $DB
+                      regex: (?i)(db|conn|connection|pool|tx|sql|pg|pgx|database|querier)$
+                  - pattern-not-inside: |
+                      $SQL := $T{...}
+                      ...
+                  - pattern-not-inside: |
+                      $SQL := $PKG.$T{...}
+                      ...
+                  - pattern-not-inside: |
+                      $SQL := &$PKG.$T{...}
+                      ...
                   - focus-metavariable: $SQL
               - patterns:
                   - pattern-either:
@@ -380,6 +401,15 @@ rules:
                   - pattern-not: "($DB : *sql.Stmt).$M(...)"
                   - pattern-not: $X.URL.Query(...)
                   - pattern-not: "($X : *gin.Context).Query(...)"
+                  - pattern-not-inside: |
+                      $SQL := $T{...}
+                      ...
+                  - pattern-not-inside: |
+                      $SQL := $PKG.$T{...}
+                      ...
+                  - pattern-not-inside: |
+                      $SQL := &$PKG.$T{...}
+                      ...
                   - focus-metavariable: $SQL
               - patterns:
                   - pattern: $DB.$M($CTX, $SQL, ...)
@@ -395,6 +425,18 @@ rules:
                   - metavariable-regex:
                       metavariable: $CTX
                       regex: (?i).*(ctx|context)
+                  - metavariable-regex:
+                      metavariable: $DB
+                      regex: (?i)(db|conn|connection|pool|tx|sql|pg|pgx|database|querier)$
+                  - pattern-not-inside: |
+                      $SQL := $T{...}
+                      ...
+                  - pattern-not-inside: |
+                      $SQL := $PKG.$T{...}
+                      ...
+                  - pattern-not-inside: |
+                      $SQL := &$PKG.$T{...}
+                      ...
                   - focus-metavariable: $SQL
               - patterns:
                   - pattern-either:

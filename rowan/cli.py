@@ -1141,12 +1141,27 @@ def _print_summary(result):
         f"[blue]{result.low_count} low[/blue])"
     )
     console.print(f"[bold]Review clusters:[/bold] {len(clusters)} root causes")
+    skipped = _skipped_code(result)
+    if skipped:
+        parts = ", ".join(
+            f"{reason.replace('_', ' ')}: {entry['count']} (e.g. {entry['examples'][0]})"
+            for reason, entry in sorted(skipped.items())
+        )
+        console.print(f"[yellow]Code files skipped, not scanned:[/yellow] {parts}")
+
+
+def _skipped_code(result) -> dict:
+    return (result.metadata.get("analysis_capability") or {}).get("skipped_code_files") or {}
 
 
 def _print_findings_table(result):
     if not result.findings:
         if result.degraded:
             console.print("\n[yellow]No findings, but the scan was INCOMPLETE (see warnings).[/yellow]")
+        elif _skipped_code(result):
+            console.print(
+                "\n[yellow]No findings in the scanned files, but some code was skipped (see above).[/yellow]"
+            )
         else:
             console.print("\n[green]No vulnerabilities found.[/green]")
         return

@@ -795,6 +795,11 @@ _GO_SQL_SINKS: list[Entry] = [
             {"pattern-not": '"($DB : *sql.Stmt).$M(...)"'},
             {"pattern-not": "$X.URL.Query(...)"},
             {"pattern-not": '"($X : *gin.Context).Query(...)"'},
+            # A struct of options is not a statement: radar's timeline
+            # `store.Query(ctx, opts)` (MCP census, 2026-10-20).
+            {"pattern-not-inside": "$SQL := $T{...}\n..."},
+            {"pattern-not-inside": "$SQL := $PKG.$T{...}\n..."},
+            {"pattern-not-inside": "$SQL := &$PKG.$T{...}\n..."},
             {"focus-metavariable": "$SQL"},
         ]
     },
@@ -816,6 +821,19 @@ _GO_SQL_SINKS: list[Entry] = [
             "$DB.$M($CTX, $SQL, ...)",
             {"metavariable-regex": {"metavariable": "$M", "regex": r"^(Query|QueryRow|Exec)$"}},
             {"metavariable-regex": {"metavariable": "$CTX", "regex": r"(?i).*(ctx|context)"}},
+            # Name-only `Query(ctx, x)` also matches PromQL and store APIs
+            # (radar's `p.Query(ctx, input.Query)`); pgx code names its handle.
+            {
+                "metavariable-regex": {
+                    "metavariable": "$DB",
+                    "regex": r"(?i)(db|conn|connection|pool|tx|sql|pg|pgx|database|querier)$",
+                }
+            },
+            # A struct of options is not a statement: radar's timeline
+            # `store.Query(ctx, opts)` (MCP census, 2026-10-20).
+            {"pattern-not-inside": "$SQL := $T{...}\n..."},
+            {"pattern-not-inside": "$SQL := $PKG.$T{...}\n..."},
+            {"pattern-not-inside": "$SQL := &$PKG.$T{...}\n..."},
             {"focus-metavariable": "$SQL"},
         ]
     },

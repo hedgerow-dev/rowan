@@ -6,6 +6,19 @@
   call into the project's classes that define `method`, when one to four
   classes do and the name is specific. Receivers destructured from a tool's
   arguments, builtins and module aliases are never fanned out.
+- Code files skipped as build output (`dist/`, `build/`), minified or
+  oversized are listed in `analysis_capability.skipped_code_files` and in the
+  console and text reports. A scan that skipped a package's only bundle no
+  longer prints "No vulnerabilities found."
+- AI instruction files inside dot-folders (`.claude/skills/*/SKILL.md`,
+  `.github/copilot-instructions.md`) now reach the Opengrep rules, so the
+  Unicode smuggling rules (ns-aiml-107/108) cover them. `.git`, `.venv`, tool
+  caches and `.claude/worktrees` stay excluded.
+- Go: a hashed value (`sha256.Sum256`, `hex.EncodeToString`, a library
+  `Digest()`/`Sum()`) and a number formatted with `%d`/`%x`/`%f` no longer
+  carry taint into path, command, SQL or URL sinks. The Go SQL sinks ignore
+  struct-literal option values and, for the context-first `Query(ctx, x)`
+  form, receivers not named like a database handle (PromQL clients).
 - MCP tools registered indirectly are now treated as tools: Python
   `mcp.tool(...)(func)`, `add_tool(func)`, wrapper decorators that register
   tools, and `apply()` on Tool subclasses; TypeScript handlers passed by name,

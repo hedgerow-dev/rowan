@@ -63,6 +63,14 @@ BASE_SKIP_DIRS = frozenset({
     ".ruff_cache", "dist", "build", ".eggs",
 })
 
+# Skips that can hide the project's own code, so the report names them
+# (a published package often ships nothing but a minified dist/ bundle).
+_BUILD_OUTPUT_DIRS = frozenset({"dist", "build"})
+_COVERAGE_SKIP_REASONS = frozenset({"build_output", "minified_or_generated", "oversized"})
+_CODE_SKIP_LANGUAGES = (
+    "python", "javascript", "typescript", "java", "kotlin", "go", "csharp", "ruby", "php", "rust",
+)
+
 VENDORED_DIR_NAMES = frozenset({
     "vendor", "vendored", "third_party", "third-party",
     "bower_components", ".yarn", ".pnp", "jspm_packages",
@@ -302,6 +310,9 @@ class FileScanPass:
         # Source files in languages Rowan cannot analyse at all, so the report
         # can say they exist rather than looking identical to a clean scan.
         context.metadata["unsupported_languages_seen"] = unsupported_counts
+        # Code skipped as build output, minified or oversized: named in the
+        # report so an empty scan of a bundle is not read as clean.
+        context.metadata["skipped_code_files"] = self.skipped_code_files
 
         if not self._rules:
             logger.info("No NeuroScan rules loaded. Skipping file scan (discovered %d files).", len(all_files))
@@ -333,6 +344,13 @@ class FileScanPass:
         dependency_manifests: list[Path] = []
         mcp_config_files: list[Path] = []
         unsupported_counts: dict[str, int] = {}
+        self.skipped_code_files: dict[str, dict] = {}
+        code_suffixes = tuple(
+            entry
+            for lang in _CODE_SKIP_LANGUAGES
+            for entry in LANGUAGE_EXTENSIONS.get(lang, ())
+            if entry.startswith(".")
+        )
         model_artifacts_by_extension: dict[str, list[Path]] = {
             extension: [] for extension in MODEL_ARTIFACT_EXTENSIONS
         }
@@ -406,7 +424,13 @@ class FileScanPass:
             # rule as though it were readable source code.
             if not f.is_file():
                 continue
-            if self._should_skip(f, config, target, negations):
+            reason = self._skip_reason(f, config, target, negations)
+            if reason is not None:
+                if reason in _COVERAGE_SKIP_REASONS and name.endswith(code_suffixes):
+                    entry = self.skipped_code_files.setdefault(reason, {"count": 0, "examples": []})
+                    entry["count"] += 1
+                    if len(entry["examples"]) < 5:
+                        entry["examples"].append("/".join(rel_parts))
                 continue
             files.append(f)
 
@@ -464,8 +488,17 @@ class FileScanPass:
         target: Path | None = None,
         negations: list[str] | None = None,
     ) -> bool:
-        """Skip files in hidden dirs, build/vendored dirs, minified bundles,
-        oversized files, and any user-configured extra excludes.
+        return self._skip_reason(file_path, config, target, negations) is not None
+
+    def _skip_reason(
+        self,
+        file_path: Path,
+        config: ScanConfig,
+        target: Path | None = None,
+        negations: list[str] | None = None,
+    ) -> str | None:
+        """Why a file is skipped, or None: hidden dirs, build/vendored dirs,
+        minified bundles, oversized files, and any user-configured extra excludes.
 
         Explicit ``!`` negation patterns from ``.rowanignore`` override the
         default vendored/minified/size excludes (but not base build dirs).
@@ -482,14 +515,16 @@ class FileScanPass:
                 resolved = file_path.resolve()
                 root = target.resolve()
                 if resolved != root and root not in resolved.parents:
-                    return True
+                    return "symlink_escape"
             except OSError:
-                return True
+                return "symlink_escape"
 
-        if any(p in BASE_SKIP_DIRS for p in parts):
-            return True
+        if any(p in BASE_SKIP_DIRS - _BUILD_OUTPUT_DIRS for p in parts):
+            return "skip_dir"
+        if any(p in _BUILD_OUTPUT_DIRS for p in parts):
+            return "build_output"
         if file_path.name.startswith(".") and file_path.name not in ALLOWED_DOTFILES:
-            return True
+            return "hidden"
 
         if negations and target is not None:
             try:
@@ -497,27 +532,27 @@ class FileScanPass:
             except ValueError:
                 rel = None
             if rel is not None and any(_matches_pattern(rel, neg) for neg in negations):
-                return False
+                return None
 
         if _user_excluded(parts, config):
-            return True
+            return "user_excluded"
 
         max_bytes = getattr(config, "max_file_bytes", 2_000_000)
         if max_bytes and max_bytes > 0:
             try:
                 if file_path.stat().st_size > max_bytes:
-                    return True
+                    return "oversized"
             except OSError:
                 pass
 
         if getattr(config, "scan_vendored", False):
-            return False
+            return None
 
         if any(p in VENDORED_DIR_NAMES for p in parts):
-            return True
+            return "vendored"
         if any(_contains_consecutive(parts, seg) for seg in VENDORED_PATH_SEGMENTS):
-            return True
-        return _is_minified_or_generated(file_path)
+            return "vendored"
+        return "minified_or_generated" if _is_minified_or_generated(file_path) else None
 
     def _scan_file(self, file_path: Path) -> list[Finding]:
         findings: list[Finding] = []
