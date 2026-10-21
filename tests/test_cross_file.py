@@ -2165,3 +2165,43 @@ def test_structural_path_sink_finding_carries_cwe(tmp_path):
     ctx = ScanContext(target_path=tmp_path, config=ScanConfig(target=tmp_path), result=ScanResult())
     sinks = [f for f in CrossFilePass().run(ctx).findings if f.rule_id == "CF-SINK-001"]
     assert [(f.category, f.cwe_ids) for f in sinks] == [(Category.PATH_TRAVERSAL, [22])]
+
+
+def _deser_chain_findings(tmp_path, entry_source: str) -> list[Finding]:
+    """entry.py hands a value to registry.store(), whose parameter reaches pickle.loads."""
+    (tmp_path / "entry.py").write_text(
+        "import sys\nfrom flask import request\nfrom registry import store\n\n" + entry_source,
+        encoding="utf-8",
+    )
+    (tmp_path / "registry.py").write_text(
+        "import pickle\n\ndef store(raw):\n    return pickle.loads(raw)\n", encoding="utf-8"
+    )
+    seed = Finding(
+        rule_id="NS-DESER-001",
+        message="pickle.loads() allows arbitrary code execution",
+        severity=Severity.MEDIUM,
+        category=Category.DESERIALIZATION,
+        file_path=str((tmp_path / "registry.py").resolve()),
+        start_line=4,
+        engine="opengrep",
+    )
+    ctx = ScanContext(
+        target_path=tmp_path,
+        config=ScanConfig(target=tmp_path),
+        result=ScanResult(findings=[seed]),
+    )
+    return [f for f in CrossFilePass().run(ctx).findings if f.rule_id == "CF-SINK-001"]
+
+
+def test_argv_only_source_is_operator_input_capped_at_medium(tmp_path):
+    hits = _deser_chain_findings(tmp_path, "def main():\n    store(sys.argv[1])\n")
+    assert [(h.severity, h.metadata.get("operator_controlled_source")) for h in hits] == [
+        (Severity.MEDIUM, True)
+    ]
+
+
+def test_request_source_into_same_chain_stays_high(tmp_path):
+    hits = _deser_chain_findings(tmp_path, "def upload():\n    store(request.args.get('p'))\n")
+    assert [(h.severity, h.metadata.get("operator_controlled_source")) for h in hits] == [
+        (Severity.HIGH, None)
+    ]

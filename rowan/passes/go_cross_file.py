@@ -97,6 +97,36 @@ _SANITIZER_FUNCS = frozenset({
 # sql, ssrf) are not neutralised by an HTML or text escaper (XF-14).
 _SANITIZER_NAME_RE = re.compile(r"^(validate|isAllowed|isSafe)", re.I)
 _PATH_NORMALISERS = frozenset({"filepath.Clean", "filepath.Abs", "filepath.EvalSymlinks"})
+# A digest is fixed-length bytes or hex: it cannot carry a path separator,
+# shell metacharacter, quote or host. radar keys its image cache on
+# `img.Digest()` (MCP census, 2026-10-20).
+_HASH_FUNCS = frozenset({
+    "sha256.Sum256", "sha256.Sum224", "sha512.Sum512", "sha512.Sum384", "sha1.Sum", "md5.Sum",
+    "hex.EncodeToString",
+})
+# Unresolved (library) methods returning a digest: go-containerregistry's
+# `img.Digest()`, `hash.Hash.Sum(nil)`. A project-defined method of the same
+# name is analysed like any other callee.
+_DIGEST_METHODS = frozenset({"Digest", "Sum"})
+# fmt verbs that print a number or bool: `fmt.Sprintf("layer-%d.tar", i)` is
+# digits whatever `i` came from (radar, MCP census). `%c`, `%s`, `%q`, `%v`
+# can print a separator and keep their argument's taint.
+_NUMERIC_VERBS = frozenset("bdoOxXeEfFgGt")
+_FORMAT_VERB_RE = re.compile(r"%[-+# 0]*(\*|\d+)?(?:\.(\*|\d+))?([a-zA-Z%])")
+
+
+def _sprintf_verbs(fmt_literal: str) -> list[str] | None:
+    """Verb per argument of a Sprintf format, `*` width/precision included;
+    None when the format uses explicit `[n]` indexes."""
+    if "[" in fmt_literal:
+        return None
+    verbs: list[str] = []
+    for width, precision, verb in _FORMAT_VERB_RE.findall(fmt_literal):
+        if verb == "%":
+            continue
+        verbs.extend("d" for star in (width, precision) if star == "*")
+        verbs.append(verb)
+    return verbs
 # A numeric or boolean conversion cannot carry a payload.
 _NUMERIC_CONVERSIONS = frozenset({
     "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64",
@@ -683,6 +713,14 @@ class _Analyzer:
             return self._apply_callees(callees, args, recv, e, st)
         if ft in _SANITIZER_FUNCS or ft in _ERROR_CONSTRUCTORS or ft in _NUMERIC_CONVERSIONS:
             return frozenset()
+        if ft in _HASH_FUNCS or (operand is not None and name in _DIGEST_METHODS):
+            return frozenset()
+        if ft == "fmt.Sprintf" and arg_nodes and arg_nodes[0].type == "interpreted_string_literal":
+            verbs = _sprintf_verbs(_text(arg_nodes[0]))
+            if verbs is not None and len(verbs) == len(args) - 1:
+                return frozenset().union(
+                    *(args[i + 1] for i, verb in enumerate(verbs) if verb not in _NUMERIC_VERBS)
+                )
 
         seed: _Seed | None = None
         if operand is not None:

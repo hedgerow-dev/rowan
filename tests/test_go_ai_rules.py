@@ -276,6 +276,36 @@ class TestMcpToolSql:
         assert not _scan(tmp_path, "h.go", TAINT_RULES, src, self.RULE, "go")
 
 
+    def test_struct_options_to_a_query_method_is_quiet(self, tmp_path):
+        """radar's timeline store: `store.Query(ctx, opts)` with a struct of
+        options is not a SQL statement (MCP census, 2026-10-20)."""
+        src = _mcp_go(
+            '\tns, _ := request.RequireString("namespace")\n'
+            "\topts := timeline.QueryOptions{Namespace: ns, Limit: 20}\n"
+            "\tchanges, _ := store.Query(ctx, opts)\n"
+            "\t_ = changes\n",
+            '\t"example.com/app/timeline"\n',
+        )
+        assert not _scan(tmp_path, "h.go", TAINT_RULES, src, self.RULE, "go")
+
+    def test_promql_query_on_a_metrics_client_is_quiet(self, tmp_path):
+        """radar's prometheus tool runs a PromQL query by design: `p.Query(ctx, q)`."""
+        src = _mcp_go(
+            '\tq, _ := request.RequireString("query")\n'
+            "\tresult, _ := p.Query(ctx, q)\n"
+            "\t_ = result\n",
+        )
+        assert not _scan(tmp_path, "h.go", TAINT_RULES, src, self.RULE, "go")
+
+    def test_pgx_context_first_statement_still_fires(self, tmp_path):
+        src = _mcp_go(
+            '\tname, _ := request.RequireString("name")\n'
+            "\trows, _ := conn.Query(ctx, \"SELECT * FROM users WHERE name = '\"+name+\"'\")\n"
+            "\t_ = rows\n",
+        )
+        assert _scan(tmp_path, "h.go", TAINT_RULES, src, self.RULE, "go")
+
+
 class TestMcpToolSsrf:
     RULE = "tnt-go-ai-mcptool-ssrf-001"
 

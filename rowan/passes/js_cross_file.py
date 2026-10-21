@@ -76,6 +76,12 @@ KNOWN_JS_SOURCE_PREFIXES: tuple[str, ...] = (
     "ctx.request.body", "ctx.query", "ctx.params",
     "process.argv",
 )
+# The operator's own input: a chain fed only by these is capped, not dropped
+# (see _FunctionSig.operator_source_only).
+_OPERATOR_JS_SOURCE_PREFIXES: tuple[str, ...] = ("process.argv",)
+_REMOTE_JS_SOURCE_PREFIXES: tuple[str, ...] = tuple(
+    p for p in KNOWN_JS_SOURCE_PREFIXES if p not in _OPERATOR_JS_SOURCE_PREFIXES
+)
 
 # Functions that carry taint from input to output -- same role as
 # KNOWN_PROPAGATORS in cross_file.py.
@@ -410,11 +416,13 @@ def _collect_calls(node: Any, source: bytes) -> list[tuple[str, str | None, bool
     return calls
 
 
-def _reads_known_source(node: Any, source: bytes) -> bool:
-    for n in _walk_all(node):
+def _reads_known_source(
+    node: Any, source: bytes, prefixes: tuple[str, ...] = KNOWN_JS_SOURCE_PREFIXES
+) -> bool:
+    for n in _walk_own_scope(node):
         if n.type == "member_expression":
             text = _node_text(n, source)
-            if any(text == p or text.startswith(p + ".") for p in KNOWN_JS_SOURCE_PREFIXES):
+            if any(text == p or text.startswith(p + ".") for p in prefixes):
                 return True
     return False
 
@@ -428,6 +436,23 @@ def _returns_known_source(node: Any, source: bytes) -> bool:
         if n.type == "return_statement" and _reads_known_source(n, source):
             return True
     return False
+
+
+# Node types that get their own _FunctionSig in extract_functions.
+_OWN_SIG_FUNCTION_TYPES = frozenset(
+    {"function_declaration", "function_expression", "arrow_function", "method_definition"}
+)
+
+
+def _walk_own_scope(node: Any):
+    """`_walk_all` that stops at nested functions with their own signature: a
+    request handler registered inside `bootstrap()` reads its own input, not
+    bootstrap()'s."""
+    stack = [node]
+    while stack:
+        n = stack.pop()
+        yield n
+        stack.extend(c for c in reversed(n.children) if c.type not in _OWN_SIG_FUNCTION_TYPES)
 
 
 def _walk_all(node: Any):
@@ -445,6 +470,128 @@ def _walk_all(node: Any):
 _TOOL_REGISTRATION_METHODS = frozenset({"tool", "registerTool"})
 _TOOL_HANDLER_KEYS = frozenset({"execute", "func"})
 _TOOL_FACTORIES = frozenset({"tool", "DynamicTool", "DynamicStructuredTool"})
+# Tool-definition objects registered later through generic code:
+# `{name, schema, handler}` (chrome-devtools-mcp), `{name, config, cb}` (Aikido).
+_TOOL_DEF_SCHEMA_KEYS = frozenset({"schema", "inputSchema", "parameters", "config"})
+_TOOL_DEF_HANDLER_KEYS = frozenset({"handler", "handle", "execute", "func", "cb", "callback", "run"})
+
+
+def _object_pairs(obj: Any, source: bytes) -> dict[str, Any]:
+    """Key text -> value node for the `pair`s and methods of an object literal."""
+    pairs: dict[str, Any] = {}
+    for child in obj.named_children:
+        if child.type == "pair":
+            key, value = child.child_by_field_name("key"), child.child_by_field_name("value")
+        elif child.type == "method_definition":
+            key, value = child.child_by_field_name("name"), child
+        else:
+            continue
+        if key is not None and value is not None:
+            pairs[_node_text(key, source).strip("'\"")] = value
+    return pairs
+
+
+def _is_tool_definition(obj: Any, source: bytes) -> bool:
+    pairs = _object_pairs(obj, source)
+    if "name" not in pairs or not set(pairs) & _TOOL_DEF_HANDLER_KEYS:
+        return False
+    if set(pairs) & (_TOOL_DEF_SCHEMA_KEYS - {"config"}):
+        return True
+    # `config` alone is common in job/task objects; it counts only when it
+    # carries the input schema (`{name, config: {inputSchema}, cb}`).
+    config = pairs.get("config")
+    return config is not None and config.type == "object" and bool(
+        set(_object_pairs(config, source)) & (_TOOL_DEF_SCHEMA_KEYS - {"config"})
+    )
+
+
+def _is_tool_definition_handler(node: Any, source: bytes) -> bool:
+    """The handler function of a tool-definition object (`handler: async (r) => ...`)."""
+    parent = node.parent
+    if parent is not None and parent.type == "pair":
+        key, obj = parent.child_by_field_name("key"), parent.parent
+    elif node.type == "method_definition":
+        key, obj = node.child_by_field_name("name"), parent
+    else:
+        return False
+    return (
+        key is not None
+        and obj is not None
+        and obj.type == "object"
+        and _node_text(key, source) in _TOOL_DEF_HANDLER_KEYS
+        and _is_tool_definition(obj, source)
+    )
+
+
+def _tool_handler_refs(root_node: Any, source: bytes) -> tuple[set[str], set[str]]:
+    """Names of functions registered as MCP tool handlers by reference, and of
+    factories whose returned function is the handler.
+
+    `registerTool(name, cfg, handleX)`, `registerTool(name, cfg, createX(id))`
+    (dbhub), `registerTool(t.name, t.config, withAuth(t.cb))` with `cb: handleX`
+    in a tool-definition object (Aikido). Inline handlers are recognized by
+    `_is_agent_tool_handler` instead.
+    """
+    names: set[str] = set()
+    factories: set[str] = set()
+    for node in _walk_all(root_node):
+        if node.type == "object" and _is_tool_definition(node, source):
+            for key, value in _object_pairs(node, source).items():
+                if key in _TOOL_DEF_HANDLER_KEYS and value.type == "identifier":
+                    names.add(_node_text(value, source))
+            continue
+        if node.type != "call_expression":
+            continue
+        func = node.child_by_field_name("function")
+        args = node.child_by_field_name("arguments")
+        if func is None or args is None or func.type != "member_expression":
+            continue
+        if _node_text(func, source).rsplit(".", 1)[-1] not in _TOOL_REGISTRATION_METHODS:
+            continue
+        handler = args.named_children[-1] if args.named_children else None
+        if handler is None:
+            continue
+        if handler.type == "identifier":
+            names.add(_node_text(handler, source))
+        elif handler.type == "call_expression":
+            callee = handler.child_by_field_name("function")
+            if callee is not None and callee.type == "identifier":
+                factories.add(_node_text(callee, source))
+            # A wrapper (`withAuth(handleX, log)`) wraps its first argument only.
+            inner = handler.child_by_field_name("arguments")
+            first = inner.named_children[0] if inner is not None and inner.named_children else None
+            if first is not None and first.type == "identifier":
+                names.add(_node_text(first, source))
+    return names, factories
+
+
+def _returned_function_lines(root_node: Any, source: bytes) -> dict[str, list[int]]:
+    """For each named function, the start lines of functions it returns directly
+    (`return async (args) => {...}`, or an arrow whose body is a function)."""
+    returned: dict[str, list[int]] = {}
+    for node in _walk_all(root_node):
+        name_node = None
+        func = None
+        if node.type == "function_declaration":
+            name_node, func = node.child_by_field_name("name"), node
+        elif node.type == "variable_declarator":
+            value = node.child_by_field_name("value")
+            if value is not None and value.type in ("arrow_function", "function_expression"):
+                name_node, func = node.child_by_field_name("name"), value
+        if name_node is None or func is None:
+            continue
+        body = func.child_by_field_name("body")
+        if body is None:
+            continue
+        lines = [body.start_point[0] + 1] if body.type in ("arrow_function", "function_expression") else []
+        for n in _walk_own_scope(body):
+            if n.type == "return_statement":
+                expr = next((c for c in n.named_children), None)
+                if expr is not None and expr.type in ("arrow_function", "function_expression"):
+                    lines.append(expr.start_point[0] + 1)
+        if lines:
+            returned[_node_text(name_node, source)] = lines
+    return returned
 
 
 def _is_agent_tool_handler(node: Any, source: bytes) -> bool:
@@ -477,7 +624,11 @@ def _is_agent_tool_handler(node: Any, source: bytes) -> bool:
         obj = parent
     else:
         return False
-    if key is None or _node_text(key, source) not in _TOOL_HANDLER_KEYS:
+    if key is None:
+        return False
+    if _is_tool_definition_handler(node, source):
+        return True
+    if _node_text(key, source) not in _TOOL_HANDLER_KEYS:
         return False
     if obj is None or obj.type != "object" or obj.parent is None or obj.parent.type != "arguments":
         return False
@@ -908,6 +1059,7 @@ def extract_functions(
     source: bytes,
     tool_handler_spans: list[tuple[int, int]] | None = None,
     typed_calls: list[tuple[_FunctionSig, int, str]] | None = None,
+    tool_definition_lines: list[int] | None = None,
 ) -> list[_FunctionSig]:
     """Extract function declarations, arrow functions, and class methods.
 
@@ -950,6 +1102,15 @@ def extract_functions(
         is_tool_handler = _is_agent_tool_handler(node, source)
         if is_tool_handler and tool_handler_spans is not None:
             tool_handler_spans.append((line, end_line))
+        if tool_definition_lines is not None and _is_tool_definition_handler(node, source):
+            tool_definition_lines.append(line)
+        remote_source = (
+            _reads_known_source(body_node, source, _REMOTE_JS_SOURCE_PREFIXES) or is_tool_handler
+        )
+        operator_source = (
+            _reads_known_source(body_node, source, _OPERATOR_JS_SOURCE_PREFIXES)
+            or _is_cli_action_handler(node, source)
+        )
         sig = _FunctionSig(
             name=name,
             file=file_path,
@@ -958,11 +1119,8 @@ def extract_functions(
             params=params,
             calls=calls,
             calls_propagator=calls_propagator,
-            has_source=(
-                _reads_known_source(body_node, source)
-                or is_tool_handler
-                or _is_cli_action_handler(node, source)
-            ),
+            has_source=remote_source or operator_source,
+            operator_source_only=operator_source and not remote_source,
             has_return_taint=_returns_known_source(body_node, source),
         )
         sink = _param_sink(body_node, [] if is_sanitizer else params, source, aliases)
@@ -1077,7 +1235,9 @@ _SAME_FILE_MAX_HOPS = 4
 
 
 def _same_file_tool_flows(
-    funcs: list[_FunctionSig], tool_spans: list[tuple[str, int, int]]
+    funcs: list[_FunctionSig],
+    tool_spans: list[tuple[str, int, int]],
+    indirect_handlers: set[tuple[str, int]] = frozenset(),
 ) -> list[Finding]:
     """Tool argument -> same-file helper chain -> structural sink.
 
@@ -1093,6 +1253,28 @@ def _same_file_tool_flows(
     for handler in funcs:
         if (handler.file, handler.line) not in starts:
             continue
+        # A handler registered by reference or in a tool-definition object is
+        # invisible to the inline-only Opengrep rules, so its own sink is ours.
+        own_rule = _TOOL_RULE_BY_CATEGORY.get(handler.sink_category)
+        if (handler.file, handler.line) in indirect_handlers and handler.sink_params and own_rule:
+            findings.append(Finding(
+                rule_id=own_rule,
+                message=(
+                    f"An agent tool argument reaches {handler.sink_symbol}() in the "
+                    f"tool handler {handler.name}() itself."
+                ),
+                severity=Severity.HIGH,
+                category=handler.sink_category,
+                file_path=handler.file,
+                start_line=handler.sink_line,
+                cwe_ids=list(handler.sink_cwe),
+                engine="crossfile",
+                taint_flow=TaintFlow(
+                    source=TaintNode(file_path=handler.file, line=handler.line),
+                    sink=TaintNode(file_path=handler.file, line=handler.sink_line),
+                ),
+                metadata={"source_kind": "tool_param", "callee_name": handler.name},
+            ))
         frontier: list[tuple[_FunctionSig, list[TaintNode]]] = [(handler, [])]
         seen = {(handler.file, handler.name)}
         for _hop in range(_SAME_FILE_MAX_HOPS):
@@ -1180,6 +1362,10 @@ class JSCrossFilePass:
         factory_classes: dict[tuple[str, str], str] = {}
         reexports: dict[tuple[str, str], tuple[str, str]] = {}
         star_exports: dict[str, list[str]] = {}
+        handler_refs: list[tuple[str, set[str], set[str]]] = []
+        # Handlers Opengrep's inline-only TS rules cannot see: (file, line).
+        indirect_handlers: set[tuple[str, int]] = set()
+        returned_functions: dict[tuple[str, str], list[int]] = {}
 
         # tsconfig `paths` aliases apply to files under the nearest tsconfig
         # inside the scan root. None marks a directory with no tsconfig.
@@ -1219,9 +1405,10 @@ class JSCrossFilePass:
 
             spans: list[tuple[int, int]] = []
             file_typed_calls: list[tuple[_FunctionSig, int, str]] = []
+            definition_lines: list[int] = []
             try:
                 file_funcs = extract_functions(
-                    file_str, tree.root_node, source, spans, file_typed_calls
+                    file_str, tree.root_node, source, spans, file_typed_calls, definition_lines
                 )
             except RecursionError:
                 # Walkers are iterative; this guards the remaining expression
@@ -1243,6 +1430,12 @@ class JSCrossFilePass:
                 if n.type == "class_declaration" and n.child_by_field_name("name") is not None
             )
             tool_spans.extend((file_str, start, end) for start, end in spans)
+            indirect_handlers.update((file_str, line) for line in definition_lines)
+            handler_refs.append((file_str, *_tool_handler_refs(tree.root_node, source)))
+            returned_functions.update(
+                ((file_str, name), lines)
+                for name, lines in _returned_function_lines(tree.root_node, source).items()
+            )
             default_name = default_export_name(tree.root_node, source)
             if default_name:
                 default_exports[file_str] = default_name
@@ -1281,6 +1474,27 @@ class JSCrossFilePass:
                 found = definition(target_file, imported)
                 if found:
                     all_imports.name_to_def[local] = found
+
+        # Tool handlers registered by reference: their arguments are model-chosen.
+        sig_by_name = {(f.file, f.name): f for f in all_funcs}
+        sig_by_line = {(f.file, f.line): f for f in all_funcs}
+
+        def mark_tool_handler(sig: _FunctionSig | None) -> None:
+            if sig is None:
+                return
+            indirect_handlers.add((sig.file, sig.line))
+            if not (sig.has_source and not sig.operator_source_only):
+                sig.has_source, sig.operator_source_only = True, False
+                tool_spans.append((sig.file, sig.line, sig.end_line))
+
+        for file_str, names, factories in handler_refs:
+            for name in names:
+                key = (file_str, name) if (file_str, name) in sig_by_name else all_imports.name_to_def.get((file_str, name))
+                mark_tool_handler(sig_by_name.get(key) if key else None)
+            for name in factories:
+                key = (file_str, name) if (file_str, name) in returned_functions else all_imports.name_to_def.get((file_str, name))
+                for line in returned_functions.get(key, ()) if key else ():
+                    mark_tool_handler(sig_by_line.get((key[0], line)))
 
         # `svc.usage()` on a receiver of known class: the method lives in the
         # file that defines (or imports) the class.
@@ -1334,7 +1548,7 @@ class JSCrossFilePass:
             _propagate_cross_file(all_funcs, all_imports, all_findings, target)
             if len(js_files) >= 2 else []
         )
-        new_findings += _same_file_tool_flows(all_funcs, tool_spans)
+        new_findings += _same_file_tool_flows(all_funcs, tool_spans, indirect_handlers)
         for f in new_findings:
             # Anchored inside an agent tool handler: the model chose the value.
             if any(f.file_path == file and start <= f.start_line <= end for file, start, end in tool_spans):
