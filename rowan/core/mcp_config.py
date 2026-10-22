@@ -23,7 +23,9 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from rowan.core.findings import Category, Finding, Severity
 from rowan.core.paths import is_within_root
@@ -102,11 +104,38 @@ def _looks_like_secret(value: str) -> bool:
     `core.rules`'s `NS-SECRET-*` value check (entropy >= 3.0, length-gated,
     not a known placeholder pattern), reused here since it's the exact same
     judgment call applied to a JSON value instead of a source-code literal."""
+    # Judge only the literal part: `${user_config.token}` is a reference.
+    value = _SUBSTITUTION_RE.sub("", value)
     if not value or _is_env_reference(value) or _is_placeholder(value):
         return False
-    if len(value) < 16:
+    if len(value) < 16 or _is_non_secret_shape(value):
         return False
     return _shannon_entropy(value) >= 3.0
+
+
+#: Host substitutions: `${user_config.x}` (desktop extensions), `${input:x}`
+#: and `${env:X}` (VS Code), beyond the `${UPPER_CASE}` form rules.py knows.
+_SUBSTITUTION_RE = re.compile(r"\$\{[^}]+\}")
+_PLACEHOLDER_PASSWORDS = frozenset({"password", "pass", "passwd", "secret", "changeme"})
+
+
+def _is_non_secret_shape(value: str) -> bool:
+    """Values that pass the entropy bar without being credentials: a
+    `your-...` placeholder, and a URL or path made only of
+    words and numbers (a base URL, a data directory, a DSN whose password is
+    a placeholder). A URL with a real password, or a random-looking path or
+    query segment (a webhook token), is not exempt."""
+    if value.lower().startswith("your-"):
+        return True
+    if "/" not in value:
+        return False
+    try:
+        password = urlsplit(value).password if "://" in value else None
+    except ValueError:
+        return False
+    if password is not None and password.lower() not in _PLACEHOLDER_PASSWORDS:
+        return False
+    return all(t.isalpha() or t.isdigit() for t in re.findall(r"[A-Za-z0-9]+", value))
 
 
 def _server_entries(config: dict) -> dict:

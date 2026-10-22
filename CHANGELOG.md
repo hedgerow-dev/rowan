@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+Fixes from hand-verifying a random sample of 300 MCP servers from the official
+registry.
+
+- TS/JS command injection: `regex.exec(text)` is no longer a shell sink. Regex
+  literals, `RegExp(...)` and regex-named receivers (`pattern`, `this.regex`)
+  are excluded from the `$X.exec(...)` sink of TNT-TS-AGENT-CMDI-001 and
+  TNT-TS-LLMOUT-CMDI-001. An SSH client's `conn.exec(command)` still reports.
+- TS/JS SSRF: TNT-TS-AGENT-SSRF-001 no longer reports a tool argument that only
+  fills the path or query of a fixed host: a literal `https://host/...` prefix,
+  or a constant, `process.env` or imported base followed by `/`, `?` or `#`.
+  `${BASE}${path}` still reports, because a `path` of `.evil.com/` moves the
+  host. Needs the js-crossfile extra.
+- MCP-CONFIG-001: base URLs, word-only paths, `your-...` placeholders,
+  `${user_config.x}`-style substitutions and DSNs whose password is a
+  placeholder word are no longer reported as hardcoded secrets.
+
 ## v0.3.12 (alpha)
 
 Fixes from a code audit of Rowan itself and from scanning 13 popular MCP

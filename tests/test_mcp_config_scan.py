@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from rowan.core.mcp_config import (
     find_mcp_config_files,
     scan_directory,
@@ -96,6 +98,37 @@ class TestHardcodedSecretDetection:
         findings = scan_mcp_config_file(fp)
         assert not any(f.rule_id == "MCP-CONFIG-001" for f in findings)
 
+
+    # Shapes that were all reported as hardcoded secrets in a sample of MCP
+    # server repositories, and none of which is a credential.
+    @pytest.mark.parametrize("value", [
+        "https://api.acmeworks.com",
+        "https://your-pbx-host/api",
+        "your-apify-token",
+        "${user_config.crm_token}",
+        "postgresql://readonly:password@127.0.0.1:5432/app?sslmode=require",
+        ".claude/world-model",
+    ])
+    def test_non_secret_shapes_not_flagged(self, tmp_path, value):
+        fp = _write_config(tmp_path, "mcp.json", {
+            "mcpServers": {"x": {"command": "npx", "env": {"SETTING": value}}}
+        })
+        findings = scan_mcp_config_file(fp)
+        assert not any(f.rule_id == "MCP-CONFIG-001" for f in findings)
+
+    @pytest.mark.parametrize("value", [
+        "postgresql://app:Xk9mQ2vL7pR4tW8@db.internal:5432/app",
+        "https://hooks.acmeworks.com/services/T0A1B2C3D/B4E5F6G7H/aB3xK9mQ7pL2vN8s",
+        "ghp_aB3xK9mQ7pL2vN8sT4wY6zR1cU5jH0dF",
+        "${HOST}/v1?key=AKIAQ3EGX7MZ2KPWN4TB",
+        "postgresql://app:admin@prod-db.acmeworks.com/app",
+    ])
+    def test_credentials_in_urls_still_flagged(self, tmp_path, value):
+        fp = _write_config(tmp_path, "mcp.json", {
+            "mcpServers": {"x": {"command": "npx", "env": {"SETTING": value}}}
+        })
+        findings = scan_mcp_config_file(fp)
+        assert any(f.rule_id == "MCP-CONFIG-001" for f in findings)
 
 class TestPrivilegeFlagDetection:
     def test_dangerous_flag_flagged(self, tmp_path):

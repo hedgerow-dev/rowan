@@ -155,6 +155,11 @@ rules:
     - focus-metavariable: $X
   - patterns:
     - pattern: $CP.exec($X, ...)
+    # RegExp.prototype.exec shares the name: skip a regex literal, a
+    # `new RegExp(...)`, and variables named like a regex.
+    - metavariable-regex:
+        metavariable: $CP
+        regex: ^(?!/)(?!(?:new\s+)?RegExp\b)(?!(?:.*\.)?(?i:re|rx|regexp?|pattern|matcher)$)(?!.*(?:Re|RE|Rx|Regexp?|RegExp|REGEXP?|Pattern|PATTERN|_re|_rx|_regexp?|_pattern)$)
     - focus-metavariable: $X
   - patterns:
     - pattern: $CP.execSync($X, ...)
@@ -865,6 +870,11 @@ rules:
     - focus-metavariable: $X
   - patterns:
     - pattern: $CP.exec($X, ...)
+    # RegExp.prototype.exec shares the name: skip a regex literal, a
+    # `new RegExp(...)`, and variables named like a regex.
+    - metavariable-regex:
+        metavariable: $CP
+        regex: ^(?!/)(?!(?:new\s+)?RegExp\b)(?!(?:.*\.)?(?i:re|rx|regexp?|pattern|matcher)$)(?!.*(?:Re|RE|Rx|Regexp?|RegExp|REGEXP?|Pattern|PATTERN|_re|_rx|_regexp?|_pattern)$)
     - focus-metavariable: $X
   - patterns:
     - pattern: $CP.execSync($X, ...)

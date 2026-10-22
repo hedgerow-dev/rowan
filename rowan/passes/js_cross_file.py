@@ -836,6 +836,213 @@ def _host_tainted(node: Any, source: bytes, tainted: set[str]) -> bool:
     return False
 
 
+# A literal that fixes the scheme and host: `https://host/`, `...?`, `...#`, or
+# a path on the page's own origin (`/api`). Without the `/`, `?` or `#`, the
+# next value can still extend the host (`https://api.x.com` + `.evil.com`).
+_FIXED_HOST_PREFIX_RE = re.compile(r"^(?:[a-zA-Z][\w+.-]*://[^/?#\s]+[/?#]|/(?!/))")
+_SCOPE_TYPES = frozenset({"statement_block", "program"})
+_FUNCTION_TYPES = frozenset({
+    "function_declaration", "function_expression", "arrow_function",
+    "method_definition", "generator_function_declaration",
+})
+
+
+def _import_bindings(stmt: Any, source: bytes) -> set[str]:
+    """Local names an `import` statement binds (default, named, namespace)."""
+    names: set[str] = set()
+    for n in _walk_all(stmt):
+        if n.type == "import_specifier":
+            local = n.child_by_field_name("alias") or n.child_by_field_name("name")
+            names.add(_node_text(local, source))
+        elif n.type in ("import_clause", "namespace_import"):
+            names.update(_node_text(c, source) for c in n.children if c.type == "identifier")
+    return names
+
+
+def _const_value(ident: Any, source: bytes) -> Any | None:
+    """The initializer of the `const` an identifier names, or the `import`
+    statement that binds it, looked up through its enclosing blocks; None when
+    the nearest binding is a parameter, a loop or catch variable, a `let`/`var`,
+    or there is none in sight."""
+    name = _node_text(ident, source)
+    node = ident.parent
+    while node is not None:
+        bound: list[str] = []
+        if node.type in _FUNCTION_TYPES:
+            params = node.child_by_field_name("parameters")
+            bound = _params_of(params, source) if params is not None else _collect_pattern_identifiers(
+                node.child_by_field_name("parameter"), source)
+            # `var` anywhere in the body is function-scoped.
+            if any(
+                n.type == "variable_declarator" and n.parent.type == "variable_declaration"
+                and name in _collect_pattern_identifiers(n.child_by_field_name("name"), source)
+                for n in _walk_all(node.child_by_field_name("body") or node)
+            ):
+                return None
+        elif node.type == "for_in_statement":
+            bound = _collect_pattern_identifiers(node.child_by_field_name("left"), source)
+        elif node.type == "catch_clause":
+            bound = _collect_pattern_identifiers(node.child_by_field_name("parameter"), source)
+        if name in bound:
+            return None
+        if node.type in _SCOPE_TYPES:
+            for stmt in node.children:
+                if stmt.type == "import_statement" and name in _import_bindings(stmt, source):
+                    return stmt
+                decl = stmt.child_by_field_name("declaration") if stmt.type == "export_statement" else stmt
+                if decl is None or decl.type not in ("lexical_declaration", "variable_declaration"):
+                    continue
+                for d in decl.children:
+                    target = d.child_by_field_name("name") if d.type == "variable_declarator" else None
+                    if target is None or name not in _collect_pattern_identifiers(target, source):
+                        continue
+                    if target.type == "identifier" and _node_text(decl, source).split()[0] == "const":
+                        return d.child_by_field_name("value")
+                    return None
+        node = node.parent
+    return None
+
+
+def _constant(node: Any, source: bytes, depth: int = 0) -> bool:
+    """A value the model cannot choose: literals, `process.env.X`, imported
+    bindings (module configuration), and `const`s built only from those."""
+    if depth > 4:
+        return False
+    kind = node.type
+    if kind in ("string", "import_statement"):
+        return True
+    if kind == "template_string":
+        return all(
+            _constant(inner, source, depth + 1)
+            for sub in node.children if sub.type == "template_substitution"
+            for inner in sub.children if inner.is_named
+        )
+    if kind == "member_expression":
+        return _node_text(node, source).startswith("process.env.")
+    if kind == "identifier":
+        value = _const_value(node, source)
+        return value is not None and _constant(value, source, depth + 1)
+    if kind == "binary_expression":
+        op = node.child_by_field_name("operator")
+        sides = (node.child_by_field_name("left"), node.child_by_field_name("right"))
+        return (
+            op is not None and _node_text(op, source) in ("+", "||", "??")
+            and all(s is not None and _constant(s, source, depth + 1) for s in sides)
+        )
+    return False
+
+
+def _url_parts(node: Any, source: bytes) -> list[Any]:
+    """A URL expression as literal strings and opaque nodes, in order: `+`
+    chains and template literals are flattened, and a `const` holding a
+    string or template is inlined (`${API_BASE}/x` with a literal base)."""
+    parts: list[Any] = []
+    stack = [(node, 0)]
+    while stack:
+        n, depth = stack.pop()
+        if n.type == "string":
+            text = _string_literal_value(n, source) or ""
+        elif n.type in ("string_fragment", "escape_sequence"):
+            text = _node_text(n, source)
+        else:
+            text = None
+        if text is not None:
+            if parts and isinstance(parts[-1], str):
+                parts[-1] += text
+            else:
+                parts.append(text)
+            continue
+        children: list[Any] = []
+        if n.type == "template_string":
+            for c in n.children:
+                if c.type == "template_substitution":
+                    children.extend(i for i in c.children if i.is_named)
+                elif c.type in ("string_fragment", "escape_sequence"):
+                    children.append(c)
+        elif n.type == "binary_expression" and _node_text(n.child_by_field_name("operator"), source) == "+":
+            children = [n.child_by_field_name("left"), n.child_by_field_name("right")]
+        elif n.type == "parenthesized_expression":
+            children = [c for c in n.children if c.is_named]
+        elif n.type == "identifier" and depth < 4:
+            value = _const_value(n, source)
+            if value is not None and value.type in ("string", "template_string", "binary_expression"):
+                children = [value]
+        if children:
+            stack.extend((c, depth + (n.type == "identifier")) for c in reversed(children))
+        else:
+            parts.append(n)
+    return parts
+
+
+def _host_fixed(node: Any, source: bytes, depth: int = 0) -> bool:
+    """True only when the URL `node` builds keeps a fixed scheme and host
+    whatever the model supplies: a literal prefix that ends past the host, or
+    a constant base followed by a literal `/`, `?` or `#`.
+
+    Stricter than `_host_tainted`, which knows the tainted names: this judges
+    an Opengrep finding without them, so `${API_BASE}${path}` stays (a `path`
+    of `.evil.com/` moves the host).
+    """
+    if depth > 4:
+        return False
+    if node.type in ("parenthesized_expression", "await_expression", "as_expression", "non_null_expression"):
+        inner = next((c for c in node.children if c.is_named), None)
+        return inner is not None and _host_fixed(inner, source, depth + 1)
+    if node.type == "ternary_expression":
+        branches = (node.child_by_field_name("consequence"), node.child_by_field_name("alternative"))
+        return all(b is not None and _host_fixed(b, source, depth + 1) for b in branches)
+    if node.type == "identifier":
+        value = _const_value(node, source)
+        if value is not None and value.type not in ("string", "template_string", "binary_expression"):
+            return _host_fixed(value, source, depth + 1)
+    parts = _url_parts(node, source)
+    if not parts:
+        return False
+    first = parts[0]
+    if isinstance(first, str):
+        return len(parts) == 1 or bool(_FIXED_HOST_PREFIX_RE.match(first))
+    return (
+        _constant(first, source)
+        and len(parts) > 1 and isinstance(parts[1], str) and parts[1][:1] in ("/", "?", "#")
+    )
+
+
+def _fixed_host_lines(tree: Any, source: bytes) -> set[int]:
+    """1-based lines where every SSRF call spanning the line keeps a fixed host."""
+    verdicts: dict[int, bool] = {}
+    for n in _walk_all(tree):
+        if n.type != "call_expression" or _sink_category(n, source) != Category.SSRF:
+            continue
+        args = n.child_by_field_name("arguments")
+        first = next((a for a in args.children if a.is_named), None) if args is not None else None
+        fixed = first is not None and _host_fixed(first, source)
+        for line in range(n.start_point[0] + 1, n.end_point[0] + 2):
+            verdicts[line] = verdicts.get(line, True) and fixed
+    return {line for line, fixed in verdicts.items() if fixed}
+
+
+def _drop_fixed_host_ssrf(findings: list[Finding], parsers: dict[str, Any], root: Path) -> list[Finding]:
+    """Opengrep's tool-argument SSRF rule reports any tainted value in a URL.
+    Drop a finding when every SSRF call on its line keeps a fixed host: the
+    model then only chooses a path or query (`${API_BASE}/cases/${id}`)."""
+    kept: list[Finding] = []
+    fixed_lines: dict[Path, set[int]] = {}
+    for f in findings:
+        path = Path(f.file_path) if Path(f.file_path).is_absolute() else root / f.file_path
+        if f.engine != "opengrep" or f.rule_id != _TOOL_RULE_BY_CATEGORY[Category.SSRF] or path.suffix not in parsers:
+            kept.append(f)
+            continue
+        if path not in fixed_lines:
+            try:
+                source = path.read_bytes()
+                fixed_lines[path] = _fixed_host_lines(parsers[path.suffix].parse(source).root_node, source)
+            except OSError:
+                fixed_lines[path] = set()
+        if f.start_line not in fixed_lines[path]:
+            kept.append(f)
+    return kept
+
+
 def _guarded_names(body: Any, source: bytes) -> set[str]:
     """Names checked by a sanitizer-named statement (`assertSafeBasename(name);`),
     which throws on bad input rather than returning a cleaned value."""
@@ -1614,6 +1821,7 @@ class JSCrossFilePass:
         # knows nothing about which value reaches the call, and with agent
         # tool handlers as sources it turned every matched helper into a HIGH
         # cross-file "taint-flow" finding.
+        context.result.findings = _drop_fixed_host_ssrf(context.result.findings, parsers, root)
         all_findings = [
             f for f in context.result.findings
             if f.engine in ("opengrep", "neuroscan")
