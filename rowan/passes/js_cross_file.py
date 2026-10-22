@@ -1463,27 +1463,40 @@ def default_export_name(root_node: Any, source: bytes) -> str | None:
 
 
 def _use_host_slots_for_ssrf(funcs: list[_FunctionSig], imports: _ImportGraph) -> None:
-    """Into a callee whose sink is SSRF, only arguments that can choose the URL
-    host carry the taint (`api(buildPath(id))` passes a fixed-host path)."""
+    """Into a callee that only leads to SSRF sinks, only arguments that can
+    choose the URL host carry the taint (`api(buildPath(id))` passes a
+    fixed-host path). That holds for the function calling `fetch` and for a
+    relay (`getJson(url)` -> `fetchWithRetry(url)`) with no sink of its own
+    whose every tainted call into the project goes to such a function."""
     by_key = {(f.file, f.name): f for f in funcs}
-    for caller in funcs:
-        updated = []
-        for call in caller.calls:
-            if len(call) < 9:
-                updated.append(call)
+
+    def callee_of(caller: _FunctionSig, call: tuple) -> _FunctionSig | None:
+        name, qualifier = call[0], call[1]
+        if call[4]:  # resolved by JSCrossFilePass (class method, object member)
+            return by_key.get((call[4], call[7] or name))
+        if qualifier in (None, "this") and (caller.file, name) in by_key:
+            return by_key[(caller.file, name)]
+        resolved = _resolve_callee(caller.file, name, qualifier, imports)
+        return by_key.get(resolved) if resolved is not None else None
+
+    callees = {id(f): [callee_of(f, c) if len(c) >= 9 else None for c in f.calls] for f in funcs}
+    ssrf_only = {id(f) for f in funcs if f.sink_category == Category.SSRF}
+    changed = True
+    while changed:
+        changed = False
+        for f in funcs:
+            if id(f) in ssrf_only or f.has_sink:
                 continue
-            name, qualifier = call[0], call[1]
-            if call[4]:  # resolved by JSCrossFilePass (class method, object member)
-                callee = by_key.get((call[4], call[7] or name))
-            elif qualifier in (None, "this") and (caller.file, name) in by_key:
-                callee = by_key[(caller.file, name)]
-            else:
-                resolved = _resolve_callee(caller.file, name, qualifier, imports)
-                callee = by_key.get(resolved) if resolved is not None else None
-            if callee is not None and callee.sink_category == Category.SSRF:
-                call = (*call[:5], call[8], *call[6:])
-            updated.append(call)
-        caller.calls = updated
+            tainted = [c for call, c in zip(f.calls, callees[id(f)], strict=True) if c is not None and call[5]]
+            if tainted and all(id(c) in ssrf_only for c in tainted):
+                ssrf_only.add(id(f))
+                changed = True
+
+    for caller in funcs:
+        caller.calls = [
+            (*call[:5], call[8], *call[6:]) if callee is not None and id(callee) in ssrf_only else call
+            for call, callee in zip(caller.calls, callees[id(caller)], strict=True)
+        ]
 
 
 _TOOL_RULE_BY_CATEGORY = {

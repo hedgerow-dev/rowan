@@ -856,6 +856,44 @@ def test_fixed_host_path_into_ssrf_method_is_not_reported():
     assert [f for f in _run_js_cross_file(root).findings if f.engine == "crossfile"] == []
 
 
+def test_fixed_host_path_through_relays_is_not_reported():
+    # `getJson(url)` -> `fetchWithRetry(url)` -> `fetch(url)`: host-only slots
+    # apply through helpers that only relay into SSRF sinks. A raw URL still
+    # reports; a relay that also writes files keeps its path flow.
+    retry = "export async function fetchWithRetry(url: string) {\n  return fetch(url);\n}\n"
+    data = (
+        'import { fetchWithRetry } from "./retry.js";\n'
+        'import { writeFileSync } from "fs";\n'
+        "export async function getJson(url: string) {\n"
+        "  return fetchWithRetry(url);\n"
+        "}\n"
+        "export async function mirror(url: string) {\n"
+        "  writeFileSync(url, await fetchWithRetry(url));\n"
+        "}\n"
+    )
+    server = (
+        'import { getJson, mirror } from "./data.js";\n'
+        "const BASE = process.env.SNAPSHOT_BASE;\n"
+        'server.tool("snap", {}, async ({ key }) => {\n'
+        "  return getJson(`${BASE}/snapshots/${key}.json`);\n"
+        "});\n"
+        'server.tool("get", {}, async ({ target }) => {\n'
+        "  return getJson(target);\n"
+        "});\n"
+        'server.tool("save", {}, async ({ name }) => {\n'
+        "  return mirror(`${BASE}/files/${name}`);\n"
+        "});\n"
+    )
+    root = _make_project({"server.ts": server, "data.ts": data, "retry.ts": retry})
+    hits = [f for f in _run_js_cross_file(root).findings if f.engine == "crossfile"]
+    assert sorted((Path(h.file_path).name, h.start_line, h.category) for h in hits) == [
+        ("data.ts", 4, Category.SSRF),
+        ("data.ts", 7, Category.SSRF),
+        ("server.ts", 7, Category.SSRF),
+        ("server.ts", 10, Category.PATH_TRAVERSAL),
+    ]
+
+
 _CLONER = (
     'import { execSync } from "child_process";\n'
     "export class Cloner {\n"

@@ -17,6 +17,11 @@ registry.
 - MCP-CONFIG-001: base URLs, word-only paths, `your-...` placeholders,
   `${user_config.x}`-style substitutions and DSNs whose password is a
   placeholder word are no longer reported as hardcoded secrets.
+- Cross-file: "leads to a sink" now spreads to a caller only through a call
+  that hands it a tainted value, at every hop, not just the last one. JS/TS
+  helpers that only relay into `fetch` (`getJson(url)` ->
+  `fetchWithRetry(url)`) take host-position taint, so a fixed-host path built
+  several calls up no longer reports as SSRF.
 
 ## v0.3.12 (alpha)
 

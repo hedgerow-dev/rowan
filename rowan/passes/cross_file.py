@@ -5082,7 +5082,9 @@ def _propagate_cross_file(
             )
         }
         if callee_key in sink_seeds
-        else callers
+        # Past the first hop, a caller relays the sink only through a call
+        # that hands the relay a tainted value (the forward graph's rule).
+        else {caller_key for caller_key in callers if _edge_passes_taint((caller_key, callee_key))}
         for callee_key, callers in reverse_graph.items()
     }
     sink_dist, pred_sink = _bfs_taint_upward(sink_seeds, sink_reverse_graph, edge_call_line)
