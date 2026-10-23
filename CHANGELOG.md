@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.4.1 (alpha)
 
 - tree-sitter and its JavaScript, TypeScript and Go grammars are now default
   dependencies, so a plain `pip install rowan-sast` gets JS/TS and Go

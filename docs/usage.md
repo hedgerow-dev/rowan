@@ -751,7 +751,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: hedgerow-dev/rowan@v0.4.0
+      - uses: hedgerow-dev/rowan@v0.4.1
         with:
           target: .
           output: rowan.sarif
@@ -789,7 +789,7 @@ security-scan:
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/hedgerow-dev/rowan
-    rev: v0.4.0
+    rev: v0.4.1
     hooks:
       - id: rowan
 ```
