@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.4.0 (alpha)
 
 Fixes from hand-verifying a random sample of 300 MCP servers from the official
 registry.
