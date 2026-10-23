@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.4.2 (alpha)
+
+Security fix for the dependency scan. Affects 0.3.0 through 0.4.1. Upgrade
+if you scan repositories you do not control, for example fork pull requests
+in CI.
+
+- The dependency scan (on by default) read manifests and their companion
+  files without checking that they were regular files inside the scanned
+  repo. A scanned repo could hang the scan with a FIFO or a symlink to
+  `/dev/zero`, or leak host secrets: a `gradle.properties` symlinked out of
+  the repo (for example to `~/.gradle`) let `$signingPassword` in
+  `build.gradle` resolve to the real value, which was printed in the report
+  and, when it looked like a version, sent to osv.dev.
+- Every file the dependency scan reads must now be a regular file, reached
+  without a symlink, inside the scan root and at most 50 MB. Skipped files are
+  named in the scan's degraded message.
+- Gradle and Maven property values are substituted into a version only when
+  they look like a plain version (`1.2.3`, `2.0.0-RC1`).
+- Upgrade with `pip install -U rowan-sast`, or pin the GitHub Action to
+  `hedgerow-dev/rowan@v0.4.2`. Until then, run with `--no-sca` on untrusted
+  repositories.
+
 ## v0.4.1 (alpha)
 
 - tree-sitter and its JavaScript, TypeScript and Go grammars are now default
