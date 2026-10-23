@@ -22,10 +22,10 @@ then `pipx ensurepath` and open a new terminal).
 **1. Install Rowan:**
 
 ```bash
-pipx install "rowan-sast[js-crossfile]"
+pipx install rowan-sast
 ```
 
-Already use uv? `uv tool install "rowan-sast[js-crossfile]"` works too. A plain
+Already use uv? `uv tool install rowan-sast` works too. A plain
 `pip install` fails on Homebrew Python by design; see
 [getting started](docs/getting-started.md) for a virtual-environment install.
 

@@ -21,7 +21,7 @@ from rowan.scan_plan import build_scan_plan
 
 pytestmark = pytest.mark.skipif(
     not TREE_SITTER_GO_AVAILABLE,
-    reason="tree-sitter-go not installed (pip install rowan-sast[js-crossfile])",
+    reason="tree-sitter-go not importable",
 )
 
 GO_MOD = "module example.com/app\n\ngo 1.22\n"

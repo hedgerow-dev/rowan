@@ -607,9 +607,8 @@ from a predecessor map kept during the BFS (see
 
 The JavaScript/TypeScript sibling of `CrossFilePass`, reusing the same
 `_propagate_cross_file` fixpoint core (`js_cross_file.py` imports it
-directly from `cross_file.py`). Requires the optional `tree-sitter`
-dependency (`pip install rowan[js-crossfile]`); no-ops gracefully if
-it isn't installed.
+directly from `cross_file.py`). Uses `tree-sitter`, a default dependency;
+if it cannot be imported the pass reports itself degraded instead.
 
 Import/call-graph extraction is tree-sitter-based rather than AST-based,
 and is narrower than the Python pass: only `has_source`

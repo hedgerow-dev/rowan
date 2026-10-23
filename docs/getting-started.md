@@ -11,10 +11,10 @@ Use Python 3.10 or newer. Rowan is a command-line tool, so install it with
 ```bash
 brew install pipx          # macOS; on Linux use your package manager
 pipx ensurepath            # once, then open a new terminal
-pipx install "rowan-sast[js-crossfile]"
+pipx install rowan-sast
 ```
 
-With uv instead: `uv tool install "rowan-sast[js-crossfile]"`.
+With uv instead: `uv tool install rowan-sast`.
 
 Without either tool, use a virtual environment. A bare `pip install` is
 refused by Homebrew Python and other "externally managed" Pythons:
@@ -22,15 +22,15 @@ refused by Homebrew Python and other "externally managed" Pythons:
 ```bash
 python3 -m venv ~/.rowan
 source ~/.rowan/bin/activate
-python -m pip install "rowan-sast[js-crossfile]"
+python -m pip install rowan-sast
 ```
 
 The package is called `rowan-sast` on PyPI; the command it installs is `rowan`.
-The extra adds the parsers used for JavaScript, TypeScript and Go cross-file
-analysis. Omit it for a smaller installation if you do not need those features.
+It includes the parsers used for JavaScript, TypeScript and Go cross-file
+analysis.
 
 For development, clone the repository and install it editable instead:
-`git clone https://github.com/hedgerow-dev/rowan.git && cd rowan && python -m pip install -e ".[dev,js-crossfile,mcp]"`.
+`git clone https://github.com/hedgerow-dev/rowan.git && cd rowan && python -m pip install -e ".[dev,mcp]"`.
 
 **Windows:** the Python package requires Python 3.10+ too. In PowerShell, create
 the environment with `py -m venv .venv` and activate it with
@@ -145,7 +145,7 @@ required for that workflow.
 For agents with MCP support, install Rowan with the optional server:
 
 ```bash
-pipx install --force "rowan-sast[mcp,js-crossfile]"
+pipx install --force "rowan-sast[mcp]"
 ```
 
 Configure your MCP client with the **absolute path** to the installed executable

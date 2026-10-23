@@ -30,7 +30,7 @@ from rowan.passes.js_cross_file import (
 
 pytestmark = pytest.mark.skipif(
     not TREE_SITTER_AVAILABLE,
-    reason="tree-sitter not installed (pip install rowan-sast[js-crossfile])",
+    reason="tree-sitter not importable",
 )
 
 

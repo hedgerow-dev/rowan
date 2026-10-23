@@ -14,8 +14,8 @@ request URL).
 Only flows whose source and sink sit in different functions are reported:
 same-function flows are Opengrep's job and would double-report.
 
-Optional dependency: ``tree-sitter`` plus ``tree-sitter-go``
-(``pip install rowan-sast[js-crossfile]``). Without the grammar the pass
+Requires ``tree-sitter`` plus ``tree-sitter-go``, default dependencies of
+rowan-sast. Without the grammar the pass
 records itself as degraded and returns nothing.
 """
 
@@ -942,7 +942,7 @@ class GoCrossFilePass:
             return result
         if not TREE_SITTER_GO_AVAILABLE:
             result.degraded_passes[self.name] = (
-                "tree-sitter-go not installed (pip install 'rowan[js-crossfile]'); "
+                "tree-sitter-go could not be imported (reinstall rowan-sast); "
                 "Go cross-file taint was not run"
             )
             return result

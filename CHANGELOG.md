@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- tree-sitter and its JavaScript, TypeScript and Go grammars are now default
+  dependencies, so a plain `pip install rowan-sast` gets JS/TS and Go
+  cross-file analysis, TypeScript MCP tool detection and the fixed-host SSRF
+  checks. The `js-crossfile` extra is kept, empty, so existing install
+  commands still work.
+
 ## v0.4.0 (alpha)
 
 Fixes from hand-verifying a random sample of 300 MCP servers from the official

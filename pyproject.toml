@@ -35,6 +35,12 @@ dependencies = [
     "jsonschema>=4.23,<5.0",
     "filelock>=3.16,<4.0",
     "tomli>=2.0,<3.0; python_version < '3.11'",
+    # Parsers for JS/TS and Go cross-file analysis, MCP tool detection in
+    # TypeScript and the fixed-host SSRF checks.
+    "tree-sitter>=0.21,<1.0",
+    "tree-sitter-javascript>=0.21,<1.0",
+    "tree-sitter-typescript>=0.21,<1.0",
+    "tree-sitter-go>=0.21,<1.0",
 ]
 
 [project.optional-dependencies]
@@ -44,12 +50,9 @@ dev = [
     "pytest-xdist>=3.6,<4.0",
     "ruff>=0.4,<1.0",
 ]
-js-crossfile = [
-    "tree-sitter>=0.21,<1.0",
-    "tree-sitter-javascript>=0.21,<1.0",
-    "tree-sitter-typescript>=0.21,<1.0",
-    "tree-sitter-go>=0.21,<1.0",
-]
+# Kept so existing `rowan-sast[js-crossfile]` installs still resolve; the
+# parsers are now default dependencies.
+js-crossfile = []
 mcp = [
     "mcp>=1.9,<2.0",
 ]

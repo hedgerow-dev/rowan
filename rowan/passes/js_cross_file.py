@@ -6,10 +6,10 @@ language-agnostic fixpoint propagation engine the Python pass uses
 (``_match_findings_to_functions``, ``_propagate_cross_file``). Only the AST
 extraction front-end differs -- tree-sitter instead of Python's ``ast``.
 
-Optional dependency: requires ``tree-sitter`` + ``tree-sitter-javascript`` +
-``tree-sitter-typescript`` (``pip install rowan-sast[js-crossfile]``). Skips
-gracefully if not installed, the same way ``TaintPass`` skips gracefully when
-the Opengrep binary isn't on PATH.
+Requires ``tree-sitter`` + ``tree-sitter-javascript`` +
+``tree-sitter-typescript``, default dependencies of rowan-sast. If they cannot
+be imported the pass reports itself degraded, the same way ``TaintPass`` does
+when the Opengrep binary isn't on PATH.
 """
 
 from __future__ import annotations
@@ -1619,7 +1619,7 @@ class JSCrossFilePass:
             return result
         if not TREE_SITTER_AVAILABLE:
             result.degraded_passes[self.name] = (
-                "tree-sitter not installed (pip install 'rowan[js-crossfile]'); "
+                "tree-sitter could not be imported (reinstall rowan-sast); "
                 "JS/TS cross-file taint was not run"
             )
             return result
