@@ -870,13 +870,13 @@ class TestReadTextSizeCap:
             f.write(b"x")
         assert p.stat().st_size > SCAPass.MAX_DEP_FILE_BYTES
 
-        assert SCAPass._read_text(p) is None
+        assert SCAPass()._read_text(p) is None
 
     def test_normal_sized_file_still_read(self, tmp_path):
         p = tmp_path / "requirements.txt"
         p.write_text("requests==2.31.0\n")
 
-        assert SCAPass._read_text(p) == "requests==2.31.0\n"
+        assert SCAPass()._read_text(p) == "requests==2.31.0\n"
 
 
 class TestSharedNetworkBudget:

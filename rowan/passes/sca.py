@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import io
 import json
 import logging
 import math
+import os
 import re
+import stat
 import time
 from collections.abc import Iterable
 from contextlib import nullcontext
@@ -125,14 +128,19 @@ class SCAPass:
         # findings visible, but surface the incomplete enrichment to callers.
         self._hydration_failures: set[str] = set()
         self._network_semaphore = None
-        # Upper bound for the gradle.properties walk in _gradle_properties.
+        # Upper bound for the gradle.properties walk in _gradle_properties,
+        # and the boundary no file read by _read_text may leave.
         self._scan_root: Path | None = None
+        # Files _read_text refused to open: path -> reason. Reported as
+        # degraded so a skipped companion file is never silent.
+        self._skipped_files: dict[str, str] = {}
 
     def run(self, context: ScanContext) -> ScanResult:
         start = time.perf_counter()
         self._network_semaphore = context.network_semaphore
         result = ScanResult()
         self._scan_root = context.target_path
+        self._skipped_files = {}
 
         source_inventory = getattr(context, "source_inventory", None)
         if not isinstance(source_inventory, SourceInventory):
@@ -156,6 +164,9 @@ class SCAPass:
             packages = self._extract_packages(dep_file)
             if not packages:
                 content = self._read_text(dep_file)
+                if str(dep_file) in self._skipped_files:
+                    dependency_status.append({"path": str(dep_file), "status": "skipped"})
+                    continue
                 if content is not None and not content.strip():
                     status = "empty"
                 elif self._declares_no_dependencies(dep_file, content):
@@ -211,6 +222,17 @@ class SCAPass:
                     + ", ".join(unparsed[:5])
                     + (" ..." if len(unparsed) > 5 else "")
                 )
+
+        if self._skipped_files:
+            skipped = [f"{path} ({reason})" for path, reason in sorted(self._skipped_files.items())]
+            message = (
+                f"Skipped {len(skipped)} dependency file(s) that are not regular "
+                "files inside the scan root: "
+                + ", ".join(skipped[:5])
+                + (" ..." if len(skipped) > 5 else "")
+            )
+            degraded.append(message)
+            logger.warning("SCAPass DEGRADED: %s", message)
 
         if dropped_packages:
             message = (
@@ -457,14 +479,71 @@ class SCAPass:
         except Exception:
             return None
 
-    @staticmethod
-    def _read_text(file_path: Path) -> str | None:
-        try:
-            if file_path.stat().st_size > SCAPass.MAX_DEP_FILE_BYTES:
-                return None
-            return file_path.read_text(encoding="utf-8", errors="ignore")
-        except OSError:
+    def _read_text(self, file_path: Path) -> str | None:
+        """Read one dependency file from the scanned repo, or None.
+
+        Every file this pass opens comes through here, companion files
+        included. It must be a regular file, reached without a symlink,
+        inside the scan root and at most MAX_DEP_FILE_BYTES. Anything else
+        is skipped and recorded in ``_skipped_files`` for the report: a FIFO
+        or device hangs the read, and a symlink out of the repo (say
+        gradle.properties -> ~/.gradle) would put host secrets into the
+        report and the OSV query. A file that does not exist is silent.
+        """
+        if not os.path.lexists(file_path):
             return None
+        # Check and open the same normalized path, so a ".." the check
+        # resolved lexically cannot be re-resolved through a symlink.
+        path = Path(os.path.abspath(file_path))
+        reason = self._unsafe_path_reason(path)
+        if reason is not None:
+            self._skipped_files[str(file_path)] = reason
+            return None
+        try:
+            # O_NOFOLLOW closes the race between the check above and the
+            # open; O_NONBLOCK keeps a FIFO swapped in meanwhile from hanging.
+            # Neither flag exists on Windows, which has no FIFOs to open.
+            flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+            fd = os.open(path, flags)
+        except OSError:
+            self._skipped_files[str(file_path)] = "could not be opened safely"
+            return None
+        with os.fdopen(fd, "rb") as handle:
+            info = os.fstat(handle.fileno())
+            if not stat.S_ISREG(info.st_mode):
+                self._skipped_files[str(file_path)] = "not a regular file"
+                return None
+            if info.st_size > self.MAX_DEP_FILE_BYTES:
+                self._skipped_files[str(file_path)] = "over the size cap"
+                return None
+            raw = handle.read(self.MAX_DEP_FILE_BYTES + 1)
+        if len(raw) > self.MAX_DEP_FILE_BYTES:
+            self._skipped_files[str(file_path)] = "over the size cap"
+            return None
+        # Same decoding and newline handling as Path.read_text.
+        return io.TextIOWrapper(io.BytesIO(raw), encoding="utf-8", errors="ignore").read()
+
+    def _unsafe_path_reason(self, path: Path) -> str | None:
+        """Why the absolute, normalized ``path`` must not be opened, or None.
+
+        Without a scan root (a parser called directly) only the final
+        component is checked; the open itself refuses a symlink there.
+        """
+        if self._scan_root is None:
+            return "a symlink" if path.is_symlink() else None
+        root = Path(os.path.abspath(self._scan_root))
+        root_real = Path(os.path.realpath(root))
+        for base in (root, root_real):
+            if path == base or base in path.parents:
+                relative = path.relative_to(base)
+                break
+        else:
+            return "outside the scan root"
+        # Resolving changes nothing below the root only when no component
+        # from the root down is a symlink (or a "..").
+        if Path(os.path.realpath(path)) != root_real / relative:
+            return "reached through a symlink"
+        return None
 
     def _parse_pyproject_toml(self, file_path: Path) -> list[dict[str, str]]:
         packages: list[dict[str, str]] = []
@@ -1039,8 +1118,12 @@ class SCAPass:
             properties.setdefault("project.version", own_version.text.strip())
             properties.setdefault("pom.version", own_version.text.strip())
 
+        def substitute(m: re.Match[str]) -> str:
+            value = properties.get(m.group(1))
+            return value if value is not None and self._is_plain_version(value) else m.group(0)
+
         def resolve(text: str) -> str:
-            return re.sub(r"\$\{([^}]+)\}", lambda m: properties.get(m.group(1), m.group(0)), text.strip())
+            return re.sub(r"\$\{([^}]+)\}", substitute, text.strip())
 
         def visit(node: ET.Element, in_dependency_management: bool = False) -> None:
             section = node.tag.rsplit("}", 1)[-1]
@@ -1156,6 +1239,17 @@ class SCAPass:
         r"""['"]([\w.-]+):([\w.-]+)(?::(\$\{?[\w.]+\}?|[\w.\[\](),+-]+))?['"]"""
     )
 
+    # A plain version: dotted numbers with optional short qualifiers
+    # ("1.2.3", "2.0.0-RC1", "5.3.20.RELEASE", "33.0.0-jre"). Property
+    # interpolation only ever substitutes values of this shape, so a secret
+    # in gradle.properties or a pom <properties> block cannot reach the OSV
+    # query or the report by being referenced as a version.
+    _PLAIN_VERSION_RE = re.compile(r"\d+(?:\.\d+)*(?:[.+-][A-Za-z0-9]+)*")
+
+    @classmethod
+    def _is_plain_version(cls, value: str) -> bool:
+        return len(value) <= 64 and cls._PLAIN_VERSION_RE.fullmatch(value) is not None
+
     def _gradle_properties(self, file_path: Path) -> dict[str, str]:
         """Merge ``gradle.properties`` from the build file's directory up to the
         scan root (nearest file wins), so ``$logback_version`` can be resolved."""
@@ -1189,6 +1283,8 @@ class SCAPass:
                 if props is None:
                     props = self._gradle_properties(file_path)
                 version = props.get(version.strip("${}"))
+                if version is not None and not self._is_plain_version(version):
+                    version = None
             packages.append({"name": f"{group}:{artifact}", "version": version or "*", "ecosystem": "Maven", "direct": True})
         for m in re.finditer(
             r"group\s*:\s*['\"]([^'\"]+)['\"]\s*,\s*"
@@ -1927,4 +2023,6 @@ class SCAPass:
             for py_file in (target.rglob("*.py") if candidates is None else candidates)
             if not any(p in skip_dirs for p in _parts_under(py_file, target))
             and not (py_file.is_symlink() and not is_within_root(py_file, target))
+            # A FIFO or device named *.py would hang the reachability read.
+            and py_file.is_file()
         ]
