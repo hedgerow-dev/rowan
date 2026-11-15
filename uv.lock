@@ -1,12 +1,12 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform != 'win32'",
     "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform == 'win32'",
-    "python_full_version < '3.11' and sys_platform == 'win32'",
     "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'win32'",
+    "python_full_version < '3.11' and sys_platform == 'win32'",
     "python_full_version < '3.11' and sys_platform != 'win32'",
 ]
 
@@ -371,7 +371,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+    { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [
@@ -388,6 +388,15 @@ wheels = [
 ]
 
 [[package]]
+name = "filelock"
+version = "3.32.7"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/0f/59/e19834834cb01a32febfbb0f8a23a9088088f5d45991824ff2bc3b5e8acb/filelock-3.32.7.tar.gz", hash = "sha256:37b8a3d9811b0f9aef7e5ec5c71bb320de52df51e6ca9bcd6f5ad81187660da7", size = 225154, upload-time = "2026-09-16T00:24:20.907Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/15/df/31098c5aeb4d966b553641472bd55fcf5fdfac953549894b8a765ba44e91/filelock-3.32.7-py3-none-any.whl", hash = "sha256:65ff0d0190ea42038b32bda4b77834fb05be2cad4c5b9b01aa4dfb3614536e52", size = 100157, upload-time = "2026-09-16T00:24:19.543Z" },
+]
+
+[[package]]
 name = "h11"
 version = "0.16.0"
 source = { registry = "https://pypi.org/simple" }
@@ -398,14 +407,14 @@ wheels = [
 
 [[package]]
 name = "hayward"
-version = "1.2.4"
+version = "1.16.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "defusedxml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/90/62/4c24c7b9ec5e4da7b8d6b74976e1ac880789d3e64460f6c8d27a2696a6a5/hayward-1.2.4.tar.gz", hash = "sha256:f17a6bb2d3b55506d5fce2512d592cecca9c759a135e35886c251f9de4552e93", size = 296019, upload-time = "2026-10-02T15:28:31.84Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2f/98/c3249353920aad44599bde6606748b6dd3e4f9a24281eec57d48275ffd83/hayward-1.16.1.tar.gz", hash = "sha256:f66cc7866f0b137593c4880ed2d1231a9ea5c4e0dc90c478ae3fe6077d73be11", size = 828408, upload-time = "2026-11-05T18:17:01.644Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6d/f7/adc9fe60d22e7670843ab42ac8f8f2011f74966ae900a5582e814a768334/hayward-1.2.4-py3-none-any.whl", hash = "sha256:3b0f8d0bef7ce94211d411051b9a216c2d578ff3733ac04f83a7d0cdf598cba6", size = 155795, upload-time = "2026-10-02T15:28:30.2Z" },
+    { url = "https://files.pythonhosted.org/packages/3c/d5/2cead745d7c24ff9c98e8b62fb3945b564f8373608ae9200fd9042cd8622/hayward-1.16.1-py3-none-any.whl", hash = "sha256:f96ec62167a5a148af6ac8b7f407090c4064b3e2e07d89c3214d83bac6d3ba88", size = 220170, upload-time = "2026-11-05T18:17:00.025Z" },
 ]
 
 [[package]]
@@ -917,17 +926,23 @@ wheels = [
 
 [[package]]
 name = "rowan-sast"
-version = "0.3.1"
+version = "0.4.2"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
     { name = "defusedxml" },
+    { name = "filelock" },
     { name = "hayward" },
     { name = "httpx" },
+    { name = "jsonschema" },
     { name = "pydantic" },
     { name = "pyyaml" },
     { name = "rich" },
     { name = "tomli", marker = "python_full_version < '3.11'" },
+    { name = "tree-sitter" },
+    { name = "tree-sitter-go" },
+    { name = "tree-sitter-javascript" },
+    { name = "tree-sitter-typescript" },
 ]
 
 [package.optional-dependencies]
@@ -937,12 +952,6 @@ dev = [
     { name = "pytest-xdist" },
     { name = "ruff" },
 ]
-js-crossfile = [
-    { name = "tree-sitter" },
-    { name = "tree-sitter-go" },
-    { name = "tree-sitter-javascript" },
-    { name = "tree-sitter-typescript" },
-]
 mcp = [
     { name = "mcp" },
 ]
@@ -951,8 +960,10 @@ mcp = [
 requires-dist = [
     { name = "click", specifier = ">=8.0,<9.0" },
     { name = "defusedxml", specifier = ">=0.7,<1.0" },
-    { name = "hayward", specifier = ">=1.2.4,<2.0" },
+    { name = "filelock", specifier = ">=3.16,<4.0" },
+    { name = "hayward", specifier = ">=1.16.1,<2.0" },
     { name = "httpx", specifier = ">=0.27,<1.0" },
+    { name = "jsonschema", specifier = ">=4.23,<5.0" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.9,<2.0" },
     { name = "pydantic", specifier = ">=2.0,<3.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0,<9.0" },
@@ -962,10 +973,10 @@ requires-dist = [
     { name = "rich", specifier = ">=13.0,<14.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.4,<1.0" },
     { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2.0,<3.0" },
-    { name = "tree-sitter", marker = "extra == 'js-crossfile'", specifier = ">=0.21,<1.0" },
-    { name = "tree-sitter-go", marker = "extra == 'js-crossfile'", specifier = ">=0.21,<1.0" },
-    { name = "tree-sitter-javascript", marker = "extra == 'js-crossfile'", specifier = ">=0.21,<1.0" },
-    { name = "tree-sitter-typescript", marker = "extra == 'js-crossfile'", specifier = ">=0.21,<1.0" },
+    { name = "tree-sitter", specifier = ">=0.21,<1.0" },
+    { name = "tree-sitter-go", specifier = ">=0.21,<1.0" },
+    { name = "tree-sitter-javascript", specifier = ">=0.21,<1.0" },
+    { name = "tree-sitter-typescript", specifier = ">=0.21,<1.0" },
 ]
 provides-extras = ["dev", "js-crossfile", "mcp"]
 
