@@ -114,6 +114,7 @@ see the [usage guide](docs/usage.md).
 - [Usage guide](docs/usage.md): every option, configuration, baselines, CI and GitHub Action
 - [Contributing](CONTRIBUTING.md) and [architecture](ARCHITECTURE.md)
 - [Security policy](SECURITY.md): report a vulnerability in Rowan privately
+- Follow [@Hedgerowdotdev](https://x.com/Hedgerowdotdev) on X for releases and research.
 
 ## License
 
