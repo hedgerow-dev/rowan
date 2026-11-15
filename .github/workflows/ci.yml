@@ -14,14 +14,37 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # Hayward 1.6.0 added compressed-tar discovery extensions that
+      # MODEL_ARTIFACT_EXTENSIONS does not list. Stay on 1.4.1, the
+      # release the last green run installed. This workflow does not
+      # change library code to follow a newer Hayward.
+      - name: Install (with dev extras)
+        run: pip install -e ".[dev]" "hayward==1.4.1"
+      - name: Lint
+        run: ruff check .
+      - name: Doc counts
+        run: python scripts/check_doc_counts.py
+
   test:
-    name: lint + test (py${{ matrix.python-version }}, shard ${{ matrix.shard }})
+    name: test (py${{ matrix.python-version }}, shard ${{ matrix.shard }})
     timeout-minutes: 60
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        # Pull requests: 3.12 (benchmark and packaging gates) and 3.10
+        # (oldest supported). Pushes to main: 3.10 through 3.13. Publish does not
+        # use this workflow.
+        python-version: ${{ fromJSON(github.event_name == 'pull_request' && '["3.10", "3.12"]' || '["3.10", "3.11", "3.12", "3.13"]') }}
         # Test files are split round-robin across shards (see the Test step).
         shard: [0, 1, 2]
     steps:
@@ -29,8 +52,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      # Same Hayward pin as the lint job. See that step.
       - name: Install (with dev extras)
-        run: pip install -e ".[dev]"
+        run: pip install -e ".[dev]" "hayward==1.4.1"
       - name: Install cosign
         uses: sigstore/cosign-installer@f713795cb21599bc4e5c4b58cbad1da852d7eeb9 # v3
       - name: Install Opengrep
@@ -40,11 +64,6 @@ jobs:
         run: |
           rowan install-engine --prefix "$HOME/.local"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - name: Lint
-        run: ruff check .
-      - name: Doc counts
-        if: matrix.python-version == '3.12' && matrix.shard == 0
-        run: python scripts/check_doc_counts.py
       # Full suite on 3.12. The other versions skip the benchmark gates,
       # which test rule and engine output rather than Python-version behaviour.
       - name: Test
