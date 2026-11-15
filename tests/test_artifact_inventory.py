@@ -6,7 +6,7 @@ from pathlib import Path
 
 from hayward import ModelFileScanner
 
-from rowan.artifacts import MODEL_ARTIFACT_EXTENSIONS
+from rowan.artifacts import MODEL_ARTIFACT_DISCOVERY, model_artifact_key
 from rowan.config import ScanConfig
 from rowan.core.findings import ScanResult
 from rowan.passes.base import ScanContext, SourceInventory
@@ -212,7 +212,51 @@ def test_empty_artifact_inventory_never_widens_scope(
 
 
 def test_model_discovery_extension_registry_matches_scanner() -> None:
+    """Rowan's registry is exactly what Hayward's directory walk globs.
+
+    ``discover_files`` unions the format map with the ambiguous, config,
+    and template extensions, then adds the exact tokenizer filenames.
+    """
+
     scanner = ModelFileScanner()
-    assert set(scanner._format_map) | scanner._AMBIGUOUS_EXTENSIONS | scanner._CONFIG_EXTENSIONS == set(
-        MODEL_ARTIFACT_EXTENSIONS
+    discovered = (
+        set(scanner._format_map)
+        | set(scanner._AMBIGUOUS_EXTENSIONS)
+        | set(scanner._CONFIG_EXTENSIONS)
+        | set(scanner._TEMPLATE_EXTENSIONS)
+        | set(scanner._TOKENIZER_DATA_NAMES)
     )
+    assert discovered == set(MODEL_ARTIFACT_DISCOVERY)
+
+
+def test_multipart_tar_and_tokenizer_names_are_inventoried(tmp_path: Path) -> None:
+    # Path.suffix of these is .gz/.bz2/.xz/.txt, which is not the registry key.
+    (tmp_path / "weights.tar.gz").write_bytes(b"not a tar")
+    (tmp_path / "weights.tar.bz2").write_bytes(b"not a tar")
+    (tmp_path / "weights.tar.xz").write_bytes(b"not a tar")
+    (tmp_path / "weights.tgz").write_bytes(b"not a tar")
+    (tmp_path / "weights.tbz2").write_bytes(b"not a tar")
+    (tmp_path / "weights.txz").write_bytes(b"not a tar")
+    (tmp_path / "chat_template.jinja").write_text("{{ bos }}", encoding="utf-8")
+    (tmp_path / "merges.txt").write_text("a b\n", encoding="utf-8")
+    (tmp_path / "notes.txt").write_text("not a tokenizer\n", encoding="utf-8")
+    (tmp_path / "data.gz").write_bytes(b"not a tar")
+    (tmp_path / "model.hdf5").write_bytes(b"not hdf5")
+
+    inventory = _publish(tmp_path).source_inventory
+    assert inventory is not None
+    assert sorted(path.name for path in inventory.model_artifacts) == [
+        "chat_template.jinja",
+        "merges.txt",
+        "model.hdf5",
+        "weights.tar.bz2",
+        "weights.tar.gz",
+        "weights.tar.xz",
+        "weights.tbz2",
+        "weights.tgz",
+        "weights.txz",
+    ]
+    assert model_artifact_key(tmp_path / "weights.tar.gz") == ".tar.gz"
+    assert model_artifact_key(tmp_path / "model.hdf5") == ".hdf5"
+    assert model_artifact_key(tmp_path / "notes.txt") is None
+    assert model_artifact_key(tmp_path / "data.gz") is None
