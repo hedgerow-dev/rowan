@@ -45,7 +45,7 @@ def find_ignore_file(start: Path) -> Path | None:
 
 def load_ignore_file(path: Path) -> list[dict[str, Any]]:
     raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    entries = raw.get("ignore", []) if isinstance(raw, dict) else []
+    entries = (raw.get("ignore") or []) if isinstance(raw, dict) else []
     today = date.today().isoformat()
     active: list[dict[str, Any]] = []
     for e in entries:

@@ -334,6 +334,13 @@ def test_ignore_expired_entry_is_skipped(tmp_path):
     assert len(kept) == 1
 
 
+@pytest.mark.parametrize("content", ["ignore:\n", "ignore: []\n"])
+def test_empty_ignore_list_loads_as_no_entries(tmp_path, content):
+    ig = tmp_path / ".rowan-ignore.yml"
+    ig.write_text(content)
+    assert load_ignore_file(ig) == []
+
+
 # ── HTML report (#12) ────────────────────────────────────────────────────────
 
 
