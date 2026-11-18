@@ -11,9 +11,9 @@ from pathlib import Path
 
 from rowan.artifacts import (
     DEPENDENCY_SKIP_DIRS,
-    MODEL_ARTIFACT_EXTENSIONS,
+    MODEL_ARTIFACT_DISCOVERY,
     is_dependency_manifest,
-    is_model_artifact,
+    model_artifact_key,
 )
 from rowan.config import ScanConfig
 from rowan.core.findings import Finding, ScanResult
@@ -352,7 +352,7 @@ class FileScanPass:
             if entry.startswith(".")
         )
         model_artifacts_by_extension: dict[str, list[Path]] = {
-            extension: [] for extension in MODEL_ARTIFACT_EXTENSIONS
+            extension: [] for extension in MODEL_ARTIFACT_DISCOVERY
         }
         target_langs = {lang.lower() for lang in config.languages} if config.languages else set()
 
@@ -389,7 +389,8 @@ class FileScanPass:
             ):
                 dependency_manifests.append(f)
 
-            if is_model_artifact(f) and f.is_file():
+            artifact_key = model_artifact_key(f)
+            if artifact_key is not None and f.is_file():
                 model_parts = rel_parts
                 model_skip_dirs = (
                     BASE_SKIP_DIRS
@@ -405,7 +406,7 @@ class FileScanPass:
                     and not _user_excluded(model_parts, config)
                     and not (patterns and is_ignored("/".join(model_parts), patterns))
                 ):
-                    model_artifacts_by_extension[f.suffix.lower()].append(f)
+                    model_artifacts_by_extension[artifact_key].append(f)
 
             name = f.name
             if name not in exact_names and not name.endswith(suffixes):
@@ -465,7 +466,7 @@ class FileScanPass:
 
         model_artifacts = [
             path
-            for extension in MODEL_ARTIFACT_EXTENSIONS
+            for extension in MODEL_ARTIFACT_DISCOVERY
             for path in model_artifacts_by_extension[extension]
         ]
         return files, dependency_manifests, model_artifacts, mcp_config_files, unsupported_counts
