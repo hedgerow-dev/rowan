@@ -121,4 +121,12 @@ def test_cli_opens_and_closes_the_audit_log(tmp_path, monkeypatch):
 
     assert result.exit_code == 0, result.output
     assert [r["event"] for r in _lines(log)] == ["probe"]
-    assert not logging.getLogger("rowan.audit").handlers
+    # Pytest's logging plugin attaches its own capture handlers. The audit
+    # file handler opened for --audit-log must still be closed.
+    audit_path = str(log.resolve())
+    still_open = [
+        handler
+        for handler in logging.getLogger("rowan.audit").handlers
+        if isinstance(handler, logging.FileHandler) and handler.baseFilename == audit_path
+    ]
+    assert still_open == []
